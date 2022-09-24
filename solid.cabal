@@ -16,7 +16,10 @@ build-type:     Simple
 library
   exposed-modules:
       Solid
+      Solid.Common
+      Solid.IO
       Solid.String
+      Solid.ToString
   other-modules:
       Paths_solid
   hs-source-dirs:
@@ -36,7 +39,9 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Solid.IOSpec
       Solid.StringSpec
+      Solid.ToStringSpec
       Paths_solid
   hs-source-dirs:
       test
@@ -52,6 +57,7 @@ test-suite spec
     , bytestring ==0.11.3.1
     , ghc ==9.4.2
     , hspec ==2.*
+    , silently
     , solid
     , text ==2.0.1
   default-language: GHC2021

@@ -27,4 +27,5 @@ tests:
     dependencies:
       - solid
       - hspec == 2.*
+      - silently
       - QuickCheck

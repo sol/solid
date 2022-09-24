@@ -2,15 +2,15 @@
 {-# LANGUAGE DerivingStrategies #-}
 module Solid.String (
   String
+, Bytes(..)
 , pack
 , unpack
 ) where
 
-import           Prelude hiding (String)
+import           Prelude ()
+import           Solid.Common
 
 import           Data.Bits ((.&.))
-import           Data.String (IsString(..))
-import           GHC.Records (HasField(..))
 
 import qualified Data.ByteString as Haskell
 
