@@ -1,0 +1,57 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           solid
+version:        0.0.0
+author:         Simon Hengel <sol@typeful.net>
+maintainer:     Simon Hengel <sol@typeful.net>
+copyright:      (c) 2022 Simon Hengel
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+
+library
+  exposed-modules:
+      Solid
+      Solid.String
+  other-modules:
+      Paths_solid
+  hs-source-dirs:
+      src
+  default-extensions:
+      OverloadedRecordDot
+      OverloadedStrings
+  ghc-options: -Wall
+  build-depends:
+      base ==4.17.0.0
+    , bytestring ==0.11.3.1
+    , ghc ==9.4.2
+    , text ==2.0.1
+  default-language: GHC2021
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Solid.StringSpec
+      Paths_solid
+  hs-source-dirs:
+      test
+  default-extensions:
+      OverloadedRecordDot
+      OverloadedStrings
+  ghc-options: -Wall
+  build-tool-depends:
+      hspec-discover:hspec-discover
+  build-depends:
+      QuickCheck
+    , base ==4.17.0.0
+    , bytestring ==0.11.3.1
+    , ghc ==9.4.2
+    , hspec ==2.*
+    , solid
+    , text ==2.0.1
+  default-language: GHC2021

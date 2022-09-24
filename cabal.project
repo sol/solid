@@ -1,0 +1,5 @@
+packages:
+  solid.cabal
+
+package solid
+  ghc-options: -Werror

@@ -1,0 +1,30 @@
+name: solid
+
+copyright: (c) 2022 Simon Hengel
+author: Simon Hengel <sol@typeful.net>
+
+language: GHC2021
+default-extensions:
+  - OverloadedRecordDot
+  - OverloadedStrings
+
+ghc-options: -Wall
+
+dependencies:
+  - ghc == 9.4.2
+  - base == 4.17.0.0
+  - bytestring == 0.11.3.1
+  - text == 2.0.1
+
+library:
+  source-dirs: src
+
+tests:
+  spec:
+    build-tools: hspec-discover
+    main: Spec.hs
+    source-dirs: test
+    dependencies:
+      - solid
+      - hspec == 2.*
+      - QuickCheck
