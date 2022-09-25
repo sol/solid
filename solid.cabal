@@ -25,6 +25,7 @@ library
   hs-source-dirs:
       src
   default-extensions:
+      DataKinds
       OverloadedRecordDot
       OverloadedStrings
   ghc-options: -Wall
@@ -46,6 +47,7 @@ test-suite spec
   hs-source-dirs:
       test
   default-extensions:
+      DataKinds
       OverloadedRecordDot
       OverloadedStrings
   ghc-options: -Wall

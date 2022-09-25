@@ -1,1 +1,4 @@
-:set -isrc -itest -XOverloadedRecordDot -XOverloadedStrings
+:set -isrc -itest
+:set -XDataKinds
+:set -XOverloadedRecordDot
+:set -XOverloadedStrings

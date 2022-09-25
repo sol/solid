@@ -21,6 +21,9 @@ class ToString a where
 instance ToString String where
   toString = id
 
+instance ToString [Char] where
+  toString = pack
+
 instance ToString Char where
   toString = Bytes . LB.toStrict . Builder.toLazyByteString . Builder.charUtf8
 

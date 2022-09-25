@@ -1,8 +1,8 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.IO (
   print
+, writeFile
 , Handle
 , stdin
 , stdout
@@ -22,6 +22,9 @@ import           Solid.ToString
 
 print :: ToString a => a -> IO ()
 print = stdout.print
+
+writeFile :: FilePath -> String -> IO ()
+writeFile = coerce B.writeFile
 
 write :: Handle -> String -> IO ()
 write = coerce B.hPut
