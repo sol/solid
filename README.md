@@ -1,3 +1,40 @@
+# nothing to see here move along
+...
+
+...
+
+...
+
+# Solid: A functional scripting environment
+
+```
+git clone git@github.com:sol/solid.git
+cd solid
+cabal install
+```
+
+```haskell
+#!/usr/bin/env solid
+
+name :: String
+name = "Joe"
+
+main :: IO ()
+main = do
+  stdout.writeLine "Hey {name} 👋"
+```
+
+```
+$ solid main.hs
+Hey Joe 👋
+```
+or
+```
+$ chmod +x main.hs
+$ ./main.hs
+Hey Joe 👋
+```
+
 # Haskell Language Server (LSP) support
 
 It is possible to use [Haskell Language Server](https://github.com/haskell/haskell-language-server)
