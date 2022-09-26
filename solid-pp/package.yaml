@@ -1,0 +1,29 @@
+name: solid-pp
+
+copyright: (c) 2022 Simon Hengel
+author: Simon Hengel <sol@typeful.net>
+
+ghc-options: -Wall
+
+dependencies:
+  - base == 4.*
+
+library:
+  source-dirs: src
+
+executable:
+  main: driver/Main.hs
+  dependencies:
+    - solid-pp
+
+tests:
+  spec:
+    build-tools:
+      - hspec-discover
+      - solid-pp
+    main: Spec.hs
+    source-dirs:
+      - test
+    dependencies:
+      - solid-pp
+      - hspec == 2.*

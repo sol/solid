@@ -1,5 +1,9 @@
 packages:
-  solid.cabal
+  .
+  solid-pp
 
 package solid
+  ghc-options: -Werror
+
+package solid-pp
   ghc-options: -Werror
