@@ -3,6 +3,8 @@ name: solid-pp
 copyright: (c) 2022 Simon Hengel
 author: Simon Hengel <sol@typeful.net>
 
+language: GHC2021
+
 ghc-options: -Wall
 
 dependencies:
@@ -12,6 +14,10 @@ library:
   source-dirs: src
   dependencies:
     - transformers
+    - ghc == 9.4.2
+    - ghc-boot
+    - text
+    - bytestring
 
 executable:
   main: driver/Main.hs
@@ -29,3 +35,4 @@ tests:
     dependencies:
       - solid-pp
       - hspec == 2.*
+      - mockery

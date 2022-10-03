@@ -16,6 +16,9 @@ build-type:     Simple
 library
   exposed-modules:
       Solid.PP
+      Solid.PP.Edit
+      Solid.PP.IO
+      Solid.PP.Lexer
   other-modules:
       Paths_solid_pp
   hs-source-dirs:
@@ -23,8 +26,12 @@ library
   ghc-options: -Wall
   build-depends:
       base ==4.*
+    , bytestring
+    , ghc ==9.4.2
+    , ghc-boot
+    , text
     , transformers
-  default-language: Haskell2010
+  default-language: GHC2021
 
 executable solid-pp
   main-is: driver/Main.hs
@@ -34,13 +41,15 @@ executable solid-pp
   build-depends:
       base ==4.*
     , solid-pp
-  default-language: Haskell2010
+  default-language: GHC2021
 
 test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
       EndToEndSpec
+      Solid.PP.IOSpec
+      Solid.PP.LexerSpec
       Solid.PPSpec
       Paths_solid_pp
   hs-source-dirs:
@@ -53,5 +62,6 @@ test-suite spec
   build-depends:
       base ==4.*
     , hspec ==2.*
+    , mockery
     , solid-pp
-  default-language: Haskell2010
+  default-language: GHC2021

@@ -1,15 +1,67 @@
 {-# LANGUAGE LambdaCase #-}
-module Solid.PP where
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
+module Solid.PP (run) where
+
+import           Prelude ()
+import           Solid.PP.IO
 
 import           Control.Monad.Trans.State
 
-run :: FilePath -> FilePath -> FilePath -> IO ()
-run src cur dst = readFile cur >>= writeFile dst . (linePragma <>) . pp
-  where
-    linePragma = "{-# LINE 1 " <> show src <> " #-}\n"
+import           Solid.PP.Lexer
+import           Solid.PP.Edit
 
-pp :: String -> String
-pp = go
+extensions :: [Extension]
+extensions = [
+    DataKinds
+  , OverloadedRecordDot
+  , OverloadedStrings
+  ]
+
+run :: FilePath -> FilePath -> FilePath -> IO ()
+run src cur dst = do
+  input <- readFile cur
+  ppIdentifiers src dst $ addLinePragma (pp input)
+  where
+    addLinePragma = (linePragma <>)
+    linePragma = "{-# LINE 1 " <> pack (show src) <> " #-}\n"
+
+ppIdentifiers :: FilePath -> FilePath -> Text -> IO ()
+ppIdentifiers src dst input = do
+  tokens <- tokenize extensions src input
+  withFile dst WriteMode $ \ h -> do
+    edit h input (ppIdentifierSuffixes tokens)
+
+allowedIdentifierSuffixes :: [(Char, Char)]
+allowedIdentifierSuffixes = [
+    ('!', 'ᴉ')
+  , ('?', 'ʔ')
+  ]
+
+ppIdentifierSuffixes :: [PsLocated Token] -> [Edit]
+ppIdentifierSuffixes = go
+  where
+    go = \ case
+      [] -> []
+      identifier@(L _ (ITvarid _)) : operator@(L loc (ITvarsym op)) : xs |
+          notSeparatedByWhitespace identifier operator
+        , suffix : rest <- unpackFS op
+        , rest == "" || rest == "."
+        , Just replacement <- lookup suffix allowedIdentifierSuffixes
+            -> Replace (start loc) replacement : go xs
+      _ : xs -> go xs
+
+    notSeparatedByWhitespace :: PsLocated Token -> PsLocated Token -> Bool
+    notSeparatedByWhitespace (L a _) (L b _) = end a == start b
+
+    start :: PsSpan -> Int
+    start = bufPos . bufSpanStart . psBufSpan
+
+    end :: PsSpan -> Int
+    end = bufPos . bufSpanEnd . psBufSpan
+
+pp :: Text -> Text
+pp = pack . go . unpack
   where
     go :: String -> String
     go = \ case
