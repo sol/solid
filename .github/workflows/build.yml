@@ -5,9 +5,9 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  push:
-    branches:
-      - main
+#  push:
+#    branches:
+#      - main
   pull_request:
     branches:
       - main
@@ -20,11 +20,11 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
-          - macos-latest
+          # - ubuntu-latest
+          # - macos-latest
           - windows-latest
         ghc:
-          - 9.4.2
+          - system
     steps:
       - uses: actions/checkout@v3
       - uses: hspec/setup-haskell@v1
@@ -32,15 +32,15 @@ jobs:
           ghc-version: ${{ matrix.ghc }}
       - uses: sol/run-haskell-tests@v1
 
-  success:
-    needs: build
-    runs-on: ubuntu-latest
-    if: always() # this is required as GitHub considers "skipped" jobs as "passed" when checking branch protection rules
-
-    steps:
-      - run: false
-        if: needs.build.result != 'success'
-
-      - uses: actions/checkout@v3
-      - name: Check for trailing whitespace
-        run: '! git grep -I "\s\+$"'
+#  success:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    if: always() # this is required as GitHub considers "skipped" jobs as "passed" when checking branch protection rules
+#
+#    steps:
+#      - run: false
+#        if: needs.build.result != 'success'
+#
+#      - uses: actions/checkout@v3
+#      - name: Check for trailing whitespace
+#        run: '! git grep -I "\s\+$"'

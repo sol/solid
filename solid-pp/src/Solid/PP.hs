@@ -1,6 +1,8 @@
 {-# LANGUAGE LambdaCase #-}
 module Solid.PP where
 
+import           Control.Monad.Trans.State
+
 run :: FilePath -> FilePath -> FilePath -> IO ()
 run src cur dst = readFile cur >>= writeFile dst . (linePragma <>) . pp
   where
@@ -9,19 +11,26 @@ run src cur dst = readFile cur >>= writeFile dst . (linePragma <>) . pp
 pp :: String -> String
 pp = go
   where
+    go :: String -> String
     go = \ case
-      '"' : xs -> '(' : '"' : stringLiteral xs
+      '"' : xs -> case runState (stringLiteral xs) False of
+        ((rest, lit), True) -> '(' : '"' : lit ++ "\")" ++ go rest
+        ((rest, lit), False) -> '"' : lit ++ "\"" ++ go rest
       x : xs -> x : go xs
       [] -> []
 
+    stringLiteral :: String -> State Bool (String, String)
     stringLiteral = \ case
-      '"' : xs -> '"' : ')' : go xs
-      '\\' : '{' : xs -> '{' : stringLiteral xs
-      '{' : xs -> "\" <> toString (" <> interpolation xs
-      x : xs -> x : stringLiteral xs
-      [] -> []
+      '"' : xs -> return (xs, "")
+      '\\' : '{' : xs -> fmap ('{' :) <$> stringLiteral xs
+      '{' : xs -> fmap ("\" <> toString (" <>) <$> interpolation xs
+      x : xs -> fmap (x :) <$> stringLiteral xs
+      [] -> return ("", "")
 
-    interpolation = \ case
-      '}' : xs -> ") <> \"" <> stringLiteral xs
-      x : xs -> x : interpolation xs
-      [] -> []
+    interpolation :: String -> State Bool (String, String)
+    interpolation input = do
+      put True
+      case input of
+        '}' : xs -> fmap (") <> \"" <>) <$> stringLiteral xs
+        x : xs -> fmap (x :) <$> interpolation xs
+        [] -> return ("", "")

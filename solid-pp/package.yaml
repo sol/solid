@@ -10,6 +10,8 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+    - transformers
 
 executable:
   main: driver/Main.hs

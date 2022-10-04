@@ -10,6 +10,7 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
+    [src] -> PP.run src src "/dev/stdout"
     [src, cur, dst] -> PP.run src cur dst
     _ -> do
       name <- getProgName

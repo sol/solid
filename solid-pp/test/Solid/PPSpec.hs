@@ -13,4 +13,4 @@ spec = do
 
       context "when an opening curly bracket is preceded by a backslash" $ do
         it "treats the opening curly bracket as a literal '{'" $ do
-          pp "foo = \"foo \\{bar} baz\"" `shouldBe` "foo = (\"foo {bar} baz\")"
+          pp "foo = \"foo \\{bar} baz\"" `shouldBe` "foo = \"foo {bar} baz\""
