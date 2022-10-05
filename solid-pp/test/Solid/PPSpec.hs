@@ -47,6 +47,14 @@ spec = do
           ]
         run "src.hs" "cur.hs" "dst.hs" `shouldFailWith` "foo.hs:24:1: error: unterminated `{-' at end of input"
 
+      it "does not reports failures for GHC2021 syntax" $ do
+        writeFile "cur.hs" $ unlines [
+            "foo :: Int"
+          , "foo = 23_0"
+          , "{-"
+          ]
+        run "src.hs" "cur.hs" "dst.hs" `shouldFailWith` "src.hs:3:1: error: unterminated `{-' at end of input"
+
     context "when pre-processing identifiers" $ do
       it "desugars postfix bangs" $ do
         unlines [

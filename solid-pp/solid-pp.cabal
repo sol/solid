@@ -27,6 +27,7 @@ library
   build-depends:
       base ==4.*
     , bytestring
+    , containers
     , ghc ==9.4.2
     , ghc-boot
     , text
@@ -40,6 +41,7 @@ executable solid-pp
   ghc-options: -Wall
   build-depends:
       base ==4.*
+    , ghc ==9.4.2
     , solid-pp
   default-language: GHC2021
 
@@ -61,6 +63,7 @@ test-suite spec
       hspec-discover:hspec-discover
   build-depends:
       base ==4.*
+    , ghc ==9.4.2
     , hspec ==2.*
     , mockery
     , solid-pp

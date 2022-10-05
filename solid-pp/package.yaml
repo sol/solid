@@ -9,12 +9,13 @@ ghc-options: -Wall
 
 dependencies:
   - base == 4.*
+  - ghc == 9.4.2
 
 library:
   source-dirs: src
   dependencies:
+    - containers
     - transformers
-    - ghc == 9.4.2
     - ghc-boot
     - text
     - bytestring

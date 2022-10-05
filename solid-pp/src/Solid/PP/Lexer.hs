@@ -1,9 +1,9 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Lexer (
   Extension(..)
-, getExtensions
+, applyLanguagePragmas
 
 , Token(..)
 , SourceError
@@ -28,9 +28,12 @@ import           Prelude ()
 import           Solid.PP.IO
 
 import           Data.Maybe
-import           Data.List (stripPrefix)
-import           Text.Read
+import           Data.List (stripPrefix, foldl')
 
+import           Data.Map (Map)
+import qualified Data.Map as Map
+
+import           GHC.Data.EnumSet (EnumSet)
 import qualified GHC.Data.EnumSet as EnumSet
 import           GHC.Data.FastString
 import           GHC.Data.StringBuffer hiding (cur)
@@ -42,15 +45,21 @@ import           GHC.Utils.Outputable (defaultSDocContext)
 import           GHC.Driver.Errors.Types
 import           GHC.Types.SourceError
 import           GHC.Driver.Session
-import           GHC.Parser.Header
+import qualified GHC.Parser.Header as ModuleHeader
 
-supportedExtensions :: [Extension]
-supportedExtensions = [minBound .. maxBound]
-
-makeOpts :: [Extension] -> ParserOpts
-makeOpts extensions = mkParserOpts exts diagOpts (map show supportedExtensions) False True True True
+allExtensions :: Map String Extension
+allExtensions = Map.fromList $ zip (map show extensions) extensions
   where
-    exts = EnumSet.fromList $ languageExtensions (Just GHC2021) ++ extensions
+    extensions :: [Extension]
+    extensions = [minBound .. maxBound]
+
+lookupExtension :: String -> Maybe Extension
+lookupExtension = (`Map.lookup` allExtensions)
+
+makeOpts :: EnumSet Extension -> ParserOpts
+makeOpts extensions = mkParserOpts extensions diagOpts allowedExtensions False True True True
+  where
+    allowedExtensions = Map.keys allExtensions ++ map ("No" <>) (Map.keys allExtensions)
 
     diagOpts = DiagOpts {
       diag_warning_flags       = mempty
@@ -61,16 +70,26 @@ makeOpts extensions = mkParserOpts exts diagOpts (map show supportedExtensions) 
     , diag_ppr_ctx             = defaultSDocContext
     }
 
-deriving instance Read Extension
+data LanguageFlag = Enable Extension | Disable Extension
 
-getExtensions :: [Extension] -> FilePath -> StringBuffer -> [Extension]
-getExtensions extensions src buffer = extensions ++ mapMaybe (readExtension . unLoc) options
+readLanguageFlag :: String -> Maybe LanguageFlag
+readLanguageFlag input =
+      Disable <$> (stripPrefix "-XNo" input >>= lookupExtension)
+  <|> Enable  <$> (stripPrefix "-X"   input >>= lookupExtension)
+
+applyLanguagePragmas :: [Extension] -> FilePath -> StringBuffer -> EnumSet Extension
+applyLanguagePragmas (EnumSet.fromList -> extensions) src buffer = foldl' (flip applyLanguageFlag) extensions languageFlags
   where
     opts = makeOpts extensions
-    (_, options) = getOptions opts buffer src
+    (_, map unLoc -> options) = ModuleHeader.getOptions opts buffer src
 
-    readExtension :: String -> Maybe Extension
-    readExtension = stripPrefix "-X" >=> readMaybe
+    applyLanguageFlag :: LanguageFlag -> EnumSet Extension -> EnumSet Extension
+    applyLanguageFlag = \ case
+      Enable ext -> EnumSet.insert ext
+      Disable ext -> EnumSet.delete ext
+
+    languageFlags :: [LanguageFlag]
+    languageFlags = mapMaybe readLanguageFlag options
 
 tokenize :: [Extension] -> FilePath -> Text -> IO [PsLocated Token]
 tokenize extensions src = fmap snd . tokenizeWithErrors extensions src
@@ -83,7 +102,7 @@ tokenizeWithErrors extensions src input = do
     PFailed state -> do
       throwIO (getErrors state)
   where
-    opts = makeOpts (getExtensions extensions src buffer)
+    opts = makeOpts (applyLanguagePragmas (languageExtensions (Just GHC2021) ++ extensions ) src buffer)
 
     loc :: RealSrcLoc
     loc = mkRealSrcLoc (mkFastString src) 1 1

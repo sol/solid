@@ -8,6 +8,7 @@ module Solid.PP.IO (
 ) where
 
 import           Prelude as Exports hiding (readFile, writeFile, unlines)
+import           Control.Applicative as Exports
 import           Control.Monad as Exports
 import           Data.String as Exports (IsString(..))
 import           System.IO as Exports (Handle, IOMode(..), withFile)
