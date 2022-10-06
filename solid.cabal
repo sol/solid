@@ -26,6 +26,7 @@ library
       src
   default-extensions:
       DataKinds
+      DeriveAnyClass
       OverloadedRecordDot
       OverloadedStrings
   ghc-options: -Wall
@@ -48,6 +49,7 @@ test-suite spec
       test
   default-extensions:
       DataKinds
+      DeriveAnyClass
       OverloadedRecordDot
       OverloadedStrings
   ghc-options: -Wall

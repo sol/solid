@@ -14,6 +14,7 @@ import           Solid.PP.Edit
 extensions :: [Extension]
 extensions = [
     DataKinds
+  , DeriveAnyClass
   , OverloadedRecordDot
   , OverloadedStrings
   ]
