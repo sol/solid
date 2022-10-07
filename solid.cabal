@@ -17,6 +17,7 @@ library
   exposed-modules:
       Solid
       Solid.Common
+      Solid.Exception
       Solid.IO
       Solid.String
       Solid.ToString

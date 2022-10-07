@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Solid.StringSpec (spec) where
 
 import           Test.Hspec
@@ -13,6 +14,9 @@ import qualified Data.Text.Encoding as T
 
 instance HasField "toText" String Text where
   getField = T.decodeUtf8 . unBytes
+
+invalidUtf8 :: ByteString
+invalidUtf8 = Bytes "foo \xc3\x28 bar"
 
 spec :: Spec
 spec = do
@@ -35,3 +39,32 @@ spec = do
     it "returns the length of a String" $ do
       property $ \ xs -> do
         (pack xs).length `shouldBe` T.length (T.pack xs)
+
+  describe ".asByteString" $ do
+    it "converts a String to a ByteString" $ do
+      let
+        input :: String
+        input = "foo"
+      input.asByteString `shouldBe` (Bytes "foo" :: ByteString)
+
+  describe ".asString" $ do
+    it "converts a ByteString to a String" $ do
+      let
+        input :: ByteString
+        input = Bytes "foo"
+      input.asString `shouldBe` Just "foo"
+
+    context "on invalid UTF-8" $ do
+      it "returns Nothing" $ do
+        invalidUtf8.asString `shouldBe` Nothing
+
+  describe ".asString!" $ do
+    it "converts a ByteString to a String" $ do
+      let
+        input :: ByteString
+        input = Bytes "foo"
+      input.asString! `shouldBe` "foo"
+
+    context "on invalid UTF-8" $ do
+      it "throws an exception" $ do
+        evaluate invalidUtf8.asString! `shouldThrow` (== UnicodeDecodeError)
