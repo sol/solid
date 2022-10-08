@@ -19,6 +19,7 @@ library
       Solid.ByteString
       Solid.Common
       Solid.Exception
+      Solid.FilePath
       Solid.IO
       Solid.String
       Solid.ToString
@@ -37,6 +38,8 @@ library
   build-depends:
       base ==4.17.0.0
     , bytestring ==0.11.3.1
+    , directory ==1.3.7.1
+    , filepath ==1.4.2.2
     , ghc ==9.4.2
     , text ==2.0.1
   default-language: GHC2021
@@ -46,6 +49,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Solid.ByteStringSpec
+      Solid.FilePathSpec
       Solid.IOSpec
       Solid.StringSpec
       Solid.ToStringSpec
@@ -65,6 +69,8 @@ test-suite spec
       QuickCheck
     , base ==4.17.0.0
     , bytestring ==0.11.3.1
+    , directory ==1.3.7.1
+    , filepath ==1.4.2.2
     , ghc ==9.4.2
     , hspec ==2.*
     , mockery

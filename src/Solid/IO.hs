@@ -18,6 +18,7 @@ module Solid.IO (
 import           Prelude ()
 import           Solid.Common
 import           Solid.Exception
+import           Solid.FilePath
 
 import           System.IO (Handle, stdin, stdout, stderr)
 
