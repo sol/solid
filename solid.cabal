@@ -32,6 +32,8 @@ library
       OverloadedRecordDot
       OverloadedStrings
   ghc-options: -Wall
+  build-tool-depends:
+      solid-pp:solid-pp
   build-depends:
       base ==4.17.0.0
     , bytestring ==0.11.3.1
@@ -58,12 +60,14 @@ test-suite spec
   ghc-options: -Wall
   build-tool-depends:
       hspec-discover:hspec-discover
+    , solid-pp:solid-pp
   build-depends:
       QuickCheck
     , base ==4.17.0.0
     , bytestring ==0.11.3.1
     , ghc ==9.4.2
     , hspec ==2.*
+    , mockery
     , silently
     , solid
     , text ==2.0.1
