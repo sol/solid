@@ -16,6 +16,7 @@ build-type:     Simple
 library
   exposed-modules:
       Solid
+      Solid.ByteString
       Solid.Common
       Solid.Exception
       Solid.IO
@@ -42,6 +43,7 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Solid.ByteStringSpec
       Solid.IOSpec
       Solid.StringSpec
       Solid.ToStringSpec
