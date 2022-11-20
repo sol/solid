@@ -22,6 +22,7 @@ library
       Solid.Exception
       Solid.FilePath
       Solid.IO
+      Solid.MD5
       Solid.String
       Solid.String.Type
       Solid.ToString
@@ -54,6 +55,7 @@ test-suite spec
       Solid.ByteStringSpec
       Solid.FilePathSpec
       Solid.IOSpec
+      Solid.MD5Spec
       Solid.StringSpec
       Solid.ToStringSpec
       Paths_solid
