@@ -2,11 +2,8 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Solid.StringSpec (spec) where
 
-import           Test.Hspec
-import           Test.QuickCheck
-
 import           Prelude()
-import           Solid
+import           Helper
 
 import           Data.Text (Text)
 import qualified Data.Text as T

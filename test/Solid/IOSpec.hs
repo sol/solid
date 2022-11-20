@@ -2,11 +2,8 @@
 module Solid.IOSpec (spec) where
 
 import           Prelude ()
-import           Solid
+import           Helper
 
-import           Test.Hspec
-import           Test.QuickCheck
-import           Test.Mockery.Directory
 import           System.IO.Silently
 
 number :: Int
@@ -18,19 +15,22 @@ string = "foo"
 invalidUtf8 :: ByteString
 invalidUtf8 = Bytes "foo \xc3\x28 bar"
 
+file :: FilePath
+file = "foo.txt"
+
 spec :: Spec
 spec = do
   describe "readFile" $ around_ inTempDirectory $ do
     context "on invalid input" $ do
       it "throws an exception" $ do
-        writeBinaryFile "foo.txt" invalidUtf8
-        readFile "foo.txt" `shouldThrow` (== UnicodeDecodeError)
+        writeBinaryFile file invalidUtf8
+        readFile file `shouldThrow` (== UnicodeDecodeError)
 
   describe "writeFile" $ around_ inTempDirectory $ do
     it "writes a file to disk" $ do
       property $ \ (pack -> xs) -> do
-        writeFile "foo.txt" xs
-        readFile "foo.txt" `shouldReturn` xs
+        writeFile file xs
+        readFile file `shouldReturn` xs
 
   describe "print" $ do
     it "prints a number " $ do

@@ -2,11 +2,7 @@
 module Solid.FilePathSpec (spec) where
 
 import           Prelude ()
-import           Solid
-
-import           Test.Hspec
-import           Test.QuickCheck
-import           Test.Mockery.Directory
+import           Helper
 
 path :: FilePath
 path = "foo.txt"

@@ -1,9 +1,7 @@
 module Solid.ByteStringSpec (spec) where
 
-import           Test.Hspec
-
 import           Prelude()
-import           Solid
+import           Helper
 
 spec :: Spec
 spec = do

@@ -1,9 +1,7 @@
 module Solid.ToStringSpec (spec) where
 
 import           Prelude ()
-import           Solid
-
-import           Test.Hspec
+import           Helper
 
 spec :: Spec
 spec = do

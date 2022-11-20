@@ -16,6 +16,4 @@ import           GHC.Stack as Imports (HasCallStack)
 import           Control.Exception as Imports (Exception, evaluate, throw, throwIO, bracket, bracket_)
 
 data UnicodeDecodeError = UnicodeDecodeError
-  deriving (Eq, Show)
-
-instance Exception UnicodeDecodeError
+  deriving (Eq, Show, Exception)
