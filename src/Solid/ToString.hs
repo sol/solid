@@ -1,5 +1,4 @@
 {-# LANGUAGE DefaultSignatures #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.ToString (
   ToString(..)
 ) where
@@ -9,8 +8,10 @@ import           Solid.Common
 
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as LB
+import           Data.Typeable (TypeRep)
 
-import           Solid.String
+import           Solid.ByteString
+import           Solid.String.Type
 
 class ToString a where
   toString :: a -> String
@@ -28,3 +29,4 @@ instance ToString Char where
   toString = Bytes . LB.toStrict . Builder.toLazyByteString . Builder.charUtf8
 
 instance ToString Int
+instance ToString TypeRep

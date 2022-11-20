@@ -44,16 +44,23 @@ ppIdentifierSuffixes = go
   where
     go = \ case
       [] -> []
-      identifier@(L _ (ITvarid _)) : operator@(L loc (ITvarsym op)) : xs |
-          notSeparatedByWhitespace identifier operator
+      identifier@(L _ varid) : operator@(L loc (ITvarsym op)) : xs |
+          isVarId varid
+        , notSeparatedByWhitespace identifier operator
         , suffix : rest <- unpackFS op
         , rest == "" || rest == "."
         , Just replacement <- lookup suffix allowedIdentifierSuffixes
             -> Replace (start loc) replacement : go xs
+
       _ : xs -> go xs
 
     notSeparatedByWhitespace :: PsLocated Token -> PsLocated Token -> Bool
     notSeparatedByWhitespace (L a _) (L b _) = end a == start b
+
+    isVarId = \ case
+      ITvarid _ -> True
+      ITqvarid _ -> True
+      _ -> False
 
     start :: PsSpan -> Int
     start = bufPos . bufSpanStart . psBufSpan

@@ -48,10 +48,15 @@ import           GHC.Driver.Session
 import qualified GHC.Parser.Header as ModuleHeader
 
 allExtensions :: Map String Extension
-allExtensions = Map.fromList $ zip (map show extensions) extensions
+allExtensions = Map.fromList $ zip (map showExtension extensions) extensions
   where
     extensions :: [Extension]
     extensions = [minBound .. maxBound]
+
+showExtension :: Extension -> String
+showExtension = \ case
+  Cpp -> "CPP"
+  extension -> show extension
 
 lookupExtension :: String -> Maybe Extension
 lookupExtension = (`Map.lookup` allExtensions)

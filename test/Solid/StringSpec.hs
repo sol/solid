@@ -42,7 +42,7 @@ spec = do
 
     context "on invalid UTF-8" $ do
       it "throws an exception" $ do
-        evaluate invalidUtf8.asString! `shouldThrow` (== UnicodeDecodeError)
+        evaluate invalidUtf8.asString! `shouldThrow` UnicodeDecodeError
 
   describe "pack" $ do
     it "creates a String from a list of Char" $ do

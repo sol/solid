@@ -15,6 +15,7 @@ build-type:     Simple
 
 library
   exposed-modules:
+      Platform
       Solid
       Solid.ByteString
       Solid.Common
@@ -22,6 +23,7 @@ library
       Solid.FilePath
       Solid.IO
       Solid.String
+      Solid.String.Type
       Solid.ToString
   other-modules:
       Paths_solid

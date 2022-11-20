@@ -4,7 +4,7 @@ module Solid.FilePath where
 
 import           Prelude ()
 import           Solid.Common
-import           Solid.String
+import           Solid.String.Type
 import           Solid.ToString
 import           Data.Coerce
 

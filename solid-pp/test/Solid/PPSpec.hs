@@ -81,6 +81,10 @@ spec = do
         it "desugars postfix bangs" $ do
           "foo = xs.tail!.head!" `shouldDesugarTo` "foo = xs.tailᴉ.headᴉ"
 
+      context "with a qualified name" $ do
+        it "desugars postfix bangs" $ do
+          "foo = Bar.baz!" `shouldDesugarTo` "foo = Bar.bazᴉ"
+
     context "when pre-processing string literals" $ do
       it "desugars string interpolation" $ do
         "foo = \"foo {bar} baz\"" `shouldDesugarTo` "foo = (\"foo \" <> toString (bar) <> \" baz\")"

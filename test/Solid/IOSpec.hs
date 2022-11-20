@@ -24,7 +24,16 @@ spec = do
     context "on invalid input" $ do
       it "throws an exception" $ do
         writeBinaryFile file invalidUtf8
-        readFile file `shouldThrow` (== UnicodeDecodeError)
+        readFile file `shouldThrow` UnicodeDecodeError
+
+    context "when file does not exist" $ do
+      it "throws an exception" $ do
+        readFile file `shouldThrow` FileNotFoundError file
+
+    context "when file is a directory" $ do
+      it "throws an exception" $ do
+        touch $ file </> "bar"
+        readFile file `shouldThrow` isADirectoryError file
 
   describe "writeFile" $ around_ inTempDirectory $ do
     it "writes a file to disk" $ do
