@@ -20,7 +20,7 @@ import           Solid.Common
 import           Solid.Exception
 import           Solid.FilePath
 
-import           System.IO (Handle, stdin, stdout, stderr)
+import           System.IO (Handle, stdin, stdout, stderr, hFlush)
 
 import           Data.Coerce
 import qualified Data.ByteString as B
@@ -49,6 +49,9 @@ writeBinaryFile = coerce B.writeFile
 
 instance (HasField "print" Handle (a -> IO ()), ToString a) => HasField "print" Handle (a -> IO ()) where
   getField self = self.writeLine . toString
+
+instance HasField "flush" Handle (IO ()) where
+  getField = hFlush
 
 write :: Handle -> String -> IO ()
 write = coerce B.hPut
