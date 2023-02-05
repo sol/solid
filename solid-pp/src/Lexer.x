@@ -52,8 +52,9 @@
 
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module GHC.Parser.Lexer (
+module Lexer (
    Token(..), lexer, lexerDbg,
    ParserOpts(..), mkParserOpts,
    PState (..), initParserState, initPragState,
@@ -79,6 +80,10 @@ module GHC.Parser.Lexer (
    adjustChar,
    addPsMessage
   ) where
+
+import GHC.Parser.Lexer (
+  ParserOpts(..),
+  )
 
 import GHC.Prelude
 import qualified GHC.Data.Strict as Strict
@@ -2352,6 +2357,7 @@ warnopt f options = f `EnumSet.member` pWarningFlags options
 -- | Parser options.
 --
 -- See 'mkParserOpts' to construct this.
+{-
 data ParserOpts = ParserOpts
   { pExtsBitmap     :: !ExtsBitmap -- ^ bitmap of permitted extensions
   , pDiagOpts       :: !DiagOpts
@@ -2359,6 +2365,7 @@ data ParserOpts = ParserOpts
   , pSupportedExts  :: [String]
     -- ^ supported extensions (only used for suggestions in error messages)
   }
+-}
 
 pWarningFlags :: ParserOpts -> EnumSet WarningFlag
 pWarningFlags opts = diag_warning_flags (pDiagOpts opts)
