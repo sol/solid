@@ -15,6 +15,7 @@ build-type:     Simple
 
 library
   exposed-modules:
+      Lexer
       Solid.PP
       Solid.PP.Edit
       Solid.PP.IO
@@ -24,8 +25,11 @@ library
   hs-source-dirs:
       src
   ghc-options: -Wall
+  build-tools:
+      alex
   build-depends:
-      base ==4.*
+      array
+    , base ==4.*
     , bytestring
     , containers
     , ghc ==9.4.4
@@ -39,8 +43,11 @@ executable solid-pp
   other-modules:
       Paths_solid_pp
   ghc-options: -Wall
+  build-tools:
+      alex
   build-depends:
-      base ==4.*
+      array
+    , base ==4.*
     , ghc ==9.4.4
     , solid-pp
   default-language: GHC2021
@@ -58,11 +65,13 @@ test-suite spec
       test
   ghc-options: -Wall
   build-tools:
-      solid-pp
+      alex
+    , solid-pp
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
-      base ==4.*
+      array
+    , base ==4.*
     , ghc ==9.4.4
     , hspec ==2.*
     , mockery

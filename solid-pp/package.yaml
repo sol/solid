@@ -9,7 +9,10 @@ ghc-options: -Wall
 
 dependencies:
   - base == 4.*
+  - array
   - ghc == 9.4.4
+
+build-tools: alex
 
 library:
   source-dirs: src

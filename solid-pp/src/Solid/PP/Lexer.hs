@@ -33,12 +33,12 @@ import           Data.List (stripPrefix, foldl')
 import           Data.Map (Map)
 import qualified Data.Map as Map
 
+import           Lexer hiding (lexTokenStream)
 import           GHC.Data.EnumSet (EnumSet)
 import qualified GHC.Data.EnumSet as EnumSet
 import           GHC.Data.FastString
 import           GHC.Data.StringBuffer hiding (cur)
 import           GHC.LanguageExtensions
-import           GHC.Parser.Lexer hiding (lexTokenStream)
 import           GHC.Types.SrcLoc
 import           GHC.Utils.Error
 import           GHC.Utils.Outputable (defaultSDocContext)
