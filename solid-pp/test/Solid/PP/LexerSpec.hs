@@ -14,7 +14,9 @@ import           GHC.IsList
 import           GHC.Data.EnumSet (EnumSet)
 import qualified GHC.Data.EnumSet as EnumSet
 
-import           Solid.PP.Lexer
+import           Solid.PP (extensions)
+import           Solid.PP.Lexer hiding (tokenize)
+import qualified Solid.PP.Lexer as Lexer
 
 instance IsString StringBuffer where
   fromString = stringToStringBuffer
@@ -30,8 +32,20 @@ instance Enum a => IsList (EnumSet a) where
   fromList = EnumSet.fromList
   toList = EnumSet.toList
 
+deriving instance Eq Token
+
+tokenize :: Text -> IO [Token]
+tokenize = fmap (map unLoc) . Lexer.tokenize extensions ""
+
 spec :: Spec
 spec = do
+  describe "tokenize" $ do
+    it "accepts question marks at the end of identifiers" $ do
+      tokenize "foo?" `shouldReturn` [ITvarid "foo?"]
+
+    it "accepts bangs at the end of identifiers" $ do
+      tokenize "foo!" `shouldReturn` [ITvarid "foo!"]
+
   describe "applyLanguagePragmas" $ do
     it "applies module LANGUAGE pragmas" $ do
       applyLanguagePragmas [] "main.hs" "{-# LANGUAGE LambdaCase #-}" `shouldBe` [LambdaCase]

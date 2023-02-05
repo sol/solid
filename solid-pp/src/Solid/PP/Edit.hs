@@ -6,17 +6,17 @@ import           Solid.PP.IO
 
 import qualified Data.Text as T
 
-data Edit = Replace Int Char
+data Edit = Replace Int Int Text
   deriving (Eq, Show)
 
 edit :: Handle -> Text -> [Edit] -> IO ()
-edit h = go 0
+edit h input = go 0
   where
-    go :: Int -> Text -> [Edit] -> IO ()
-    go offset input = \ case
+    go :: Int -> [Edit] -> IO ()
+    go cursor = \ case
       [] -> do
-        hPutStr h (T.drop offset input)
-      Replace n c : xs -> do
-        hPutStr h (T.drop offset $ T.take n input)
-        hPutStr h (T.singleton c)
-        go (succ n) input xs
+        hPutStr h (T.drop cursor input)
+      Replace pos n substitute : xs -> do
+        hPutStr h (T.drop cursor $ T.take pos input)
+        hPutStr h substitute
+        go (pos + n) xs

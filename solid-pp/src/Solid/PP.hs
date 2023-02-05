@@ -1,11 +1,15 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Solid.PP (run) where
+module Solid.PP (run, extensions) where
 
 import           Prelude ()
 import           Solid.PP.IO
 
+import           Data.Char
+import           Data.Word
+import qualified Data.Text as T
+import qualified Data.ByteString.Short as SB
 import           Control.Monad.Trans.State
 
 import           Solid.PP.Lexer
@@ -33,34 +37,37 @@ ppIdentifiers src dst input = do
   withFile dst WriteMode $ \ h -> do
     edit h input (ppIdentifierSuffixes tokens)
 
-allowedIdentifierSuffixes :: [(Char, Char)]
-allowedIdentifierSuffixes = [
-    ('!', 'ᴉ')
-  , ('?', 'ʔ')
-  ]
+desugarIdentifier :: Int -> Int -> FastString -> [Edit] -> [Edit]
+desugarIdentifier start end identifier
+  | lastChar == qmark || lastChar == bang = (Replace start (end - start) replacement :)
+  | otherwise = id
+  where
+    lastChar :: Word8
+    lastChar = SB.last $ fastStringToShortByteString identifier
+
+    qmark :: Word8
+    qmark = fromIntegral $ ord '?'
+
+    bang :: Word8
+    bang = fromIntegral $ ord '!'
+
+    replacement :: Text
+    replacement = T.pack $ map replaceChar $ unpackFS identifier
+
+    replaceChar :: Char -> Char
+    replaceChar c = case c of
+      '!' -> 'ᴉ'
+      '?' -> 'ʔ'
+      _ -> c
 
 ppIdentifierSuffixes :: [PsLocated Token] -> [Edit]
 ppIdentifierSuffixes = go
   where
     go = \ case
       [] -> []
-      identifier@(L _ varid) : operator@(L loc (ITvarsym op)) : xs |
-          isVarId varid
-        , notSeparatedByWhitespace identifier operator
-        , suffix : rest <- unpackFS op
-        , rest == "" || rest == "."
-        , Just replacement <- lookup suffix allowedIdentifierSuffixes
-            -> Replace (start loc) replacement : go xs
-
+      L loc (ITvarid identifier) : xs -> desugarIdentifier (start loc) (end loc) identifier $ go xs
+      L loc (ITqvarid (succ . lengthFS -> offset, identifier)) : xs -> desugarIdentifier (start loc + offset) (end loc) identifier $ go xs
       _ : xs -> go xs
-
-    notSeparatedByWhitespace :: PsLocated Token -> PsLocated Token -> Bool
-    notSeparatedByWhitespace (L a _) (L b _) = end a == start b
-
-    isVarId = \ case
-      ITvarid _ -> True
-      ITqvarid _ -> True
-      _ -> False
 
     start :: PsSpan -> Int
     start = bufPos . bufSpanStart . psBufSpan

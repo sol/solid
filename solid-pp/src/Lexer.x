@@ -168,6 +168,7 @@ $small     = [$ascsmall $unismall \_]
 
 $uniidchar = \x07 -- Trick Alex into handling Unicode. See Note [Unicode in Alex].
 $idchar    = [$small $large $digit $uniidchar \']
+$idsuffix  = [\? \!]
 
 $unigraphic = \x06 -- Trick Alex into handling Unicode. See Note [Unicode in Alex].
 $graphic   = [$small $large $symbol $digit $idchar $special $unigraphic \"\']
@@ -184,7 +185,7 @@ $docsym    = [\| \^ \* \$]
 -- -----------------------------------------------------------------------------
 -- Alex "Regular expression macros"
 
-@varid     = $small $idchar*          -- variable identifiers
+@varid     = $small $idchar* $idsuffix*         -- variable identifiers
 @conid     = $large $idchar*          -- constructor identifiers
 
 @varsym    = ($symbol # \:) $symbol*  -- variable (operator) symbol

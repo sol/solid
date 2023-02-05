@@ -13,8 +13,7 @@ module Solid.PP.Lexer (
 , StringBuffer
 , stringToStringBuffer
 
-, FastString
-, unpackFS
+, module FastString
 
 , PsLocated
 , GenLocated(..)
@@ -36,7 +35,7 @@ import qualified Data.Map as Map
 import           Lexer hiding (lexTokenStream)
 import           GHC.Data.EnumSet (EnumSet)
 import qualified GHC.Data.EnumSet as EnumSet
-import           GHC.Data.FastString
+import           GHC.Data.FastString as FastString
 import           GHC.Data.StringBuffer hiding (cur)
 import           GHC.LanguageExtensions
 import           GHC.Types.SrcLoc
