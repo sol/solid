@@ -13,7 +13,7 @@ default-extensions:
 ghc-options: -Wall
 
 dependencies:
-  - ghc == 9.4.2
+  - ghc == 9.4.4
   - base == 4.17.0.0
   - bytestring == 0.11.3.1
   - text == 2.0.1

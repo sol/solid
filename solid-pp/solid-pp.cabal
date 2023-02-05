@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -28,7 +28,7 @@ library
       base ==4.*
     , bytestring
     , containers
-    , ghc ==9.4.2
+    , ghc ==9.4.4
     , ghc-boot
     , text
     , transformers
@@ -41,7 +41,7 @@ executable solid-pp
   ghc-options: -Wall
   build-depends:
       base ==4.*
-    , ghc ==9.4.2
+    , ghc ==9.4.4
     , solid-pp
   default-language: GHC2021
 
@@ -63,7 +63,7 @@ test-suite spec
       hspec-discover:hspec-discover
   build-depends:
       base ==4.*
-    , ghc ==9.4.2
+    , ghc ==9.4.4
     , hspec ==2.*
     , mockery
     , solid-pp
