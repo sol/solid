@@ -14,6 +14,7 @@ module Solid.PP.Lexer (
 , stringToStringBuffer
 
 , module FastString
+, module GHC.Types.SourceText
 
 , PsLocated
 , GenLocated(..)
@@ -36,6 +37,7 @@ import           Lexer hiding (lexTokenStream)
 import           GHC.Data.EnumSet (EnumSet)
 import qualified GHC.Data.EnumSet as EnumSet
 import           GHC.Data.FastString as FastString
+import           GHC.Types.SourceText
 import           GHC.Data.StringBuffer hiding (cur)
 import           GHC.LanguageExtensions
 import           GHC.Types.SrcLoc

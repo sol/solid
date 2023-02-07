@@ -12,6 +12,8 @@ import           Test.Mockery.Directory
 
 import           Solid.PP
 
+infix 1 `shouldDesugarTo`
+
 shouldDesugarTo :: HasCallStack => Text -> Text -> Expectation
 shouldDesugarTo input expected = do
   let file = "main.hs"
@@ -19,12 +21,17 @@ shouldDesugarTo input expected = do
   run file file file
   readFile file `shouldReturn` ("{-# LINE 1 " <> pack (show file) <> " #-}\n" <> expected)
 
+infix 1 `shouldFailWith`
+
 shouldFailWith :: HasCallStack => IO () -> String -> Expectation
 shouldFailWith action expected = do
   (first show -> r) :: Either SomeException () <- try action
   case r of
     Left err -> err `shouldBe` expected
     Right () -> r `shouldBe` Left expected
+
+lit :: String -> Text
+lit = pack . show
 
 spec :: Spec
 spec = do
@@ -87,7 +94,19 @@ spec = do
 
     context "when pre-processing string literals" $ do
       it "desugars string interpolation" $ do
-        "foo = \"foo {bar} baz\"" `shouldDesugarTo` "foo = (\"foo \" <> toString (bar) <> \" baz\")"
+        "foo = \"foo {bar} baz\".toUpper" `shouldDesugarTo` mconcat [
+            "foo = (", lit "foo ", " <> toString (bar) <> ", lit " baz", ").toUpper"
+          ]
+
+      it "accepts string literals with multiple interpolations" $ do
+        "foo = \"foo { 23 } bar { 42 } baz\"" `shouldDesugarTo` mconcat [
+            "foo = (", lit "foo ", " <> toString ( 23 ) <> ", lit " bar ", " <> toString ( 42 ) <> ", lit " baz", ")"
+          ]
+
+      it "accepts nested interpolations" $ do
+        "foo = \"foo { \"x-{23}-x\" } baz\"" `shouldDesugarTo` mconcat [
+            "foo = (", lit "foo ", " <> toString ( (", lit "x-", " <> toString (23) <> ", lit "-x", ") ) <> ", lit " baz", ")"
+          ]
 
       context "when an opening curly bracket is preceded by a backslash" $ do
         it "treats the opening curly bracket as a literal '{'" $ do

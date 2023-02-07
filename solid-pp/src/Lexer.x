@@ -459,7 +459,17 @@ $tab          { warnTab }
          { token ITcubxparen }
 }
 
-<0,option_prags> {
+<interpolation> {
+  \}                            { lex_string_tok }
+  \{                            { open_brace_in_interpolation }
+}
+
+<nested_braces_in_interpolation> {
+  \{                            { open_brace_in_interpolation }
+  \}                            { close_brace_in_interpolation }
+}
+
+<0,option_prags,interpolation,nested_braces_in_interpolation> {
   \(                                    { special IToparen }
   \)                                    { special ITcparen }
   \[                                    { special ITobrack }
@@ -472,7 +482,7 @@ $tab          { warnTab }
   \}                                    { close_brace }
 }
 
-<0,option_prags> {
+<0,option_prags,interpolation,nested_braces_in_interpolation> {
   @qdo                                      { qdo_token ITdo }
   @qmdo    / { ifExtension RecursiveDoBit } { qdo_token ITmdo }
   @qvarid                       { idtoken qvarid }
@@ -490,7 +500,7 @@ $tab          { warnTab }
 
 -- Operators classified into prefix, suffix, tight infix, and loose infix.
 -- See Note [Whitespace-sensitive operator parsing]
-<0> {
+<0,interpolation,nested_braces_in_interpolation> {
   @varsym / { precededByClosingToken `alexAndPred` followedByOpeningToken } { varsym_tight_infix }
   @varsym / { followedByOpeningToken }  { varsym_prefix }
   @varsym / { precededByClosingToken }  { varsym_suffix }
@@ -499,7 +509,7 @@ $tab          { warnTab }
 
 -- ToDo: - move `var` and (sym) into lexical syntax?
 --       - remove backquote from $special?
-<0> {
+<0,interpolation,nested_braces_in_interpolation> {
   @qvarsym                                         { idtoken qvarsym }
   @qconsym                                         { idtoken qconsym }
   @consym                                          { consym }
@@ -517,7 +527,7 @@ $tab          { warnTab }
 -- that validates the literals.
 -- If extensions are not enabled, check that there are no underscores.
 --
-<0> {
+<0,interpolation,nested_braces_in_interpolation> {
   -- Normal integral literals (:: Num a => a, from Integer)
   @decimal                                                                   { tok_num positive 0 0 decimal }
   0[bB] @numspc @binary                / { ifExtension BinaryLiteralsBit }   { tok_num positive 2 2 binary }
@@ -573,7 +583,7 @@ $tab          { warnTab }
 -- that even if we recognise the string or char here in the regex
 -- lexer, we would still have to parse the string afterward in order
 -- to convert it to a String.
-<0> {
+<0,interpolation,nested_braces_in_interpolation> {
   \'                            { lex_char_tok }
   \"                            { lex_string_tok }
 }
@@ -850,6 +860,10 @@ data Token
 
   | ITchar     SourceText Char       -- Note [Literal source text] in "GHC.Types.Basic"
   | ITstring   SourceText FastString -- Note [Literal source text] in "GHC.Types.Basic"
+  | ITstring_interpolation_end_begin SourceText FastString
+  | ITstring_interpolation_end SourceText FastString
+  | ITstring_interpolation_begin SourceText FastString
+
   | ITinteger  IntegralLit           -- Note [Literal source text] in "GHC.Types.Basic"
   | ITrational FractionalLit
 
@@ -1567,6 +1581,16 @@ errBrace (AI end _) span =
               (psRealLoc end)
               (\srcLoc -> mkPlainErrorMsgEnvelope srcLoc (PsErrLexer LexUnterminatedComment LexErrKind_EOF))
 
+open_brace_in_interpolation :: Action
+open_brace_in_interpolation span str len = do
+  pushLexState nested_braces_in_interpolation
+  open_brace span str len
+
+close_brace_in_interpolation :: Action
+close_brace_in_interpolation span str len = do
+  _ <- popLexState
+  close_brace span str len
+
 open_brace, close_brace :: Action
 open_brace span _str _len = do
   ctx <- getContext
@@ -2010,9 +2034,26 @@ lex_string_tok span buf _len = do
   let
     tok' = case tok of
             ITprimstring _ bs -> ITprimstring (SourceText src) bs
+            ITstring _ s | is_interpolation_end && is_interpolation_begin -> ITstring_interpolation_end_begin (SourceText src) s
+            ITstring _ s | is_interpolation_end -> ITstring_interpolation_end (SourceText src) s
+            ITstring _ s | is_interpolation_begin -> ITstring_interpolation_begin (SourceText src) s
             ITstring _ s -> ITstring (SourceText src) s
             _ -> panic "lex_string_tok"
+
+    src :: String
     src = lexemeToString buf (cur bufEnd - cur buf)
+
+    is_interpolation_end = case src of
+      '}' : _ -> True
+      _ -> False
+
+    is_interpolation_begin = case reverse src of
+      '{' : _ -> True
+      _ -> False
+
+  when (is_interpolation_end) $ void popLexState
+  when (is_interpolation_begin) $ pushLexState interpolation
+
   return (L (mkPsSpan (psSpanStart span) end) tok')
 
 lex_string :: String -> P Token
@@ -2020,6 +2061,11 @@ lex_string s = do
   i <- getInput
   case alexGetChar' i of
     Nothing -> lit_error i
+
+    Just ('{',i)  -> do
+        setInput i
+        let s' = reverse s
+        return (ITstring (SourceText s') (mkFastString s'))
 
     Just ('"',i)  -> do
         setInput i
@@ -2043,6 +2089,8 @@ lex_string s = do
                 return (ITstring (SourceText s') (mkFastString s'))
 
     Just ('\\',i)
+        | Just ('{',i) <- next -> do
+                setInput i; lex_string ('{' : s)
         | Just ('&',i) <- next -> do
                 setInput i; lex_string s
         | Just (c,i) <- next, c <= '\x7f' && is_space c -> do

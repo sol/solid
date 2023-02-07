@@ -10,7 +10,6 @@ import           Data.Char
 import           Data.Word
 import qualified Data.Text as T
 import qualified Data.ByteString.Short as SB
-import           Control.Monad.Trans.State
 
 import           Solid.PP.Lexer
 import           Solid.PP.Edit
@@ -26,7 +25,7 @@ extensions = [
 run :: FilePath -> FilePath -> FilePath -> IO ()
 run src cur dst = do
   input <- readFile cur
-  ppIdentifiers src dst $ addLinePragma (pp input)
+  ppIdentifiers src dst $ addLinePragma input
   where
     addLinePragma = (linePragma <>)
     linePragma = "{-# LINE 1 " <> pack (show src) <> " #-}\n"
@@ -35,11 +34,11 @@ ppIdentifiers :: FilePath -> FilePath -> Text -> IO ()
 ppIdentifiers src dst input = do
   tokens <- tokenize extensions src input
   withFile dst WriteMode $ \ h -> do
-    edit h input (ppIdentifierSuffixes tokens)
+    edit h input (pp tokens)
 
 desugarIdentifier :: Int -> Int -> FastString -> [Edit] -> [Edit]
 desugarIdentifier start end identifier
-  | lastChar == qmark || lastChar == bang = (Replace start (end - start) replacement :)
+  | lastChar == qmark || lastChar == bang = (replace start end replacement :)
   | otherwise = id
   where
     lastChar :: Word8
@@ -60,44 +59,46 @@ desugarIdentifier start end identifier
       '?' -> 'ʔ'
       _ -> c
 
-ppIdentifierSuffixes :: [PsLocated Token] -> [Edit]
-ppIdentifierSuffixes = go
+replace :: Int -> Int -> Text -> Edit
+replace start end = Replace start (end - start)
+
+unescapeString :: String -> String
+unescapeString = go
+  where
+    go = \ case
+      [] -> []
+      '\\' : '{' : xs -> '{' : go xs
+      x : xs -> x : go xs
+
+unescapeStringLiteral :: Int -> String -> [Edit] -> [Edit]
+unescapeStringLiteral pos old
+  | new == old = id
+  | otherwise = (Replace pos (length old) (pack new) :)
+  where
+    new = unescapeString old
+
+pp :: [PsLocated Token] -> [Edit]
+pp = go
   where
     go = \ case
       [] -> []
       L loc (ITvarid identifier) : xs -> desugarIdentifier (start loc) (end loc) identifier $ go xs
       L loc (ITqvarid (succ . lengthFS -> offset, identifier)) : xs -> desugarIdentifier (start loc + offset) (end loc) identifier $ go xs
+
+      L loc (ITstring (SourceText src) _) : xs -> unescapeStringLiteral (start loc) src $ go xs
+
+      L loc (ITstring_interpolation_end_begin (SourceText src) _) : xs -> replaceStringSegment loc src (endInterpolation . beginInterpolation) : go xs
+      L loc (ITstring_interpolation_end (SourceText src) _)       : xs -> replaceStringSegment loc src (endInterpolation . (<> ")")) : go xs
+      L loc (ITstring_interpolation_begin (SourceText src) _)     : xs -> replaceStringSegment loc src (("(" <>) . beginInterpolation) : go xs
+
       _ : xs -> go xs
+
+    beginInterpolation src = init src <> "\" <> toString ("
+    endInterpolation src = ") <> \"" <> tail src
+    replaceStringSegment loc src f = Replace (start loc) (length src) (pack . unescapeString $ f src)
 
     start :: PsSpan -> Int
     start = bufPos . bufSpanStart . psBufSpan
 
     end :: PsSpan -> Int
     end = bufPos . bufSpanEnd . psBufSpan
-
-pp :: Text -> Text
-pp = pack . go . unpack
-  where
-    go :: String -> String
-    go = \ case
-      '"' : xs -> case runState (stringLiteral xs) False of
-        ((rest, lit), True) -> '(' : '"' : lit ++ "\")" ++ go rest
-        ((rest, lit), False) -> '"' : lit ++ "\"" ++ go rest
-      x : xs -> x : go xs
-      [] -> []
-
-    stringLiteral :: String -> State Bool (String, String)
-    stringLiteral = \ case
-      '"' : xs -> return (xs, "")
-      '\\' : '{' : xs -> fmap ('{' :) <$> stringLiteral xs
-      '{' : xs -> fmap ("\" <> toString (" <>) <$> interpolation xs
-      x : xs -> fmap (x :) <$> stringLiteral xs
-      [] -> return ("", "")
-
-    interpolation :: String -> State Bool (String, String)
-    interpolation input = do
-      put True
-      case input of
-        '}' : xs -> fmap (") <> \"" <>) <$> stringLiteral xs
-        x : xs -> fmap (x :) <$> interpolation xs
-        [] -> return ("", "")
