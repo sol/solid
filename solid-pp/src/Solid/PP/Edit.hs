@@ -1,5 +1,8 @@
 {-# LANGUAGE LambdaCase #-}
-module Solid.PP.Edit where
+module Solid.PP.Edit (
+  Edit(..)
+, edit
+) where
 
 import           Prelude ()
 import           Solid.PP.IO
@@ -15,8 +18,11 @@ edit h input = go 0
     go :: Int -> [Edit] -> IO ()
     go cursor = \ case
       [] -> do
-        hPutStr h (T.drop cursor input)
-      Replace pos n substitute : xs -> do
-        hPutStr h (T.drop cursor $ T.take pos input)
-        hPutStr h substitute
-        go (pos + n) xs
+        put (T.drop cursor input)
+      Replace offset n substitute : xs -> do
+        put (T.drop cursor $ T.take offset input)
+        put substitute
+        go (offset + n) xs
+
+    put :: Text -> IO ()
+    put = hPutStr h

@@ -70,10 +70,10 @@ unescapeString = go
       '\\' : '{' : xs -> '{' : go xs
       x : xs -> x : go xs
 
-unescapeStringLiteral :: Int -> String -> [Edit] -> [Edit]
-unescapeStringLiteral pos old
+unescapeStringLiteral :: PsSpan -> String -> [Edit] -> [Edit]
+unescapeStringLiteral loc old
   | new == old = id
-  | otherwise = (Replace pos (length old) (pack new) :)
+  | otherwise = (Replace (bufStart loc) (length old) (pack new) :)
   where
     new = unescapeString old
 
@@ -82,10 +82,10 @@ pp = go
   where
     go = \ case
       [] -> []
-      L loc (ITvarid identifier) : xs -> desugarIdentifier (start loc) (end loc) identifier $ go xs
-      L loc (ITqvarid (succ . lengthFS -> offset, identifier)) : xs -> desugarIdentifier (start loc + offset) (end loc) identifier $ go xs
+      L loc (ITvarid identifier) : xs -> desugarIdentifier (bufStart loc) (bufEnd loc) identifier $ go xs
+      L loc (ITqvarid (succ . lengthFS -> offset, identifier)) : xs -> desugarIdentifier (bufStart loc + offset) (bufEnd loc) identifier $ go xs
 
-      L loc (ITstring (SourceText src) _) : xs -> unescapeStringLiteral (start loc) src $ go xs
+      L loc (ITstring (SourceText src) _) : xs -> unescapeStringLiteral loc src $ go xs
 
       L loc (ITstring_interpolation_end_begin (SourceText src) _) : xs -> replaceStringSegment loc src (endInterpolation . beginInterpolation) : go xs
       L loc (ITstring_interpolation_end (SourceText src) _)       : xs -> replaceStringSegment loc src (endInterpolation . (<> ")")) : go xs
@@ -95,10 +95,10 @@ pp = go
 
     beginInterpolation src = init src <> "\" <> toString ("
     endInterpolation src = ") <> \"" <> tail src
-    replaceStringSegment loc src f = Replace (start loc) (length src) (pack . unescapeString $ f src)
+    replaceStringSegment loc src f = Replace (bufStart loc) (length src) (pack . unescapeString $ f src)
 
-    start :: PsSpan -> Int
-    start = bufPos . bufSpanStart . psBufSpan
+bufStart :: PsSpan -> Int
+bufStart = bufPos . bufSpanStart . psBufSpan
 
-    end :: PsSpan -> Int
-    end = bufPos . bufSpanEnd . psBufSpan
+bufEnd :: PsSpan -> Int
+bufEnd = bufPos . bufSpanEnd . psBufSpan
