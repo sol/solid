@@ -15,13 +15,7 @@ module Solid.PP.Lexer (
 
 , module FastString
 , module GHC.Types.SourceText
-
-, PsLocated
-, GenLocated(..)
-, unLoc
-, PsSpan(..)
-, BufSpan(..)
-, BufPos(..)
+, module GHC.Types.SrcLoc
 ) where
 
 import           Prelude ()

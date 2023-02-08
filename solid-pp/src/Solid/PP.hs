@@ -60,7 +60,7 @@ desugarIdentifier start end identifier
       _ -> c
 
 replace :: Int -> Int -> Text -> Edit
-replace start end = Replace start (end - start)
+replace start end = Replace Nothing start (end - start)
 
 unescapeString :: String -> String
 unescapeString = go
@@ -73,7 +73,7 @@ unescapeString = go
 unescapeStringLiteral :: PsSpan -> String -> [Edit] -> [Edit]
 unescapeStringLiteral loc old
   | new == old = id
-  | otherwise = (Replace (bufStart loc) (length old) (pack new) :)
+  | otherwise = (Replace (startColumn loc) (bufStart loc) (length old) (pack new) :)
   where
     new = unescapeString old
 
@@ -95,10 +95,13 @@ pp = go
 
     beginInterpolation src = init src <> "\" <> toString ("
     endInterpolation src = ") <> \"" <> tail src
-    replaceStringSegment loc src f = Replace (bufStart loc) (length src) (pack . unescapeString $ f src)
+    replaceStringSegment loc src f = Replace (startColumn loc) (bufStart loc) (length src) (pack . unescapeString $ f src)
 
 bufStart :: PsSpan -> Int
 bufStart = bufPos . bufSpanStart . psBufSpan
 
 bufEnd :: PsSpan -> Int
 bufEnd = bufPos . bufSpanEnd . psBufSpan
+
+startColumn :: PsSpan -> Maybe StartColumn
+startColumn = Just . StartColumn . srcLocCol . psRealLoc . psSpanStart

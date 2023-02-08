@@ -57,6 +57,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       EndToEndSpec
+      Solid.PP.EditSpec
       Solid.PP.IOSpec
       Solid.PP.LexerSpec
       Solid.PPSpec

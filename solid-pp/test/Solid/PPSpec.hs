@@ -95,19 +95,19 @@ spec = do
     context "when pre-processing string literals" $ do
       it "desugars string interpolation" $ do
         "foo = \"foo {bar} baz\".toUpper" `shouldDesugarTo` mconcat [
-            "foo = (", lit "foo ", " <> toString (bar) <> ", lit " baz", ").toUpper"
+            "foo = (", lit "foo ", " <> toString ({-# COLUMN 13 #-}bar) <> ", lit " baz", "){-# COLUMN 22 #-}.toUpper"
           ]
 
       it "accepts string literals with multiple interpolations" $ do
         "foo = \"foo { 23 } bar { 42 } baz\"" `shouldDesugarTo` mconcat [
-            "foo = (", lit "foo ", " <> toString ( 23 ) <> ", lit " bar ", " <> toString ( 42 ) <> ", lit " baz", ")"
+            "foo = (", lit "foo ", " <> toString ({-# COLUMN 13 #-} 23 ) <> ", lit " bar ", " <> toString ({-# COLUMN 24 #-} 42 ) <> ", lit " baz", "){-# COLUMN 34 #-}"
           ]
 
       it "accepts nested interpolations" $ do
         "foo = \"foo { \"x-{23}-x\" } baz\"" `shouldDesugarTo` mconcat [
-            "foo = (", lit "foo ", " <> toString ( (", lit "x-", " <> toString (23) <> ", lit "-x", ") ) <> ", lit " baz", ")"
+            "foo = (", lit "foo ", " <> toString ({-# COLUMN 13 #-} (", lit "x-", " <> toString ({-# COLUMN 18 #-}23) <> ", lit "-x", "){-# COLUMN 24 #-} ) <> ", lit " baz", "){-# COLUMN 31 #-}"
           ]
 
       context "when an opening curly bracket is preceded by a backslash" $ do
         it "treats the opening curly bracket as a literal '{'" $ do
-          "foo = \"foo \\{bar} baz\"" `shouldDesugarTo` "foo = \"foo {bar} baz\""
+          "foo = \"foo \\{bar} baz\"" `shouldDesugarTo` "foo = \"foo {bar} baz\"{-# COLUMN 23 #-}"
