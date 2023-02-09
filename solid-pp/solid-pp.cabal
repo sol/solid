@@ -20,6 +20,7 @@ library
       Solid.PP.Edit
       Solid.PP.IO
       Solid.PP.Lexer
+      Solid.PP.Parser
       Solid.PP.SrcLoc
   other-modules:
       Paths_solid_pp
@@ -65,6 +66,7 @@ test-suite spec
       Solid.PP.EditSpec
       Solid.PP.IOSpec
       Solid.PP.LexerSpec
+      Solid.PP.ParserSpec
       Solid.PPSpec
       Paths_solid_pp
   hs-source-dirs:

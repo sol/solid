@@ -1,14 +1,17 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoFieldSelectors #-}
+{-# LANGUAGE StrictData #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
 module Solid.PP.Lexer (
   Extension(..)
 , applyLanguagePragmas
 
+, LexerResult(..)
 , Token(..)
 , SourceError
 , tokenize
-, tokenizeWithErrors
 
 , StringBuffer
 , stringToStringBuffer
@@ -94,17 +97,26 @@ applyLanguagePragmas (EnumSet.fromList -> extensions) src buffer = foldl' (flip 
     languageFlags :: [LanguageFlag]
     languageFlags = mapMaybe readLanguageFlag options
 
-tokenize :: [Extension] -> FilePath -> Text -> IO [WithBufferSpan Token]
-tokenize extensions src = fmap snd . tokenizeWithErrors extensions src
+data LexerResult = LexerResult {
+  tokens :: [WithBufferSpan Token]
+, end :: RealSrcLoc
+, errors :: String
+}
 
-tokenizeWithErrors :: [Extension] -> FilePath -> Text -> IO (SourceError, [WithBufferSpan Token])
-tokenizeWithErrors extensions src input = do
+tokenize :: [Extension] -> FilePath -> Text -> Either String LexerResult
+tokenize extensions src input = do
   case lexTokenStream opts buffer loc of
-    POk state a -> do
-      return (getErrors state, a)
-    PFailed state -> do
-      throwIO (getErrors state)
+    POk state a -> return LexerResult {
+      tokens = a
+    , end = psRealLoc state.loc
+    , errors = errors state
+    }
+
+    PFailed state -> Left (errors state)
   where
+    errors :: PState -> String
+    errors = show . getErrors
+
     opts = makeOpts (applyLanguagePragmas (languageExtensions (Just GHC2021) ++ extensions ) src buffer)
 
     loc :: RealSrcLoc

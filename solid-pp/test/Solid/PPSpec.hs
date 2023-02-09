@@ -1,11 +1,8 @@
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Solid.PPSpec (spec) where
 
 import           Prelude ()
 import           Solid.PP.IO
-
-import           Data.Bifunctor
 
 import           Test.Hspec
 import           Test.Mockery.Directory
@@ -18,17 +15,8 @@ shouldDesugarTo :: HasCallStack => Text -> Text -> Expectation
 shouldDesugarTo input expected = do
   let file = "main.hs"
   writeFile file input
-  run file file file
+  Success <- run file file file
   readFile file `shouldReturn` ("{-# LINE 1 " <> pack (show file) <> " #-}\n" <> expected)
-
-infix 1 `shouldFailWith`
-
-shouldFailWith :: HasCallStack => IO () -> String -> Expectation
-shouldFailWith action expected = do
-  (first show -> r) :: Either SomeException () <- try action
-  case r of
-    Left err -> err `shouldBe` expected
-    Right () -> r `shouldBe` Left expected
 
 spec :: Spec
 spec = do
@@ -40,7 +28,7 @@ spec = do
           , "  {-"
           , "foo = 23"
           ]
-        run "src.hs" "cur.hs" "dst.hs" `shouldFailWith` "src.hs:2:3: error: unterminated `{-' at end of input"
+        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "src.hs:2:3: error: unterminated `{-' at end of input"
 
       it "takes LINE pragmas into account" $ do
         writeFile "cur.hs" $ unlines [
@@ -49,7 +37,7 @@ spec = do
           , "{-"
           , "foo = 23"
           ]
-        run "src.hs" "cur.hs" "dst.hs" `shouldFailWith` "foo.hs:24:1: error: unterminated `{-' at end of input"
+        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "foo.hs:24:1: error: unterminated `{-' at end of input"
 
       it "does not reports failures for GHC2021 syntax" $ do
         writeFile "cur.hs" $ unlines [
@@ -57,7 +45,7 @@ spec = do
           , "foo = 23_0"
           , "{-"
           ]
-        run "src.hs" "cur.hs" "dst.hs" `shouldFailWith` "src.hs:3:1: error: unterminated `{-' at end of input"
+        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "src.hs:3:1: error: unterminated `{-' at end of input"
 
     context "when pre-processing identifiers" $ do
       it "desugars postfix bangs" $ do
@@ -91,8 +79,8 @@ spec = do
 
     context "when pre-processing string literals" $ do
       it "desugars string interpolation" $ do
-        "foo = \"foo {bar} baz\".toUpper" `shouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> toString ({-# COLUMN 13 #-}bar) <> \" baz\"){-# COLUMN 22 #-}.toUpper"
+        "foo = \"foo {bar 23} baz\".toUpper" `shouldDesugarTo` mconcat [
+            "foo = (\"foo \" <> toString ({-# COLUMN 13 #-}bar 23) <> \" baz\"){-# COLUMN 25 #-}.toUpper"
           ]
 
       it "accepts string literals with multiple interpolations" $ do

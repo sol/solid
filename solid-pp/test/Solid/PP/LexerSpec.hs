@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
 module Solid.PP.LexerSpec (spec) where
 
 import           Prelude ()
@@ -36,10 +37,8 @@ instance Enum a => IsList (EnumSet a) where
   fromList = EnumSet.fromList
   toList = EnumSet.toList
 
-deriving instance Eq Token
-
-tokenize :: String -> IO [Token]
-tokenize = fmap (map unLoc) . Lexer.tokenize extensions "" . fromString
+tokenize :: String -> [Token]
+tokenize = either error (map unLoc . (.tokens)) . Lexer.tokenize extensions "" . fromString
 
 instance IsString Token where
   fromString = \ case
@@ -69,10 +68,10 @@ spec :: Spec
 spec = do
   describe "tokenize" $ do
     it "accepts question marks at the end of identifiers" $ do
-      tokenize "foo?" `shouldReturn` ["foo?"]
+      tokenize "foo?" `shouldBe` ["foo?"]
 
     it "accepts bangs at the end of identifiers" $ do
-      tokenize "foo!" `shouldReturn` ["foo!"]
+      tokenize "foo!" `shouldBe` ["foo!"]
 
     context "when parsing string literals" $ do
       let
@@ -89,21 +88,21 @@ spec = do
         begin str = ITstring_interpolation_begin (SourceText $ "\"" <> str <> "{") (fromString str)
 
       it "accepts string literals" $ do
-        tokenize "\"foo\"" `shouldReturn` [string "foo"]
+        tokenize "\"foo\"" `shouldBe` [string "foo"]
 
       it "attaches source ranges" $ do
         let range = ((.start) &&& (.end)) . getLoc
-        [foo, foobar, _23] <- Lexer.tokenize extensions "" "  \"foo\"  \"foobar\" 23"
+        let Right [foo, foobar, _23] = (.tokens) <$> Lexer.tokenize extensions "" "  \"foo\"  \"foobar\" 23"
         range foo `shouldBe` (2, 7)
         range foobar `shouldBe` (9, 17)
         range _23 `shouldBe` (18, 20)
 
       it "accepts \\{ as {" $ do
         let src = "\"foo \\{ bar\""
-        tokenize src `shouldReturn` [ITstring (fromString src) "foo { bar"]
+        tokenize src `shouldBe` [ITstring (fromString src) "foo { bar"]
 
       it "accepts string interpolation" $ do
-        tokenize "\"foo { 23 } bar { 42 } baz\"" `shouldReturn` [
+        tokenize "\"foo { 23 } bar { 42 } baz\"" `shouldBe` [
             begin "foo "
           , 23
           , end_begin " bar "
@@ -113,14 +112,14 @@ spec = do
 
       context "within interpolation" $ do
         it "accepts identifiers" $ do
-          tokenize "\"foo { bar } baz\"" `shouldReturn` [
+          tokenize "\"foo { bar } baz\"" `shouldBe` [
               begin "foo "
             , "bar"
             , end " baz"
             ]
 
         it "accepts integer literals" $ do
-          tokenize "\"foo { bar 23 } baz\"" `shouldReturn` [
+          tokenize "\"foo { bar 23 } baz\"" `shouldBe` [
               begin "foo "
             , "bar"
             , 23
@@ -128,7 +127,7 @@ spec = do
             ]
 
         it "accepts arithmetic expressions" $ do
-          tokenize "\"foo { 23 + 42 } bar\"" `shouldReturn` [
+          tokenize "\"foo { 23 + 42 } bar\"" `shouldBe` [
               begin "foo "
             , 23
             , "+"
@@ -137,7 +136,7 @@ spec = do
             ]
 
         it "accepts string literals" $ do
-          tokenize "\"foo { bar \"some string\" } baz\"" `shouldReturn` [
+          tokenize "\"foo { bar \"some string\" } baz\"" `shouldBe` [
               begin "foo "
             , "bar"
             , string "some string"
@@ -145,21 +144,21 @@ spec = do
             ]
 
         it "accepts interpolation in string literals" $ do
-          tokenize "\"foo { bar \"some { 23 } string\" } baz\"" `shouldReturn` [
+          tokenize "\"foo { bar \"some { 23 } string\" } baz\"" `shouldBe` [
               begin "foo "
             , "bar", begin "some ", 23, end " string"
             , end " baz"
             ]
 
         it "accepts list literals" $ do
-          tokenize "\"foo { [1, 2, 3] } baz\"" `shouldReturn` [
+          tokenize "\"foo { [1, 2, 3] } baz\"" `shouldBe` [
               begin "foo "
             , "[", 1, ",", 2, ",", 3, "]"
             , end " baz"
             ]
 
         it "accepts list construction" $ do
-          tokenize "\"foo { x : xs } baz\"" `shouldReturn` [
+          tokenize "\"foo { x : xs } baz\"" `shouldBe` [
               begin "foo "
             , "x", ":", "xs"
             , end " baz"
@@ -167,56 +166,56 @@ spec = do
 
         context "within record updates" $ do
           it "accepts identifiers" $ do
-            tokenize "\"foo { bar { someField = value } } baz\"" `shouldReturn` [
+            tokenize "\"foo { bar { someField = value } } baz\"" `shouldBe` [
                 begin "foo "
               , "bar", "{", "someField", "=", "value", "}"
               , end " baz"
               ]
 
           it "accepts integer literals" $ do
-            tokenize "\"foo { bar { someField = 23 } } baz\"" `shouldReturn` [
+            tokenize "\"foo { bar { someField = 23 } } baz\"" `shouldBe` [
                 begin "foo "
               , "bar", "{", "someField", "=", 23, "}"
               , end " baz"
               ]
 
           it "accepts arithmetic expressions" $ do
-            tokenize "\"foo { bar { someField = 23 + 42 } } baz\"" `shouldReturn` [
+            tokenize "\"foo { bar { someField = 23 + 42 } } baz\"" `shouldBe` [
                 begin "foo "
               , "bar", "{", "someField", "=", 23, "+", 42, "}"
               , end " baz"
               ]
 
           it "accepts string literals" $ do
-            tokenize "\"foo { bar { someField = \"some string\" } } baz\"" `shouldReturn` [
+            tokenize "\"foo { bar { someField = \"some string\" } } baz\"" `shouldBe` [
                 begin "foo "
               , "bar", "{", "someField", "=", string "some string", "}"
               , end " baz"
               ]
 
           it "accepts interpolation in string literals" $ do
-            tokenize "\"foo { bar { someField = \"some { 23 } string\" } } baz\"" `shouldReturn` [
+            tokenize "\"foo { bar { someField = \"some { 23 } string\" } } baz\"" `shouldBe` [
                 begin "foo "
               , "bar", "{", "someField", "=", begin "some ", 23, end " string", "}"
               , end " baz"
               ]
 
           it "accepts list literals" $ do
-            tokenize "\"foo { bar { someField = [1, 2, 3] } } baz\"" `shouldReturn` [
+            tokenize "\"foo { bar { someField = [1, 2, 3] } } baz\"" `shouldBe` [
                 begin "foo "
               , "bar", "{", "someField", "=", "[", 1, ",", 2, ",", 3, "]", "}"
               , end " baz"
               ]
 
           it "accepts list construction" $ do
-            tokenize "\"foo { bar { someField = x : xs} } baz\"" `shouldReturn` [
+            tokenize "\"foo { bar { someField = x : xs} } baz\"" `shouldBe` [
                 begin "foo "
               , "bar", "{", "someField", "=", "x", ":", "xs", "}"
               , end " baz"
               ]
 
           it "accepts nested record updates" $ do
-            tokenize "\"{ foo { someField = bar { someOtherField = 23 } } }\"" `shouldReturn` [
+            tokenize "\"{ foo { someField = bar { someOtherField = 23 } } }\"" `shouldBe` [
                 begin ""
               , "foo", "{", "someField", "=", "bar", "{", "someOtherField", "=", 23, "}", "}"
               , end ""
@@ -251,13 +250,13 @@ spec = do
         ]
 
     it "reports missing extensions" $ do
-      show . fst <$> tokenizeWithErrors [] "main.hs" input `shouldReturn` "main.hs:2:9: error: Illegal \\case"
+      (.errors) <$> Lexer.tokenize [] "main.hs" input `shouldBe` Right "main.hs:2:9: error: Illegal \\case"
 
     it "takes provided extensions into account" $ do
-      show . fst <$> tokenizeWithErrors [LambdaCase] "main.hs" input `shouldReturn` ""
+      (.errors) <$> Lexer.tokenize [LambdaCase] "main.hs" input `shouldBe` Right ""
 
     it "takes LANGUAGE pragmas into account" $ do
-      show . fst <$> tokenizeWithErrors [] "main.hs" ("{-# LANGUAGE LambdaCase #-}\n" <> input) `shouldReturn` ""
+      (.errors) <$> Lexer.tokenize [] "main.hs" ("{-# LANGUAGE LambdaCase #-}\n" <> input) `shouldBe` Right ""
 
     it "takes negated LANGUAGE pragmas into account" $ do
-      show . fst <$> tokenizeWithErrors [LambdaCase] "main.hs" ("{-# LANGUAGE NoLambdaCase #-}\n" <> input) `shouldReturn` "main.hs:3:9: error: Illegal \\case"
+      (.errors) <$> Lexer.tokenize [LambdaCase] "main.hs" ("{-# LANGUAGE NoLambdaCase #-}\n" <> input) `shouldBe` Right "main.hs:3:9: error: Illegal \\case"

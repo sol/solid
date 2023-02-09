@@ -1,18 +1,23 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Solid.PP (run, extensions) where
+module Solid.PP (
+  Result(..)
+, run
+, extensions
+) where
 
 import           Prelude ()
-import           Solid.PP.IO
+import           Solid.PP.IO hiding (concatMap)
 
 import           Data.Char
 import           Data.Word
 import qualified Data.Text as T
 import qualified Data.ByteString.Short as SB
 
-import           Solid.PP.Lexer
 import           Solid.PP.Edit
+import           Solid.PP.Lexer
+import           Solid.PP.Parser
 
 extensions :: [Extension]
 extensions = [
@@ -22,19 +27,23 @@ extensions = [
   , OverloadedStrings
   ]
 
-run :: FilePath -> FilePath -> FilePath -> IO ()
+data Result = Failure String | Success
+  deriving (Eq, Show)
+
+run :: FilePath -> FilePath -> FilePath -> IO Result
 run src cur dst = do
   input <- readFile cur
-  ppIdentifiers src dst $ addLinePragma input
+  preProcesses src dst $ addLinePragma input
   where
     addLinePragma = (linePragma <>)
     linePragma = "{-# LINE 1 " <> pack (show src) <> " #-}\n"
 
-ppIdentifiers :: FilePath -> FilePath -> Text -> IO ()
-ppIdentifiers src dst input = do
-  tokens <- tokenize extensions src input
-  withFile dst WriteMode $ \ h -> do
-    edit h input (pp tokens)
+preProcesses :: FilePath -> FilePath -> Text -> IO Result
+preProcesses src dst input = case parse extensions src input of
+  Left err -> return (Failure err)
+  Right nodes -> withFile dst WriteMode $ \ h -> do
+    edit h input (pp nodes)
+    return Success
 
 desugarIdentifier :: Int -> Int -> FastString -> [Edit] -> [Edit]
 desugarIdentifier start end identifier
@@ -73,25 +82,40 @@ unescapeString = go
 unescapeStringLiteral :: BufferSpan -> String -> [Edit] -> [Edit]
 unescapeStringLiteral loc old
   | new == old = id
-  | otherwise = (Replace (Just loc.startColumn) loc.start (length old) (pack new) :)
+  | otherwise = (Replace (Just loc.startColumn) loc.start loc.length (pack new) :)
   where
     new = unescapeString old
 
-pp :: [WithBufferSpan Token] -> [Edit]
-pp = go
+pp :: [Node] -> [Edit]
+pp = ($ []) . onNodes
   where
-    go = \ case
-      [] -> []
-      L loc (ITvarid identifier) : xs -> desugarIdentifier (loc.start) (loc.end) identifier $ go xs
-      L loc (ITqvarid (succ . lengthFS -> offset, identifier)) : xs -> desugarIdentifier (loc.start + offset) (loc.end) identifier $ go xs
+    onNodes :: [Node] -> [Edit] -> [Edit]
+    onNodes = concatMap onNode
 
-      L loc (ITstring (SourceText src) _) : xs -> unescapeStringLiteral loc src $ go xs
+    onNode :: Node -> [Edit] -> [Edit]
+    onNode = \ case
+      Token loc token -> onToken loc token
+      LiteralString string -> onLiteralString string
 
-      L loc (ITstring_interpolation_end_begin (SourceText src) _) : xs -> replaceStringSegment loc src (endInterpolation . beginInterpolation) : go xs
-      L loc (ITstring_interpolation_end (SourceText src) _)       : xs -> replaceStringSegment loc src (endInterpolation . (<> ")")) : go xs
-      L loc (ITstring_interpolation_begin (SourceText src) _)     : xs -> replaceStringSegment loc src (("(" <>) . beginInterpolation) : go xs
+    onToken :: BufferSpan -> Token -> [Edit] -> [Edit]
+    onToken loc = \ case
+      ITvarid identifier -> desugarIdentifier loc.start loc.end identifier
+      ITqvarid (succ . lengthFS -> offset, identifier) -> desugarIdentifier (loc.start + offset) loc.end identifier
+      _ -> id
 
-      _ : xs -> go xs
+    onLiteralString :: LiteralString BufferSpan -> [Edit] -> [Edit]
+    onLiteralString = \ case
+      Literal loc src -> unescapeStringLiteral loc src
+      Begin loc src expression -> replaceStringSegment loc src (("(" <>) . beginInterpolation) . onExpression expression
+
+    onExpression :: Expression -> [Edit] -> [Edit]
+    onExpression = \ case
+      Expression nodes end -> onNodes nodes . onEnd end
+
+    onEnd :: End BufferSpan -> [Edit] -> [Edit]
+    onEnd = \ case
+      End loc src -> replaceStringSegment loc src (endInterpolation . (<> ")"))
+      EndBegin loc src expression -> replaceStringSegment loc src (endInterpolation . beginInterpolation) . onExpression expression
 
     beginInterpolation :: String -> String
     beginInterpolation src = init src <> "\" <> toString ("
@@ -99,5 +123,8 @@ pp = go
     endInterpolation :: String -> String
     endInterpolation src = ") <> \"" <> tail src
 
-    replaceStringSegment :: BufferSpan -> t -> (t -> String) -> Edit
-    replaceStringSegment loc src f = Replace (Just loc.startColumn) loc.start loc.length (pack . unescapeString $ f src)
+    replaceStringSegment :: BufferSpan -> t -> (t -> String) -> [Edit] -> [Edit]
+    replaceStringSegment loc src f = (Replace (Just loc.startColumn) loc.start loc.length (pack . unescapeString $ f src) :)
+
+concatMap :: Foldable t => (a -> [b] -> [b]) -> t a -> [b] -> [b]
+concatMap f = foldr ((.) . f) id

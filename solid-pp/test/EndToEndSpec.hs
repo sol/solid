@@ -21,6 +21,12 @@ spec = do
     it "desugars string interpolation" $ do
       "Hey {name} 👋" `shouldBe` "Hey Joe 👋"
 
+    it "desugars nested string interpolation" $ do
+      let
+        foo = "foo"
+        bar = "bar"
+      " { " { " {foo} " } " } {bar} " `shouldBe` "   foo   bar "
+
     it "desugars identifiers that end with a bang" $ do
       head! [] `shouldThrow` errorCall "Prelude.head: empty list"
 
