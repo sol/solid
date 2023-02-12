@@ -93,6 +93,11 @@ pp = go
 
       _ : xs -> go xs
 
+    beginInterpolation :: String -> String
     beginInterpolation src = init src <> "\" <> toString ("
+
+    endInterpolation :: String -> String
     endInterpolation src = ") <> \"" <> tail src
+
+    replaceStringSegment :: BufferSpan -> t -> (t -> String) -> Edit
     replaceStringSegment loc src f = Replace (Just loc.startColumn) loc.start loc.length (pack . unescapeString $ f src)
