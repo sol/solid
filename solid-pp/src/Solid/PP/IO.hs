@@ -9,10 +9,13 @@ module Solid.PP.IO (
 
 import           Prelude as Exports hiding (readFile, writeFile, unlines)
 import           Control.Applicative as Exports
+import           Control.Arrow as Exports ((&&&))
 import           Control.Monad as Exports
 import           Data.String as Exports (IsString(..))
 import           System.IO as Exports (Handle, IOMode(..), withFile)
 import           Control.Exception as Exports
+import           GHC.Records as Exports (HasField(..))
+
 import           Data.Text as Exports (Text, pack, unpack, unlines)
 import           Data.Text.Encoding (encodeUtf8, decodeUtf8')
 import           Data.ByteString (ByteString)

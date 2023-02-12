@@ -12,10 +12,9 @@ module Solid.PP.Edit (
 import           Prelude ()
 import           Solid.PP.IO
 
-import qualified Data.Text as T
+import           Solid.PP.SrcLoc (StartColumn(..))
 
-newtype StartColumn = StartColumn Int
-  deriving newtype (Eq, Show, Num)
+import qualified Data.Text as T
 
 data Edit = Replace (Maybe StartColumn) Int Int Text
   deriving (Eq, Show)

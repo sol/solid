@@ -91,6 +91,13 @@ spec = do
       it "accepts string literals" $ do
         tokenize "\"foo\"" `shouldReturn` [string "foo"]
 
+      it "attaches source ranges" $ do
+        let range = ((.start) &&& (.end)) . getLoc
+        [foo, foobar, _23] <- Lexer.tokenize extensions "" "  \"foo\"  \"foobar\" 23"
+        range foo `shouldBe` (2, 7)
+        range foobar `shouldBe` (9, 17)
+        range _23 `shouldBe` (18, 20)
+
       it "accepts \\{ as {" $ do
         let src = "\"foo \\{ bar\""
         tokenize src `shouldReturn` [ITstring (fromString src) "foo { bar"]

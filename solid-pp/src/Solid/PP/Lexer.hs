@@ -15,7 +15,8 @@ module Solid.PP.Lexer (
 
 , module FastString
 , module GHC.Types.SourceText
-, module GHC.Types.SrcLoc
+
+, module Solid.PP.SrcLoc
 ) where
 
 import           Prelude ()
@@ -26,6 +27,8 @@ import           Data.List (stripPrefix, foldl')
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
+
+import           Solid.PP.SrcLoc
 
 import           Lexer hiding (lexTokenStream)
 import           GHC.Data.EnumSet (EnumSet)
@@ -91,10 +94,10 @@ applyLanguagePragmas (EnumSet.fromList -> extensions) src buffer = foldl' (flip 
     languageFlags :: [LanguageFlag]
     languageFlags = mapMaybe readLanguageFlag options
 
-tokenize :: [Extension] -> FilePath -> Text -> IO [PsLocated Token]
+tokenize :: [Extension] -> FilePath -> Text -> IO [WithBufferSpan Token]
 tokenize extensions src = fmap snd . tokenizeWithErrors extensions src
 
-tokenizeWithErrors :: [Extension] -> FilePath -> Text -> IO (SourceError, [PsLocated Token])
+tokenizeWithErrors :: [Extension] -> FilePath -> Text -> IO (SourceError, [WithBufferSpan Token])
 tokenizeWithErrors extensions src input = do
   case lexTokenStream opts buffer loc of
     POk state a -> do
@@ -112,15 +115,15 @@ tokenizeWithErrors extensions src input = do
 
     getErrors = mkSrcErr . fmap GhcPsMessage . getPsErrorMessages
 
-lexTokenStream :: ParserOpts -> StringBuffer -> RealSrcLoc -> ParseResult [PsLocated Token]
+lexTokenStream :: ParserOpts -> StringBuffer -> RealSrcLoc -> ParseResult [WithBufferSpan Token]
 lexTokenStream opts buf loc = unP go (initParserState opts buf loc)
   where
     queueComments = False
 
-    go :: P [PsLocated Token]
+    go :: P [WithBufferSpan Token]
     go = do
       lexer queueComments return >>= \ case
         L _ ITeof -> return []
         L _ t -> do
-          psSpan <- last_loc <$> getPState
+          psSpan <- toBufferSpan . prev_loc <$> getPState
           (L psSpan t :) <$> go

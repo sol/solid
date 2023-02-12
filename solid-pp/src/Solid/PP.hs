@@ -70,20 +70,20 @@ unescapeString = go
       '\\' : '{' : xs -> '{' : go xs
       x : xs -> x : go xs
 
-unescapeStringLiteral :: PsSpan -> String -> [Edit] -> [Edit]
+unescapeStringLiteral :: BufferSpan -> String -> [Edit] -> [Edit]
 unescapeStringLiteral loc old
   | new == old = id
-  | otherwise = (Replace (startColumn loc) (bufStart loc) (length old) (pack new) :)
+  | otherwise = (Replace (Just loc.startColumn) loc.start (length old) (pack new) :)
   where
     new = unescapeString old
 
-pp :: [PsLocated Token] -> [Edit]
+pp :: [WithBufferSpan Token] -> [Edit]
 pp = go
   where
     go = \ case
       [] -> []
-      L loc (ITvarid identifier) : xs -> desugarIdentifier (bufStart loc) (bufEnd loc) identifier $ go xs
-      L loc (ITqvarid (succ . lengthFS -> offset, identifier)) : xs -> desugarIdentifier (bufStart loc + offset) (bufEnd loc) identifier $ go xs
+      L loc (ITvarid identifier) : xs -> desugarIdentifier (loc.start) (loc.end) identifier $ go xs
+      L loc (ITqvarid (succ . lengthFS -> offset, identifier)) : xs -> desugarIdentifier (loc.start + offset) (loc.end) identifier $ go xs
 
       L loc (ITstring (SourceText src) _) : xs -> unescapeStringLiteral loc src $ go xs
 
@@ -95,13 +95,4 @@ pp = go
 
     beginInterpolation src = init src <> "\" <> toString ("
     endInterpolation src = ") <> \"" <> tail src
-    replaceStringSegment loc src f = Replace (startColumn loc) (bufStart loc) (length src) (pack . unescapeString $ f src)
-
-bufStart :: PsSpan -> Int
-bufStart = bufPos . bufSpanStart . psBufSpan
-
-bufEnd :: PsSpan -> Int
-bufEnd = bufPos . bufSpanEnd . psBufSpan
-
-startColumn :: PsSpan -> Maybe StartColumn
-startColumn = Just . StartColumn . srcLocCol . psRealLoc . psSpanStart
+    replaceStringSegment loc src f = Replace (Just loc.startColumn) loc.start loc.length (pack . unescapeString $ f src)

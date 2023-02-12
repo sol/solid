@@ -20,10 +20,13 @@ library
       Solid.PP.Edit
       Solid.PP.IO
       Solid.PP.Lexer
+      Solid.PP.SrcLoc
   other-modules:
       Paths_solid_pp
   hs-source-dirs:
       src
+  default-extensions:
+      OverloadedRecordDot
   ghc-options: -Wall
   build-tools:
       alex
@@ -42,6 +45,8 @@ executable solid-pp
   main-is: driver/Main.hs
   other-modules:
       Paths_solid_pp
+  default-extensions:
+      OverloadedRecordDot
   ghc-options: -Wall
   build-tools:
       alex
@@ -64,6 +69,8 @@ test-suite spec
       Paths_solid_pp
   hs-source-dirs:
       test
+  default-extensions:
+      OverloadedRecordDot
   ghc-options: -Wall
   build-tools:
       alex
