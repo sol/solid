@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -103,3 +104,8 @@ data ExpressionWith loc = Expression [NodeWith loc] (End loc)
 
 data End loc = End loc String | EndBegin loc String (ExpressionWith loc)
   deriving (Eq, Show, Functor)
+
+instance HasField "loc" (End loc) loc where
+  getField = \ case
+    End loc _ -> loc
+    EndBegin loc _ _ -> loc

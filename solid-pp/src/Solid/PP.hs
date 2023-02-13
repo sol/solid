@@ -110,16 +110,17 @@ pp = (.build) . onNodes
     onLiteralString :: LiteralString BufferSpan -> DList Edit
     onLiteralString = \ case
       Literal loc src -> unescapeStringLiteral loc src
-      Begin loc src expression -> replace loc ("(\"" <> unescape src <> beginInterpolation) <> onExpression expression
+      Begin loc src expression -> replace loc (lambdaAbstract expression <> unescape src <> beginInterpolation) <> onExpression 1 expression
 
-    onExpression :: Expression -> DList Edit
-    onExpression = \ case
-      Expression nodes end -> onNodes nodes <> onEnd end
+    onExpression :: Int -> Expression -> DList Edit
+    onExpression n = \ case
+      Expression [] end -> insert end.loc (abstractionParam n "") <> onEnd (succ n) end
+      Expression nodes end -> onNodes nodes <> onEnd n end
 
-    onEnd :: End BufferSpan -> DList Edit
-    onEnd = \ case
+    onEnd :: Int -> End BufferSpan -> DList Edit
+    onEnd n = \ case
       End loc src -> replace loc (endInterpolation <> unescape src <> "\")")
-      EndBegin loc src expression -> replace loc (endInterpolation <> unescape src <> beginInterpolation) <> onExpression expression
+      EndBegin loc src expression -> replace loc (endInterpolation <> unescape src <> beginInterpolation) <> onExpression n expression
 
     unescape :: String -> DString
     unescape = fromString . unescapeString . init . tail
@@ -132,3 +133,37 @@ pp = (.build) . onNodes
 
     replace :: BufferSpan -> DString -> DList Edit
     replace loc = singleton . replaceBufferSpan loc . (.build)
+
+    insert :: BufferSpan -> String -> DList Edit
+    insert loc = singleton . Replace (Just loc.startColumn) loc.start 0 . pack
+
+lambdaAbstract :: Expression -> DString
+lambdaAbstract = lambda . countAbstractions
+  where
+    lambda :: Int -> DString
+    lambda n
+      | n == 0 = "(\""
+      | otherwise = "(\\" <> params <> " -> \""
+      where
+        params :: DString
+        params = concatMap formatParam [1..n]
+
+    formatParam :: Int -> DString
+    formatParam n = DList $ (' ' :) . abstractionParam n
+
+    countAbstractions :: Expression -> Int
+    countAbstractions = onExpression
+      where
+        onExpression :: Expression -> Int
+        onExpression = \ case
+          Expression nodes end -> onEnd end + case nodes of
+            [] -> 1
+            _ -> 0
+
+        onEnd :: End BufferSpan -> Int
+        onEnd = \ case
+          End _ _ -> 0
+          EndBegin _ _ expression -> onExpression expression
+
+abstractionParam :: Int -> ShowS
+abstractionParam n = ('_' :) . shows n

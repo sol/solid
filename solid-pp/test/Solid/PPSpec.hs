@@ -83,6 +83,11 @@ spec = do
             "foo = (\"foo \" <> toString ({-# COLUMN 13 #-}bar 23) <> \" baz\"){-# COLUMN 25 #-}.toUpper"
           ]
 
+      it "desugars interpolation abstractions" $ do
+        "foo = \"foo {} bar {} baz\"" `shouldDesugarTo` mconcat [
+            "foo = (\\ _1 _2 -> \"foo \" <> toString ({-# COLUMN 13 #-}_1{-# COLUMN 13 #-}) <> \" bar \" <> toString ({-# COLUMN 20 #-}_2{-# COLUMN 20 #-}) <> \" baz\"){-# COLUMN 26 #-}"
+          ]
+
       it "accepts string literals with multiple interpolations" $ do
         "foo = \"foo { 23 } bar { 42 } baz\"" `shouldDesugarTo` mconcat [
             "foo = (\"foo \" <> toString ({-# COLUMN 13 #-} 23 ) <> \" bar \" <> toString ({-# COLUMN 24 #-} 42 ) <> \" baz\"){-# COLUMN 34 #-}"

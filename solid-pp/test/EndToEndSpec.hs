@@ -27,6 +27,13 @@ spec = do
         bar = "bar"
       " { " { " {foo} " } " } {bar} " `shouldBe` "   foo   bar "
 
+    it "desugars interpolation abstractions" $ do
+      let
+        how = "how"
+        are = "are"
+        you = "you"
+      "Hey {name}, {} {} {}?" how are you `shouldBe` "Hey Joe, how are you?"
+
     it "desugars identifiers that end with a bang" $ do
       head! [] `shouldThrow` errorCall "Prelude.head: empty list"
 
