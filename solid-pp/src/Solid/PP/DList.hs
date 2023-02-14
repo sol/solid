@@ -19,3 +19,9 @@ type DString = DList Char
 
 instance IsString DString where
   fromString = DList . showString
+
+concatMap :: Foldable t => (a -> DList b) -> t a -> DList b
+concatMap f = foldr ((<>) . f) mempty
+
+singleton :: a -> DList a
+singleton = DList . (:)

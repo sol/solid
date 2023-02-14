@@ -46,10 +46,10 @@ preProcesses src dst input = case parse extensions src input of
     edit h input (pp nodes)
     return Success
 
-desugarIdentifier :: Int -> Int -> FastString -> [Edit] -> [Edit]
+desugarIdentifier :: Int -> Int -> FastString -> DList Edit
 desugarIdentifier start end identifier
-  | lastChar == qmark || lastChar == bang = (replace start end replacement :)
-  | otherwise = id
+  | lastChar == qmark || lastChar == bang = replace replacement
+  | otherwise = mempty
   where
     lastChar :: Word8
     lastChar = SB.last $ fastStringToShortByteString identifier
@@ -69,8 +69,11 @@ desugarIdentifier start end identifier
       '?' -> 'ʔ'
       _ -> c
 
-replace :: Int -> Int -> Text -> Edit
-replace start end = Replace Nothing start (end - start)
+    replace :: Text -> DList Edit
+    replace = singleton . Replace Nothing start (end - start)
+
+replaceBufferSpan :: BufferSpan -> String -> Edit
+replaceBufferSpan loc = Replace (Just loc.startColumn) loc.start loc.length . pack
 
 unescapeString :: String -> String
 unescapeString = go
@@ -80,43 +83,43 @@ unescapeString = go
       '\\' : '{' : xs -> '{' : go xs
       x : xs -> x : go xs
 
-unescapeStringLiteral :: BufferSpan -> String -> [Edit] -> [Edit]
+unescapeStringLiteral :: BufferSpan -> String -> DList Edit
 unescapeStringLiteral loc old
-  | new == old = id
-  | otherwise = (Replace (Just loc.startColumn) loc.start loc.length (pack new) :)
+  | new == old = mempty
+  | otherwise = singleton $ replaceBufferSpan loc new
   where
     new = unescapeString old
 
 pp :: [Node] -> [Edit]
-pp = ($ []) . onNodes
+pp = (.build) . onNodes
   where
-    onNodes :: [Node] -> [Edit] -> [Edit]
+    onNodes :: [Node] -> DList Edit
     onNodes = concatMap onNode
 
-    onNode :: Node -> [Edit] -> [Edit]
+    onNode :: Node -> DList Edit
     onNode = \ case
       Token loc token -> onToken loc token
       LiteralString string -> onLiteralString string
 
-    onToken :: BufferSpan -> Token -> [Edit] -> [Edit]
+    onToken :: BufferSpan -> Token -> DList Edit
     onToken loc = \ case
       ITvarid identifier -> desugarIdentifier loc.start loc.end identifier
       ITqvarid (succ . lengthFS -> offset, identifier) -> desugarIdentifier (loc.start + offset) loc.end identifier
-      _ -> id
+      _ -> mempty
 
-    onLiteralString :: LiteralString BufferSpan -> [Edit] -> [Edit]
+    onLiteralString :: LiteralString BufferSpan -> DList Edit
     onLiteralString = \ case
       Literal loc src -> unescapeStringLiteral loc src
-      Begin loc src expression -> replaceStringSegment loc ("(\"" <> unescape src <> beginInterpolation) . onExpression expression
+      Begin loc src expression -> replace loc ("(\"" <> unescape src <> beginInterpolation) <> onExpression expression
 
-    onExpression :: Expression -> [Edit] -> [Edit]
+    onExpression :: Expression -> DList Edit
     onExpression = \ case
-      Expression nodes end -> onNodes nodes . onEnd end
+      Expression nodes end -> onNodes nodes <> onEnd end
 
-    onEnd :: End BufferSpan -> [Edit] -> [Edit]
+    onEnd :: End BufferSpan -> DList Edit
     onEnd = \ case
-      End loc src -> replaceStringSegment loc (endInterpolation <> unescape src <> "\")")
-      EndBegin loc src expression -> replaceStringSegment loc (endInterpolation <> unescape src <> beginInterpolation) . onExpression expression
+      End loc src -> replace loc (endInterpolation <> unescape src <> "\")")
+      EndBegin loc src expression -> replace loc (endInterpolation <> unescape src <> beginInterpolation) <> onExpression expression
 
     unescape :: String -> DString
     unescape = fromString . unescapeString . init . tail
@@ -127,8 +130,5 @@ pp = ($ []) . onNodes
     endInterpolation :: DString
     endInterpolation = ") <> \""
 
-    replaceStringSegment :: BufferSpan -> DString -> [Edit] -> [Edit]
-    replaceStringSegment loc src = (Replace (Just loc.startColumn) loc.start loc.length (pack src.build) :)
-
-concatMap :: Foldable t => (a -> [b] -> [b]) -> t a -> [b] -> [b]
-concatMap f = foldr ((.) . f) id
+    replace :: BufferSpan -> DString -> DList Edit
+    replace loc = singleton . replaceBufferSpan loc . (.build)
