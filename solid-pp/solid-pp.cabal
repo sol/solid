@@ -17,6 +17,7 @@ library
   exposed-modules:
       Lexer
       Solid.PP
+      Solid.PP.DList
       Solid.PP.Edit
       Solid.PP.IO
       Solid.PP.Lexer

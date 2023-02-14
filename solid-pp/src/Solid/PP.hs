@@ -15,6 +15,7 @@ import           Data.Word
 import qualified Data.Text as T
 import qualified Data.ByteString.Short as SB
 
+import           Solid.PP.DList
 import           Solid.PP.Edit
 import           Solid.PP.Lexer
 import           Solid.PP.Parser
@@ -106,7 +107,7 @@ pp = ($ []) . onNodes
     onLiteralString :: LiteralString BufferSpan -> [Edit] -> [Edit]
     onLiteralString = \ case
       Literal loc src -> unescapeStringLiteral loc src
-      Begin loc src expression -> replaceStringSegment loc src (("(" <>) . beginInterpolation) . onExpression expression
+      Begin loc src expression -> replaceStringSegment loc ("(\"" <> unescape src <> beginInterpolation) . onExpression expression
 
     onExpression :: Expression -> [Edit] -> [Edit]
     onExpression = \ case
@@ -114,17 +115,20 @@ pp = ($ []) . onNodes
 
     onEnd :: End BufferSpan -> [Edit] -> [Edit]
     onEnd = \ case
-      End loc src -> replaceStringSegment loc src (endInterpolation . (<> ")"))
-      EndBegin loc src expression -> replaceStringSegment loc src (endInterpolation . beginInterpolation) . onExpression expression
+      End loc src -> replaceStringSegment loc (endInterpolation <> unescape src <> "\")")
+      EndBegin loc src expression -> replaceStringSegment loc (endInterpolation <> unescape src <> beginInterpolation) . onExpression expression
 
-    beginInterpolation :: String -> String
-    beginInterpolation src = init src <> "\" <> toString ("
+    unescape :: String -> DString
+    unescape = fromString . unescapeString . init . tail
 
-    endInterpolation :: String -> String
-    endInterpolation src = ") <> \"" <> tail src
+    beginInterpolation :: DString
+    beginInterpolation = "\" <> toString ("
 
-    replaceStringSegment :: BufferSpan -> t -> (t -> String) -> [Edit] -> [Edit]
-    replaceStringSegment loc src f = (Replace (Just loc.startColumn) loc.start loc.length (pack . unescapeString $ f src) :)
+    endInterpolation :: DString
+    endInterpolation = ") <> \""
+
+    replaceStringSegment :: BufferSpan -> DString -> [Edit] -> [Edit]
+    replaceStringSegment loc src = (Replace (Just loc.startColumn) loc.start loc.length (pack src.build) :)
 
 concatMap :: Foldable t => (a -> [b] -> [b]) -> t a -> [b] -> [b]
 concatMap f = foldr ((.) . f) id
