@@ -2,8 +2,11 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Solid.PP (
-  Result(..)
+  main
+
+, Result(..)
 , run
+, Extension
 , extensions
 ) where
 
@@ -30,6 +33,11 @@ extensions = [
 
 data Result = Failure String | Success
   deriving (Eq, Show)
+
+main :: String -> String -> String -> IO ()
+main src cur dst = run src cur dst >>= \ case
+  Failure err -> die $ \ _ -> err
+  Success -> return ()
 
 run :: FilePath -> FilePath -> FilePath -> IO Result
 run src cur dst = do

@@ -1,5 +1,6 @@
 module Solid.PP.IO (
   module Exports
+, die
 , readFile
 , writeFile
 , hPutStr
@@ -20,6 +21,13 @@ import           Data.Text as Exports (Text, pack, unpack, unlines)
 import           Data.Text.Encoding (encodeUtf8, decodeUtf8')
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
+
+import           System.Environment (getProgName)
+import           System.Exit (exitFailure)
+import           System.IO (stderr, hPutStrLn)
+
+die :: (String -> String) -> IO a
+die err = getProgName >>= hPutStrLn stderr . err >> exitFailure
 
 readFile :: FilePath -> IO Text
 readFile file = B.readFile file >>= decodeUtf8 file
