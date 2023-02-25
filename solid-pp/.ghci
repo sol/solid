@@ -1,2 +1,3 @@
 :set -isrc -ivendor -itest
 :set -XOverloadedRecordDot
+:set -XLambdaCase

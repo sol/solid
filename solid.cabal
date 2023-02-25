@@ -33,6 +33,7 @@ library
   default-extensions:
       DataKinds
       DeriveAnyClass
+      LambdaCase
       OverloadedRecordDot
       OverloadedStrings
   ghc-options: -Wall
@@ -64,6 +65,7 @@ test-suite spec
   default-extensions:
       DataKinds
       DeriveAnyClass
+      LambdaCase
       OverloadedRecordDot
       OverloadedStrings
   ghc-options: -Wall

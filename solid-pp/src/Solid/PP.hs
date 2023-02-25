@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Solid.PP (
@@ -27,6 +26,7 @@ extensions :: [Extension]
 extensions = [
     DataKinds
   , DeriveAnyClass
+  , LambdaCase
   , OverloadedRecordDot
   , OverloadedStrings
   ]

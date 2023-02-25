@@ -1,5 +1,6 @@
 :set -isrc -itest
 :set -XDataKinds
 :set -XDeriveAnyClass
+:set -XLambdaCase
 :set -XOverloadedRecordDot
 :set -XOverloadedStrings

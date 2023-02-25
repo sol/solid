@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 module Main (main) where
 
 import           Solid.PP.IO (die)
