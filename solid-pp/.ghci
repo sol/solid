@@ -1,2 +1,2 @@
-:set -isrc -itest
+:set -isrc -ivendor -itest
 :set -XOverloadedRecordDot
