@@ -1,10 +1,18 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE DataKinds #-}
 module EndToEndSpec (spec) where
 
 import           Test.Hspec
 
+import           GHC.Records
+import           Data.Char
+
 toString :: String -> String
 toString = id
+
+instance HasField "toLower" String String where
+  getField = map toLower
 
 name :: String
 name = "Joe"
@@ -33,6 +41,11 @@ spec = do
         are = "are"
         you = "you"
       "Hey {name}, {} {} {}?" how are you `shouldBe` "Hey Joe, how are you?"
+
+    context "workaround for GHC #23040" $ do
+      -- https://gitlab.haskell.org/ghc/ghc/-/issues/23040
+      it "desugars string interpolation" $ do
+        "Hey {name} 👋".toLower `shouldBe` "hey joe 👋"
 
     it "desugars identifiers that end with a bang" $ do
       head! [] `shouldThrow` errorCall "Prelude.head: empty list"

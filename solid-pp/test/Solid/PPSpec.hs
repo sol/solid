@@ -80,7 +80,7 @@ spec = do
     context "when pre-processing string literals" $ do
       it "desugars string interpolation" $ do
         "foo = \"foo {bar 23} baz\".toUpper" `shouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> toString ({-# COLUMN 13 #-}bar 23) <> \" baz\"){-# COLUMN 25 #-}.toUpper"
+            "foo = (\"foo \" <> toString ({-# COLUMN 13 #-}bar 23) <> \" baz\").toUpper"
           ]
 
       it "desugars interpolation abstractions" $ do

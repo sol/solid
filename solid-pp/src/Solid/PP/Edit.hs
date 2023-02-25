@@ -29,7 +29,7 @@ edit h input = go 0
       step@(Replace _ offset n substitute) : xs -> do
         put (T.drop cursor $ T.take offset input)
         put substitute
-        forM_ (columnPragma step) putColumnPragma
+        forM_ (columnPragma input step) putColumnPragma
         go (offset + n) xs
 
     put :: Text -> IO ()
@@ -39,10 +39,15 @@ edit h input = go 0
     putColumnPragma (T.pack . show -> col) = do
       put "{-# COLUMN " >> put col >> put " #-}"
 
-columnPragma :: Edit -> Maybe StartColumn
-columnPragma (Replace startColumn _ old (T.length -> new))
+columnPragma :: Text -> Edit -> Maybe StartColumn
+columnPragma input (Replace startColumn offset old (T.length -> new))
   | pragma == actual = Nothing
+  | workaroundForGhcIssue23040 = Nothing
   | otherwise = pragma
   where
     pragma = (fromIntegral old +) <$> startColumn
     actual = (fromIntegral new +) <$> startColumn
+
+    workaroundForGhcIssue23040 :: Bool
+    -- https://gitlab.haskell.org/ghc/ghc/-/issues/23040
+    workaroundForGhcIssue23040 = "." `T.isPrefixOf` T.drop (offset + old) input
