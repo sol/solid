@@ -1,4 +1,4 @@
-:set -isrc -itest
+:set -isrc -ivendor/hspec-hedgehog/src -itest
 :set -XDataKinds
 :set -XDeriveAnyClass
 :set -XLambdaCase

@@ -2,7 +2,10 @@
 module Solid.FilePathSpec (spec) where
 
 import           Prelude ()
+
 import           Helper
+import qualified Gen
+import qualified Range
 
 path :: FilePath
 path = "foo.txt"
@@ -11,8 +14,9 @@ spec :: Spec
 spec = do
   describe "Ord FilePath" $ do
     it "behaves like Ord [Char]" $ do
-      property $ \ xs ys -> do
-        compare xs.toFilePath ys.toFilePath `shouldBe` compare xs (ys :: [Char])
+      xs <- forAll $ Gen.list (Range.linear 1 10) Gen.unicodeAny
+      ys <- forAll $ Gen.list (Range.linear 1 10) Gen.unicodeAny
+      compare xs.toFilePath ys.toFilePath === compare xs (ys :: [Char])
 
   describe ".toFilePath @[Char]" $ do
     it "converts a list of Char to a FilePath" $ do

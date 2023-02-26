@@ -23,17 +23,25 @@ dependencies:
 
 build-tools: solid-pp
 
-library:
-  source-dirs: src
+source-dirs: src
+
+library: {}
 
 tests:
   spec:
     build-tools: hspec-discover
     main: Spec.hs
-    source-dirs: test
+    source-dirs:
+      - test
+      - vendor/hspec-hedgehog/src
     dependencies:
       - solid
       - hspec == 2.*
+
+      - hedgehog
+      - hspec-core
+      - splitmix
+      - QuickCheck
+
       - silently
       - mockery
-      - QuickCheck

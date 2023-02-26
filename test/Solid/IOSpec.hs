@@ -2,7 +2,10 @@
 module Solid.IOSpec (spec) where
 
 import           Prelude ()
+
 import           Helper
+import qualified Gen
+import qualified Range
 
 import           System.IO.Silently
 
@@ -37,9 +40,9 @@ spec = do
 
   describe "writeFile" $ around_ inTempDirectory $ do
     it "writes a file to disk" $ do
-      property $ \ (pack -> xs) -> do
-        writeFile file xs
-        readFile file `shouldReturn` xs
+      xs <- forAll $ Gen.list (Range.linear 0 100) Gen.unicodeScalar
+      evalIO (writeFile file xs.pack)
+      evalIO (readFile file) >>= (=== xs) . unpack
 
   describe "print" $ do
     it "prints a number " $ do
