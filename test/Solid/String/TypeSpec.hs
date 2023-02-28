@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-module Solid.StringSpec (spec) where
+module Solid.String.TypeSpec (spec) where
 
 import           Prelude()
 import           Helper

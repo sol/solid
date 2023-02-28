@@ -57,7 +57,7 @@ test-suite spec
       Solid.FilePathSpec
       Solid.IOSpec
       Solid.MD5Spec
-      Solid.StringSpec
+      Solid.String.TypeSpec
       Solid.ToStringSpec
       Paths_solid
   hs-source-dirs:
