@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Solid.Exception (
   HasCallStack
 
@@ -8,7 +9,8 @@ module Solid.Exception (
 , IOException(..)
 , UnicodeDecodeError(..)
 
-, throw
+, throw!
+, error!
 , throwIO
 , bracket
 , bracket_
@@ -21,11 +23,13 @@ module Solid.Exception (
 
 import           Prelude ()
 import           Solid.Common
+import           Solid.String.Type
 import           Solid.FilePath
 
-import           GHC.Stack (HasCallStack)
-import           Control.Exception (Exception(toException), SomeException, evaluate, throw, throwIO, bracket, bracket_)
+import           GHC.Stack
+import           Control.Exception (Exception(toException), SomeException, evaluate, throwIO, bracket, bracket_)
 
+import qualified Prelude as Haskell
 import qualified Control.Exception as Haskell
 
 import           GHC.IO.Exception hiding (IOException)
@@ -39,6 +43,12 @@ data IOException =
 
 data UnicodeDecodeError = UnicodeDecodeError
   deriving (Eq, Show, Exception)
+
+throw! :: Exception e => e -> a
+throw! = Haskell.throw
+
+error! :: HasCallStack => String -> a
+error! message = withFrozenCallStack $ Haskell.error (unpack message)
 
 try :: Exception e => IO a -> IO (Either e a)
 try a = catch (a >>= \ v -> return (Right v)) (\e -> return (Left e))

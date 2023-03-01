@@ -36,7 +36,7 @@ readFile file = do
   bytes <- readBinaryFile file
   case bytes.asString of
     Just string -> return string
-    Nothing -> throw UnicodeDecodeError
+    Nothing -> throwIO UnicodeDecodeError
 
 writeFile :: FilePath -> String -> IO ()
 writeFile = coerce B.writeFile

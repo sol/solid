@@ -19,7 +19,7 @@ import           Solid.String.Type
 import qualified Data.ByteString as Haskell
 
 asString! :: HasCallStack => Bytes a -> String
-asString! (Bytes string) = if Haskell.isValidUtf8 string then Bytes string else throw UnicodeDecodeError
+asString! (Bytes string) = if Haskell.isValidUtf8 string then Bytes string else throw! UnicodeDecodeError
 
 instance HasField "asString\7433" (Bytes a) String where
   getField = asString!
