@@ -3,7 +3,6 @@ module Solid.ToString (
   ToString(..)
 ) where
 
-import           Prelude ()
 import           Solid.Common
 
 import qualified Data.ByteString.Builder as Builder

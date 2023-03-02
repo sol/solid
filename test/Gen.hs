@@ -1,6 +1,5 @@
 module Gen (module Gen) where
 
-import Prelude ()
 import Solid
 
 import Hedgehog

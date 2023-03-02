@@ -1,8 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Solid.CharSpec (spec) where
 
-import Prelude ()
-
 import Helper
 import Gen
 

@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.MD5 (Fingerprint) where
 
-import           Prelude ()
 import           Solid.Common
 import           Solid.String
 import           Solid.ToString

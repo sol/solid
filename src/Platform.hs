@@ -2,6 +2,8 @@
 {-# LANGUAGE CPP #-}
 module Platform where
 
+import Solid
+
 windows? :: Bool
 windows? =
 #ifdef mingw32_HOST_OS

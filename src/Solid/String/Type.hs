@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.String.Type where
 
-import           Prelude ()
 import           Solid.Common
 import           Solid.ByteString
 

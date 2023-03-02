@@ -1,8 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 module Solid.IOSpec (spec) where
 
-import           Prelude ()
-
 import           Helper
 import qualified Gen
 import qualified Range

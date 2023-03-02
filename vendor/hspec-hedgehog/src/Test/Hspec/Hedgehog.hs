@@ -1,3 +1,4 @@
+{-# LANGUAGE ImplicitPrelude       #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE InstanceSigs          #-}

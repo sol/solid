@@ -3,7 +3,6 @@ module Solid.Char (
   chr
 ) where
 
-import Prelude ()
 import Solid.Common
 
 import Data.Char

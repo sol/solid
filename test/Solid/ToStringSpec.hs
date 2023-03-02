@@ -1,6 +1,5 @@
 module Solid.ToStringSpec (spec) where
 
-import           Prelude ()
 import           Helper
 
 spec :: Spec

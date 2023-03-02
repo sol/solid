@@ -2,7 +2,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.FilePath where
 
-import           Prelude ()
 import           Solid.Common
 import           Solid.String.Type
 import           Solid.ToString

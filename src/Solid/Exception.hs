@@ -21,7 +21,6 @@ module Solid.Exception (
 , handle
 ) where
 
-import           Prelude ()
 import           Solid.Common
 import           Solid.String.Type
 import           Solid.FilePath

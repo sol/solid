@@ -1,6 +1,5 @@
 module Solid.ByteStringSpec (spec) where
 
-import           Prelude()
 import           Helper
 
 spec :: Spec

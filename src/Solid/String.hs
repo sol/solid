@@ -10,7 +10,6 @@ module Solid.String (
 , unlines
 ) where
 
-import           Prelude ()
 import           Solid.Common
 import           Solid.Exception
 import           Solid.ByteString

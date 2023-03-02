@@ -1,8 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Solid.FilePathSpec (spec) where
 
-import           Prelude ()
-
 import           Helper
 import qualified Gen
 import qualified Range

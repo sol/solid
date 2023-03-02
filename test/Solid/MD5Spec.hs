@@ -1,6 +1,5 @@
 module Solid.MD5Spec (spec) where
 
-import           Prelude()
 import           Helper
 
 foo :: String

@@ -1,7 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 module Solid.ByteString where
 
-import           Prelude ()
 import           Solid.Common
 
 import           Data.Word (Word8)
