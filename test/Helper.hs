@@ -1,18 +1,22 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-module Helper (module Helper) where
+module Helper (
+  module Imports
+, touch
+, shouldThrow
+, isADirectoryError
+) where
 
-import           Prelude ()
-import           Solid as Helper
+import           Solid as Imports
+import           Test.Hspec as Imports hiding (shouldThrow)
+import           Test.Hspec.Hedgehog as Imports
+import           Test.Mockery.Directory as Imports (inTempDirectory)
 
-import           Test.Hspec as Helper hiding (shouldThrow)
-import           Test.Hspec.Hedgehog as Helper
-
-import           Test.Mockery.Directory as Helper (inTempDirectory)
 import qualified Test.Mockery.Directory as Mockery
 
 import           Data.Typeable (typeOf)
 
 import qualified Platform
+import           Solid.TypeLits
 
 touch :: FilePath -> IO ()
 touch = Mockery.touch . unFilePath
@@ -28,3 +32,16 @@ action `shouldThrow` e = do
 
 isADirectoryError :: FilePath -> IOException
 isADirectoryError = if Platform.windows? then PermissionError else IsADirectoryError
+
+data Foo
+
+instance KnownSymbol name => HasField (name :: Symbol) Foo String where
+  -- This instance collides with instances of the form:
+  --
+  --   instance Show a => HasField "show" a String where
+  --     getField = show
+  --
+  -- GHC rejects instances of this form.  This definition protects us from
+  -- shooting ourselves in the knee in the unlikely case that GHC ever decides
+  -- to lift this restriction.
+  getField _ = symbolValue @name

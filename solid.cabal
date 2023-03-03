@@ -27,6 +27,7 @@ library
       Solid.String
       Solid.String.Type
       Solid.ToString
+      Solid.TypeLits
   other-modules:
       Paths_solid
   hs-source-dirs:
@@ -66,6 +67,7 @@ test-suite spec
       Solid.String
       Solid.String.Type
       Solid.ToString
+      Solid.TypeLits
       Gen
       Helper
       Range
@@ -76,6 +78,7 @@ test-suite spec
       Solid.MD5Spec
       Solid.String.TypeSpec
       Solid.ToStringSpec
+      SolidSpec
       Test.Hspec.Hedgehog
       Paths_solid
   hs-source-dirs:
