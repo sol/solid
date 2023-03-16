@@ -97,7 +97,7 @@ import           Data.Coerce                (coerce)
 import           Data.IORef                 (newIORef, readIORef, writeIORef)
 import           GHC.Stack                  (withFrozenCallStack)
 import           Hedgehog
-import           Hedgehog.Internal.Config   (detectColor)
+import           Hedgehog.Internal.Config   (UseColor(..))
 import           Hedgehog.Internal.Property (DiscardLimit (..), Property (..),
                                              PropertyConfig (..),
                                              ShrinkLimit (..),
@@ -165,7 +165,6 @@ instance (m ~ IO) => Example (a -> PropertyT m ()) where
     evaluateExample (fmap propertyWithoutLocation -> aprop) params aroundAction progressCallback = do
         ref <- newIORef (Result "" (Pending Nothing Nothing))
         aroundAction $ \a ->  do
-            color <- detectColor
             let size = 0
                 prop = aprop a
                 propConfig = useQuickCheckArgs (propertyConfig prop)
@@ -201,7 +200,7 @@ instance (m ~ IO) => Example (a -> PropertyT m ()) where
                Nothing       -> Seed.random
                Just (rng, _) -> pure (uncurry Seed (unseedSMGen (coerce rng)))
             hedgeResult <- checkReport propConfig size seed (propertyTest prop) cb
-            ppresult <- renderResult color Nothing hedgeResult
+            ppresult <- renderResult EnableColor Nothing hedgeResult
             writeIORef ref $ Result "" $ case reportStatus hedgeResult of
                 Failed FailureReport{..} ->
                     let
