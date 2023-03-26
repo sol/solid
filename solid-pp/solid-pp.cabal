@@ -39,7 +39,7 @@ library
     , base ==4.*
     , bytestring
     , containers
-    , ghc ==9.4.4
+    , ghc ==9.6.1
     , ghc-boot
     , text
     , transformers
@@ -58,7 +58,7 @@ executable solid-pp
   build-depends:
       array
     , base ==4.*
-    , ghc ==9.4.4
+    , ghc ==9.6.1
     , solid-pp
   default-language: GHC2021
 
@@ -87,7 +87,7 @@ test-suite spec
   build-depends:
       array
     , base ==4.*
-    , ghc ==9.4.4
+    , ghc ==9.6.1
     , hspec ==2.*
     , mockery
     , solid-pp

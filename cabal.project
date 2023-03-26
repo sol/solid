@@ -7,3 +7,6 @@ package solid
 
 package solid-pp
   ghc-options: -Werror
+
+allow-newer: cabal-install:base
+allow-newer: cabal-install-solver:base

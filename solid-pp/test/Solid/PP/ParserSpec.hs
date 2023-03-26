@@ -49,10 +49,10 @@ spec = do
 
     context "on unexpected end of line" $ do
       it "reports an error" $ do
-        Parser.parse extensions "main.hs" "\"foo    \n" `shouldBe` Left "main.hs:1:9: error:\n    lexical error in string/character literal at character '\\n'"
-        Parser.parse extensions "main.hs" "\"foo {  \n" `shouldBe` Left "main.hs:1:9: error: lexical error at character '\\n'"
+        Parser.parse extensions "main.hs" "\"foo    \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
+        Parser.parse extensions "main.hs" "\"foo {  \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
 
     context "on unexpected end of input" $ do
       it "reports an error" $ do
-        Parser.parse extensions "main.hs" "\"foo    " `shouldBe` Left "main.hs:1:9: error:\n    lexical error in string/character literal at end of input"
+        Parser.parse extensions "main.hs" "\"foo    " `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
         Parser.parse extensions "main.hs" "\"foo {  " `shouldBe` Left "main.hs:1:9: unterminated string interpolation"

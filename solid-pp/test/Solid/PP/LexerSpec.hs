@@ -249,7 +249,7 @@ spec = do
         ]
 
     it "reports missing extensions" $ do
-      (.errors) <$> Lexer.tokenize [] "main.hs" input `shouldBe` Right "main.hs:2:9: error: Illegal \\case"
+      (.errors) <$> Lexer.tokenize [] "main.hs" input `shouldBe` Right "main.hs:2:9: error: [GHC-51179] Illegal \\case"
 
     it "takes provided extensions into account" $ do
       (.errors) <$> Lexer.tokenize [LambdaCase] "main.hs" input `shouldBe` Right ""
@@ -258,4 +258,4 @@ spec = do
       (.errors) <$> Lexer.tokenize [] "main.hs" ("{-# LANGUAGE LambdaCase #-}\n" <> input) `shouldBe` Right ""
 
     it "takes negated LANGUAGE pragmas into account" $ do
-      (.errors) <$> Lexer.tokenize [LambdaCase] "main.hs" ("{-# LANGUAGE NoLambdaCase #-}\n" <> input) `shouldBe` Right "main.hs:3:9: error: Illegal \\case"
+      (.errors) <$> Lexer.tokenize [LambdaCase] "main.hs" ("{-# LANGUAGE NoLambdaCase #-}\n" <> input) `shouldBe` Right "main.hs:3:9: error: [GHC-51179] Illegal \\case"

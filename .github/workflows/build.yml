@@ -22,7 +22,7 @@ jobs:
         os:
           - ubuntu-latest
         ghc:
-          - 9.4.4
+          - 9.6.1
     steps:
       - run: |
           eval `ssh-agent -s`

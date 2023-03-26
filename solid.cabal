@@ -51,16 +51,16 @@ library
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
-      base ==4.17.0.0
-    , bytestring ==0.11.3.1
+      base ==4.18.0.0
+    , bytestring
     , containers
-    , directory ==1.3.7.1
-    , filepath ==1.4.2.2
+    , directory
+    , filepath
     , process
     , solid-pp
     , temporary ==1.3
-    , text ==2.0.1
-    , unix ==2.7.3
+    , text
+    , unix ==2.8.1.0
   default-language: GHC2021
 
 executable solid
@@ -105,18 +105,18 @@ executable solid
       solid-pp:solid-pp
   build-depends:
       Cabal
-    , base ==4.17.0.0
-    , bytestring ==0.11.3.1
+    , base ==4.18.0.0
+    , bytestring
     , cabal-install ==3.10.1.0
     , containers
-    , directory ==1.3.7.1
-    , filepath ==1.4.2.2
+    , directory
+    , filepath
     , process
     , solid
     , solid-pp
     , temporary ==1.3
-    , text ==2.0.1
-    , unix ==2.7.3
+    , text
+    , unix ==2.8.1.0
   default-language: GHC2021
 
 test-suite spec
@@ -181,11 +181,11 @@ test-suite spec
     , solid-pp:solid-pp
   build-depends:
       QuickCheck
-    , base ==4.17.0.0
-    , bytestring ==0.11.3.1
+    , base ==4.18.0.0
+    , bytestring
     , containers
-    , directory ==1.3.7.1
-    , filepath ==1.4.2.2
+    , directory
+    , filepath
     , hedgehog
     , hspec ==2.*
     , hspec-core
@@ -196,6 +196,6 @@ test-suite spec
     , solid-pp
     , splitmix
     , temporary ==1.3
-    , text ==2.0.1
-    , unix ==2.7.3
+    , text
+    , unix ==2.8.1.0
   default-language: GHC2021

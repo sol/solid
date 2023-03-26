@@ -14,7 +14,7 @@ ghc-options: -Wall
 dependencies:
   - base == 4.*
   - array
-  - ghc == 9.4.4
+  - ghc == 9.6.1
 
 build-tools: alex
 
