@@ -30,6 +30,9 @@ nubOn f = go Set.empty
 nub!! :: Eq a => [a] -> [a]
 nub!! = Haskell.nub
 
+instance HasField "length" [a] Int where
+  getField = length
+
 instance HasField "map" [a] ((a -> b) -> [b]) => HasField "map" [a] ((a -> b) -> [b]) where
   getField xs f = map f xs
 

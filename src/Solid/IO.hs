@@ -16,6 +16,7 @@ module Solid.IO (
 ) where
 
 import           Solid.Common
+import           Solid.Types
 import           Solid.Exception
 import           Solid.FilePath
 
@@ -24,8 +25,7 @@ import           System.IO (Handle, stdin, stdout, stderr, hFlush)
 import           Data.Coerce
 import qualified Data.ByteString as B
 
-import           String
-import           ByteString
+import           ByteString ()
 import           Solid.ToString
 
 print :: ToString a => a -> IO ()

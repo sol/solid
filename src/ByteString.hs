@@ -1,15 +1,29 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module ByteString (module ByteString) where
+module ByteString (
+  Bytes(..)
+, ByteString
+, module ByteString
+) where
 
 import Solid.Common
+import Solid.Types
 import Solid.Exception
-import Solid.String.Type (String)
-import Solid.ByteString as ByteString
+import String qualified
 
+import Data.Coerce (coerce)
 import Data.ByteString qualified as Haskell
 import Data.Text.Encoding qualified as Text
 import Data.Text.Encoding.Error qualified as Text
+
+instance Show ByteString where
+  showsPrec n = showsPrec n . unBytes
+
+instance IsString ByteString where
+  fromString = asByteString . String.pack
+
+length :: ByteString -> Int
+length = coerce Haskell.length
 
 asString :: ByteString -> Maybe String
 asString (Bytes string) = if Haskell.isValidUtf8 string then Just (Bytes string) else Nothing
@@ -27,6 +41,9 @@ pack = Bytes . Haskell.pack
 
 unpack :: ByteString -> [Word8]
 unpack = Haskell.unpack . unBytes
+
+instance HasField "length" ByteString Int where
+  getField = length
 
 instance HasField "asString" ByteString (Maybe String) where
   getField = asString

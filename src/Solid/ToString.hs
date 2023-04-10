@@ -4,6 +4,7 @@ module Solid.ToString (
 ) where
 
 import           Solid.Common
+import           Solid.Types
 
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as LB
@@ -12,7 +13,6 @@ import           Data.Text (Text)
 import           Data.Typeable (TypeRep)
 import           GHC.Stack (prettyCallStack)
 
-import           Solid.ByteString
 import           String
 
 class ToString a where

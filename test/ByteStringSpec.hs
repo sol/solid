@@ -10,6 +10,10 @@ invalidUtf8 = Bytes "foo \xc3\x28 bar"
 
 spec :: Spec
 spec = do
+  describe ".length" $ do
+    it "returns the length of a ByteString" $ do
+      ByteString.length "foo" `shouldBe` (3 :: Int)
+
   describe ".asString" $ do
     it "converts a ByteString to a String" $ do
       ByteString.asString "foo" `shouldBe` Just "foo"

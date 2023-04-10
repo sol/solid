@@ -20,16 +20,15 @@ library
       Maybe
       Platform
       Solid
-      Solid.ByteString
       Solid.Char
       Solid.Common
       Solid.Exception
       Solid.FilePath
       Solid.IO
       Solid.MD5
-      Solid.String.Type
       Solid.ToString
       Solid.TypeLits
+      Solid.Types
       String
   other-modules:
       Paths_solid
@@ -64,16 +63,15 @@ test-suite spec
       Maybe
       Platform
       Solid
-      Solid.ByteString
       Solid.Char
       Solid.Common
       Solid.Exception
       Solid.FilePath
       Solid.IO
       Solid.MD5
-      Solid.String.Type
       Solid.ToString
       Solid.TypeLits
+      Solid.Types
       String
       ByteStringSpec
       Gen
@@ -81,14 +79,12 @@ test-suite spec
       ListSpec
       MaybeSpec
       Range
-      Solid.ByteStringSpec
       Solid.CharSpec
       Solid.FilePathSpec
       Solid.IOSpec
       Solid.MD5Spec
-      Solid.String.TypeSpec
       Solid.ToStringSpec
-      SolidSpec
+      Solid.TypesSpec
       StringSpec
       Test.Hspec.Hedgehog
       Paths_solid

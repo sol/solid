@@ -2,8 +2,7 @@
 module Solid.MD5 (Fingerprint) where
 
 import           Solid.Common
-import           Solid.ByteString
-import           String
+import           Solid.Types
 import           Solid.ToString
 import           Solid.FilePath
 
