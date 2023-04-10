@@ -15,6 +15,9 @@ build-type:     Simple
 
 library
   exposed-modules:
+      ByteString
+      List
+      Maybe
       Platform
       Solid
       Solid.ByteString
@@ -24,10 +27,10 @@ library
       Solid.FilePath
       Solid.IO
       Solid.MD5
-      Solid.String
       Solid.String.Type
       Solid.ToString
       Solid.TypeLits
+      String
   other-modules:
       Paths_solid
   hs-source-dirs:
@@ -45,6 +48,7 @@ library
   build-depends:
       base ==4.17.0.0
     , bytestring ==0.11.3.1
+    , containers
     , directory ==1.3.7.1
     , filepath ==1.4.2.2
     , ghc ==9.4.4
@@ -55,6 +59,9 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      ByteString
+      List
+      Maybe
       Platform
       Solid
       Solid.ByteString
@@ -64,12 +71,15 @@ test-suite spec
       Solid.FilePath
       Solid.IO
       Solid.MD5
-      Solid.String
       Solid.String.Type
       Solid.ToString
       Solid.TypeLits
+      String
+      ByteStringSpec
       Gen
       Helper
+      ListSpec
+      MaybeSpec
       Range
       Solid.ByteStringSpec
       Solid.CharSpec
@@ -79,6 +89,7 @@ test-suite spec
       Solid.String.TypeSpec
       Solid.ToStringSpec
       SolidSpec
+      StringSpec
       Test.Hspec.Hedgehog
       Paths_solid
   hs-source-dirs:
@@ -100,6 +111,7 @@ test-suite spec
       QuickCheck
     , base ==4.17.0.0
     , bytestring ==0.11.3.1
+    , containers
     , directory ==1.3.7.1
     , filepath ==1.4.2.2
     , ghc ==9.4.4

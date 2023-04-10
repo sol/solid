@@ -13,7 +13,7 @@ import           Data.Typeable (TypeRep)
 import           GHC.Stack (prettyCallStack)
 
 import           Solid.ByteString
-import           Solid.String.Type
+import           String
 
 class ToString a where
   toString :: a -> String

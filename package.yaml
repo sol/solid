@@ -21,6 +21,7 @@ dependencies:
   - text == 2.0.1
   - filepath == 1.4.2.2
   - directory == 1.3.7.1
+  - containers
 
 build-tools: solid-pp
 

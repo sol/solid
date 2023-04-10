@@ -22,7 +22,7 @@ module Solid.Exception (
 ) where
 
 import           Solid.Common
-import           Solid.String.Type
+import           String
 import           Solid.FilePath
 
 import           GHC.Stack

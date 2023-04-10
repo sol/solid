@@ -1,5 +1,11 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Solid.String.Type where
+module Solid.String.Type (
+  String
+, pack
+, unpack
+, lines
+, unlines
+) where
 
 import           Solid.Common
 import           Solid.ByteString
@@ -19,14 +25,11 @@ type String = Bytes Utf8
 instance IsString String where
   fromString = pack
 
+instance IsString ByteString where
+  fromString = asByteString . pack
+
 instance Show String where
   showsPrec n = showsPrec n . unpack
-
-asString :: Bytes a -> Maybe String
-asString (Bytes string) = if Haskell.isValidUtf8 string then Just (Bytes string) else Nothing
-
-instance HasField "asString" (Bytes a) (Maybe String) where
-  getField = asString
 
 pack :: [Char] -> String
 pack = Bytes . T.encodeUtf8 . T.pack

@@ -1,10 +1,8 @@
 {-# LANGUAGE DerivingStrategies #-}
 module Solid.ByteString where
 
-import           Solid.Common
-
-import           Data.Word (Word8)
-import qualified Data.ByteString as Haskell
+import Solid.Common
+import Data.ByteString qualified as Haskell
 
 newtype Bytes a = Bytes { unBytes :: Haskell.ByteString }
   deriving newtype (Eq, Ord, Semigroup, Monoid)

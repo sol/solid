@@ -24,7 +24,8 @@ import           System.IO (Handle, stdin, stdout, stderr, hFlush)
 import           Data.Coerce
 import qualified Data.ByteString as B
 
-import           Solid.String
+import           String
+import           ByteString
 import           Solid.ToString
 
 print :: ToString a => a -> IO ()

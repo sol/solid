@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Solid.String.TypeSpec (spec) where
 
 import qualified Prelude
@@ -7,9 +5,6 @@ import qualified Prelude
 import           Helper
 import qualified Gen
 import qualified Range
-
-invalidUtf8 :: ByteString
-invalidUtf8 = Bytes "foo \xc3\x28 bar"
 
 listOfUpTo :: MonadGen m => Int -> m a -> m [a]
 listOfUpTo n = Gen.list (Range.linear 0 n)
@@ -21,28 +16,6 @@ spec = do
       xs <- forAll $ listOfUpTo 10 Gen.unicodeScalar
       ys <- forAll $ listOfUpTo 10 Gen.unicodeScalar
       compare (pack xs) (pack ys) === compare xs ys
-
-  describe ".asString" $ do
-    it "converts a ByteString to a String" $ do
-      let
-        input :: ByteString
-        input = Bytes "foo"
-      input.asString `shouldBe` Just "foo"
-
-    context "on invalid UTF-8" $ do
-      it "returns Nothing" $ do
-        invalidUtf8.asString `shouldBe` Nothing
-
-  describe ".asString!" $ do
-    it "converts a ByteString to a String" $ do
-      let
-        input :: ByteString
-        input = Bytes "foo"
-      input.asString! `shouldBe` "foo"
-
-    context "on invalid UTF-8" $ do
-      it "throws an exception" $ do
-        evaluate invalidUtf8.asString! `shouldThrow` UnicodeDecodeError
 
   describe "pack" $ do
     it "creates a String from a list of Char" $ do

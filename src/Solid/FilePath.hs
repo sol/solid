@@ -3,7 +3,7 @@
 module Solid.FilePath where
 
 import           Solid.Common
-import           Solid.String.Type
+import           String
 import           Solid.ToString
 import           Data.Coerce
 
