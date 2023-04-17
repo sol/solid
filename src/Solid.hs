@@ -11,6 +11,6 @@ import FilePath as Solid
 import Solid.ToString as Solid
 
 import ByteString as Solid (Bytes(..), ByteString)
-import String as Solid (String, pack, unpack)
+import String as Solid (String, pack, unpack, lines, unlines)
 import Maybe ()
 import List ()

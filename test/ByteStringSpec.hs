@@ -37,3 +37,23 @@ spec = do
     context "on invalid UTF-8" $ do
       it "inserts Unicode replacement characters" $ do
         invalidUtf8.decodeUtf8 `shouldBe` "foo \xFFFD( bar"
+
+  describe ".strip" $ do
+    it "removes leading and trailing whitespace" $ do
+      let input = "  foo\n \r" :: ByteString
+      input.strip `shouldBe` "foo"
+
+  describe ".startsWith" $ do
+    it "checks if a string starts with an other string" $ do
+      let input = "123" :: ByteString
+      input.startsWith "1" `shouldBe` True
+
+  describe ".endsWith" $ do
+    it "checks if a string ends with an other string" $ do
+      let input = "123" :: ByteString
+      input.endsWith "3" `shouldBe` True
+
+  describe ".contains" $ do
+    it "checks if a string contains an other string" $ do
+      let input = "123" :: ByteString
+      input.contains "2" `shouldBe` True

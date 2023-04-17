@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.Common (
   module Imports
 , pass
@@ -14,5 +15,19 @@ import           GHC.Generics as Imports (Generic)
 import           Control.Monad as Imports
 import           Control.Applicative as Imports
 
+import           Data.Tuple (swap)
+
 pass :: Applicative m => m ()
 pass = pure ()
+
+instance HasField "uncurry" (a -> b -> c) ((a, b) -> c) where
+  getField = uncurry
+
+instance HasField "curry" ((a, b) -> c) (a -> b -> c) where
+  getField = curry
+
+instance HasField "flip" (a -> b -> c) (b -> a -> c) where
+  getField = flip
+
+instance HasField "swap" (a, b) (b, a) where
+  getField = swap

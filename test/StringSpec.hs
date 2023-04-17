@@ -39,6 +39,11 @@ spec = do
       xs :: [String] <- forAll $ listOfUpTo 10 (pack <$> listOfUpTo 10 Gen.unicodeAny)
       xs.unlines === pack (Prelude.unlines (map unpack xs))
 
+  describe ".strip" $ do
+    it "removes leading and trailing whitespace" $ do
+      let input = "  foo\n \r" :: String
+      input.strip `shouldBe` "foo"
+
   describe ".startsWith" $ do
     it "checks if a string starts with an other string" $ do
       let input = "123" :: String
