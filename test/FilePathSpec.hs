@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-module Solid.FilePathSpec (spec) where
+module FilePathSpec (spec) where
 
 import           Helper
 import qualified Gen

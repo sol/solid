@@ -23,7 +23,7 @@ module Solid.Exception (
 
 import           Solid.Common
 import           String
-import           Solid.FilePath
+import           FilePath
 
 import           GHC.Stack
 import           Control.Exception (Exception(toException), SomeException, evaluate, throwIO, bracket, bracket_)

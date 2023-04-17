@@ -4,7 +4,7 @@ module Solid.MD5 (Fingerprint) where
 import           Solid.Common
 import           Solid.Types
 import           Solid.ToString
-import           Solid.FilePath
+import           FilePath
 
 import           GHC.Fingerprint
 import           GHC.Ptr (castPtr)

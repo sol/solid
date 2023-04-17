@@ -7,7 +7,7 @@ import Solid.Exception as Solid
 import Solid.IO as Solid
 import Solid.Char ()
 import Solid.MD5 as Solid
-import Solid.FilePath as Solid
+import FilePath as Solid
 import Solid.ToString as Solid
 
 import ByteString as Solid (Bytes(..), ByteString)

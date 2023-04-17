@@ -1,6 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Solid.FilePath where
+module FilePath where
 
 import           Solid.Common
 import           String

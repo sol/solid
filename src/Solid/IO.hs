@@ -18,7 +18,7 @@ module Solid.IO (
 import           Solid.Common
 import           Solid.Types
 import           Solid.Exception
-import           Solid.FilePath
+import           FilePath
 
 import           System.IO (Handle, stdin, stdout, stderr, hFlush)
 
