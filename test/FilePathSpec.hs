@@ -1,12 +1,28 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module FilePathSpec (spec) where
 
-import           Helper
-import qualified Gen
-import qualified Range
+import Helper hiding (shouldThrow)
+import Test.Hspec (shouldThrow)
+import System.IO.Error
+import Gen qualified
+import Range qualified
 
-path :: FilePath
-path = "foo.txt"
+import qualified System.Directory as Haskell
+
+withPath :: (FilePath -> IO a) -> IO a
+withPath action = inTempDirectory $ do
+  action "foo.txt"
+
+withFile :: (FilePath -> IO a) -> IO a
+withFile action = inTempDirectory $ do
+  let file = "foo.txt"
+  touch file
+  action file
+
+withDirectory :: (FilePath -> IO a) -> IO a
+withDirectory action = inTempDirectory $ do
+  Haskell.createDirectory "foo"
+  action "foo"
 
 spec :: Spec
 spec = do
@@ -17,28 +33,103 @@ spec = do
       compare xs.toFilePath ys.toFilePath === compare xs (ys :: [Char])
 
   describe ".toFilePath @[Char]" $ do
-    it "converts a list of Char to a FilePath" $ do
-      ("foo.txt" :: [Char]).toFilePath `shouldBe` path
+    it "converts [Char] to FilePath" $ do
+      let path = "foo.txt" :: [Char]
+      path.toFilePath `shouldBe` "foo.txt"
 
   describe ".toFilePath @String" $ do
-    it "converts a String to a FilePath" $ do
-      ("foo.txt" :: String).toFilePath `shouldBe` path
+    it "converts String to FilePath" $ do
+      let path = "foo.txt" :: String
+      path.toFilePath `shouldBe` "foo.txt"
 
   describe ".toString" $ do
     it "converts a FilePath to a String" $ do
-      path.toString `shouldBe` ("foo.txt" :: String)
+      let path = "foo.txt" :: FilePath
+      path.toString `shouldBe` "foo.txt"
 
-  describe ".exists?" $ around_ inTempDirectory $ do
-    context "when path does not exist" $ do
+  describe "exists?" $ do
+    context "with a non-existing path" $ do
       it "returns False" $ do
-        path.exists? `shouldReturn` False
+        withPath $ \ path -> do
+          path.exists? `shouldReturn` False
 
-    context "when path refers to an existing file" $ do
+    context "with a file" $ do
       it "returns True" $ do
-        touch "foo.txt"
-        path.exists? `shouldReturn` True
+        withFile $ \ file -> do
+          file.exists? `shouldReturn` True
 
-    context "when path refers to an existing directory" $ do
+    context "with a directory" $ do
       it "returns True" $ do
-        touch "foo.txt/bar"
-        path.exists? `shouldReturn` True
+        withDirectory $ \ dir -> do
+          dir.exists? `shouldReturn` True
+
+  describe "file?" $ do
+    context "with a non-existing path" $ do
+      it "returns False" $ do
+        withPath $ \ path -> do
+          path.file? `shouldReturn` False
+
+    context "with a file" $ do
+      it "returns True" $ do
+        withFile $ \ file -> do
+          file.file? `shouldReturn` True
+
+    context "with a directory" $ do
+      it "returns False" $ do
+        withDirectory $ \ dir -> do
+          dir.file? `shouldReturn` False
+
+  describe "directory?" $ do
+    context "with a non-existing path" $ do
+      it "returns False" $ do
+        withPath $ \ path -> do
+          path.directory? `shouldReturn` False
+
+    context "with a file" $ do
+      it "returns False" $ do
+        withFile $ \ file -> do
+          file.directory? `shouldReturn` False
+
+    context "with a directory" $ do
+      it "returns True" $ do
+        withDirectory $ \ dir -> do
+          dir.directory? `shouldReturn` True
+
+  describe "remove" $ do
+    context "with a non-existing path" $ do
+      it "throws an exception" $ do
+        withPath $ \ path -> do
+          path.remove `shouldThrow` isDoesNotExistError
+
+    context "with a file" $ do
+      it "removes given file" $ do
+        withFile $ \ file -> do
+          file.remove
+          file.exists? `shouldReturn` False
+
+    context "with a directory" $ do
+      it "removes given directory" $ do
+        withDirectory $ \ dir -> do
+          dir.remove
+          dir.exists? `shouldReturn` False
+
+  describe "rename" $ do
+    let dst = "bar"
+    context "with a non-existing path" $ do
+      it "throws an exception" $ do
+        withPath $ \ path -> do
+          path.rename dst `shouldThrow` isDoesNotExistError
+
+    context "with a file" $ do
+      it "renames given file" $ do
+        withFile $ \ src -> do
+          src.rename dst
+          src.exists? `shouldReturn` False
+          dst.exists? `shouldReturn` True
+
+    context "with a directory" $ do
+      it "renames given directory" $ do
+        withDirectory $ \ src -> do
+          src.rename dst
+          src.exists? `shouldReturn` False
+          dst.exists? `shouldReturn` True
