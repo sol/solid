@@ -4,6 +4,7 @@
 module FilePath (
   FilePath(..)
 , (</>)
+, (<.>)
 
 , exists?
 , file?
@@ -36,6 +37,9 @@ newtype FilePath = FilePath { unFilePath :: Haskell.FilePath }
 
 (</>) :: FilePath -> FilePath -> FilePath
 (</>) = coerce (Haskell.</>)
+
+(<.>) :: FilePath -> String -> FilePath
+(<.>) path ext = (path.unFilePath Haskell.<.> ext.unpack).toFilePath
 
 exists? :: FilePath -> IO Bool
 exists? = coerce Haskell.doesPathExist

@@ -1,4 +1,6 @@
+# GHC
 
+`solid` uses `stack` to install GHC `9.4.4`.
 
 # Limitations
 

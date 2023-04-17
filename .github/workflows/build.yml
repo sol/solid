@@ -24,6 +24,12 @@ jobs:
         ghc:
           - 9.4.4
     steps:
+      - run: |
+          eval `ssh-agent -s`
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          ssh-add - <<< '${{ secrets.DEPLOY_KEY }}'
+
       - uses: actions/checkout@v3
       - uses: hspec/setup-haskell@v1
         with:

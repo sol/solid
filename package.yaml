@@ -15,14 +15,17 @@ default-extensions:
 ghc-options: -Wall
 
 dependencies:
-  - ghc == 9.4.4
   - base == 4.17.0.0
   - bytestring == 0.11.3.1
   - text == 2.0.1
   - filepath == 1.4.2.2
   - directory == 1.3.7.1
   - containers
-  - unix # >= 2.8.1.1
+  - unix == 2.7.3 # remove CPP from src/Env/Raw.hs when >= 2.8.1.1
+  - process
+  - temporary == 1.3
+
+  - solid-pp
 
 build-tools: solid-pp
 
@@ -30,9 +33,21 @@ source-dirs: src
 
 library: {}
 
+executable:
+  main: Main.hs
+  source-dirs:
+    - driver
+    - vendor/cabal-install
+  dependencies:
+    - solid
+    - Cabal
+    - cabal-install == 3.10.1.0 # update / remove vendor/Distribution/Client/Main.hs
+
 tests:
   spec:
-    build-tools: hspec-discover
+    build-tools:
+      - hspec-discover
+      - solid
     main: Spec.hs
     source-dirs:
       - test
