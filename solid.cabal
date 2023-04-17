@@ -16,6 +16,8 @@ build-type:     Simple
 library
   exposed-modules:
       ByteString
+      Env
+      Env.Raw
       List
       Maybe
       Platform
@@ -52,6 +54,7 @@ library
     , filepath ==1.4.2.2
     , ghc ==9.4.4
     , text ==2.0.1
+    , unix
   default-language: GHC2021
 
 test-suite spec
@@ -59,6 +62,8 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       ByteString
+      Env
+      Env.Raw
       List
       Maybe
       Platform
@@ -119,4 +124,5 @@ test-suite spec
     , solid
     , splitmix
     , text ==2.0.1
+    , unix
   default-language: GHC2021
