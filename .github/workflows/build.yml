@@ -5,9 +5,9 @@ concurrency:
   cancel-in-progress: true
 
 on:
-#  push:
-#    branches:
-#      - main
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -28,6 +28,14 @@ jobs:
       - uses: hspec/setup-haskell@v1
         with:
           ghc-version: ${{ matrix.ghc }}
+        id: setup-haskell
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ runner.os == 'Windows' && 'C:/cabal/store/' || runner.os == 'macOS' && '~/.cabal/store/' || '~/.local/state/cabal/store/' }}
+          key: ${{ runner.os }}-${{ steps.setup-haskell.outputs.ghc-version }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-${{ steps.setup-haskell.outputs.ghc-version }}-
+
       - uses: sol/run-haskell-tests@v1
 
 #  success:
