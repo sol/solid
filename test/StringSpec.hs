@@ -58,3 +58,13 @@ spec = do
     it "checks if a string contains an other string" $ do
       let input = "123" :: String
       input.contains "2" `shouldBe` True
+
+  describe ".stripPrefix" $ do
+    it "strips prefix" $ do
+      let input = "foobar" :: String
+      input.stripPrefix "foo" `shouldBe` Just "bar"
+
+  describe ".stripSuffix" $ do
+    it "strips suffix" $ do
+      let input = "foobar" :: String
+      input.stripSuffix "bar" `shouldBe` Just "foo"

@@ -45,6 +45,9 @@ instance Eq a => HasField "endsWith" [a] ([a] -> Bool) where
 instance Eq a => HasField "contains" [a] ([a] -> Bool) where
   getField = flip isInfixOf
 
+instance Eq a => HasField "stripPrefix" [a] ([a] -> Maybe [a]) where
+  getField = flip stripPrefix
+
 instance Ord a => HasField "nub" [a] [a] where
   getField = nub
 

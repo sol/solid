@@ -24,6 +24,11 @@ spec = do
       let input = [1, 2, 3] :: [Int]
       input.contains [2] `shouldBe` True
 
+  describe ".stripPrefix" $ do
+    it "strips prefix" $ do
+      let input = "foobar" :: [Char]
+      input.stripPrefix "foo" `shouldBe` Just "bar"
+
   describe "nub" $ do
     it "removes duplicates from a list" $ do
       [1, 2, 3, 23, 1, 42, 1].nub `shouldBe` [1, 2, 3, 23, 42 :: Int]

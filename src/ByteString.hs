@@ -56,6 +56,12 @@ isSuffixOf = Bytes.isSuffixOf
 isInfixOf :: ByteString -> ByteString -> Bool
 isInfixOf = coerce Haskell.isInfixOf
 
+stripPrefix :: ByteString -> ByteString -> Maybe ByteString
+stripPrefix = coerce Haskell.stripPrefix
+
+stripSuffix :: ByteString -> ByteString -> Maybe ByteString
+stripSuffix = coerce Haskell.stripSuffix
+
 instance HasField "length" ByteString Int where
   getField = length
 
@@ -79,3 +85,9 @@ instance HasField "strip" ByteString ByteString where
 
 instance HasField "contains" ByteString (ByteString -> Bool) where
   getField = flip isInfixOf
+
+instance HasField "stripPrefix" ByteString (ByteString -> Maybe ByteString) where
+  getField = flip stripPrefix
+
+instance HasField "stripSuffix" ByteString (ByteString -> Maybe ByteString) where
+  getField = flip stripSuffix
