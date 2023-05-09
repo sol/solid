@@ -8,7 +8,7 @@ import qualified System.Environment as Haskell
 import qualified Distribution.Client.Main as Cabal
 
 import           Solid.PP qualified as PP
-import           Solid.Driver (solid)
+import           Solid.Driver (Mode(..), solid)
 import qualified Solid.Driver as Driver
 
 getArgs :: IO [String]
@@ -25,4 +25,5 @@ main :: IO ()
 main = getArgs >>= \ case
   "cabal" : args -> withArgs args Cabal.main
   [src, cur, dst, command] | command == Driver.desugarCommand -> PP.main src.unpack cur.unpack dst.unpack
-  args -> (solid -< getExecutablePath) args
+  "ghc-options" : args -> (solid GhcOptions -< getExecutablePath) args
+  args -> (solid Run -< getExecutablePath) args

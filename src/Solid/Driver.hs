@@ -1,8 +1,9 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE BlockArguments #-}
 module Solid.Driver (
-  desugarCommand
+  Mode(..)
 , solid
+, desugarCommand
 ) where
 
 import           Solid
@@ -38,13 +39,18 @@ internalCommand name = "{name}-{marker}"
     marker :: String
     marker = "f817da5ee1a2164ad58986293141e5bf"
 
-solid :: FilePath -> [String] -> IO ()
-solid self args = do
+data Mode = GhcOptions | Run
+
+solid :: Mode -> FilePath -> [String] -> IO ()
+solid mode self args = do
   cache <- getCacheDirectory
   ghc_dir <- determine_ghc_dir (cache </> "ghc-{ghc}".toFilePath)
   Env.path.extend ghc_dir do
     packageEnv <- ensurePackageEnv self cache
-    runghc self ghc_dir packageEnv args
+    let options = ghcOptions self packageEnv args
+    case mode of
+      GhcOptions -> stdout.print options.unlines
+      Run -> rawSystem (ghc_dir </> "runghc") options >>= throwIO
 
 getCacheDirectory :: IO FilePath
 getCacheDirectory = do
@@ -91,10 +97,9 @@ ensurePackageEnv self cache = do
     packageEnv :: FilePath
     packageEnv = cache </> "{revision}.env".toFilePath
 
-runghc :: FilePath -> FilePath -> FilePath -> [String] -> IO ()
-runghc self dir packageEnv args = rawSystem bin (opts ++ args) >>= throwIO
+ghcOptions :: FilePath -> FilePath -> [String] -> [String]
+ghcOptions self packageEnv args = opts ++ args
   where
-    bin = dir </> "runghc"
     opts = "-package-env={packageEnv}"
       : "-package=base (Prelude as BasePrelude, System.Exit, Control.Monad, System.Environment)"
       : "-package=process"

@@ -30,4 +30,4 @@ spec = do
             , "  stdout.writeLine \"Hey {name} 👋\""
             , "  exitWith (ExitFailure 23)"
             ]
-          capture_ (solid "solid" ["main.hs"] `shouldThrow` ExitFailure 23) `shouldReturn` "Hey Joe 👋\n"
+          capture_ (solid Run "solid" ["main.hs"] `shouldThrow` ExitFailure 23) `shouldReturn` "Hey Joe 👋\n"
