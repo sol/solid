@@ -22,13 +22,10 @@ repository :: String
 repository = "git@github.com:sol/solid.git"
 
 revision :: String
-revision = "9a8b33206630d965e9a4a564f37049cfc2f240a8"
+revision = "b4e9863fc7f200a523c64e16d71ab788890b03d5"
 
 ghc :: String
-ghc = "9.4.4"
-
-resolver :: String
-resolver = "nightly-2023-02-14"
+ghc = "9.6.1"
 
 desugarCommand :: String
 desugarCommand = internalCommand "desugar"
@@ -67,8 +64,11 @@ determine_ghc_dir cache = do
 
 find_ghc :: IO FilePath
 find_ghc = Env.path.resolve "stack" >>= \ case
-  Just stack -> (.strip.toFilePath) <$> readProcess stack ["--resolver={resolver}", "path", "--compiler-bin"] ""
   Nothing -> exit "{}: could not find stack"
+  Just stack -> withSystemTempDirectory "stackage" $ \ tmp -> do
+    let resolver = tmp </> "stackage.yaml"
+    writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
+    readProcess stack ["--resolver={resolver}", "path", "--compiler-bin"] "" <&> (.strip.toFilePath)
 
 atomicWriteFile :: FilePath -> String -> IO ()
 atomicWriteFile dst str = do
@@ -113,6 +113,9 @@ ghcOptions self packageEnv args = opts ++ args
 
 withTempDirectory :: FilePath -> String -> (FilePath -> IO a) -> IO a
 withTempDirectory dir template action = Haskell.withTempDirectory (unFilePath dir) template.unpack (action . (.toFilePath))
+
+withSystemTempDirectory :: String -> (FilePath -> IO a) -> IO a
+withSystemTempDirectory template action = Haskell.withSystemTempDirectory template.unpack (action . (.toFilePath))
 
 withCurrentDirectory :: FilePath -> IO a -> IO a
 withCurrentDirectory dir = Haskell.withCurrentDirectory (unFilePath dir)
