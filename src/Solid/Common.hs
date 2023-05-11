@@ -4,7 +4,7 @@ module Solid.Common (
 , pass
 ) where
 
-import           Prelude as Imports hiding (FilePath, String, lines, unlines, print, readFile, writeFile, error, length)
+import           HaskellPrelude as Imports hiding (FilePath, String, lines, unlines, print, readFile, writeFile, error, length)
 import           Data.Functor as Imports ((<&>))
 import           Data.Bifunctor as Imports
 import           Data.String as Imports (IsString(..))

@@ -8,7 +8,7 @@ name:           solid
 version:        0.0.0
 author:         Simon Hengel <sol@typeful.net>
 maintainer:     Simon Hengel <sol@typeful.net>
-copyright:      (c) 2022 Simon Hengel
+copyright:      (c) 2022-2023 Simon Hengel
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
@@ -22,6 +22,7 @@ library
       List
       Maybe
       Platform
+      Prelude
       Solid
       Solid.Bind
       Solid.Bytes
@@ -36,8 +37,6 @@ library
       Solid.TypeLits
       Solid.Types
       String
-  other-modules:
-      Paths_solid
   hs-source-dirs:
       src
   default-extensions:
@@ -51,11 +50,11 @@ library
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
-      base ==4.18.0.0
-    , bytestring
+      bytestring
     , containers
     , directory
     , filepath
+    , haskell-base
     , process
     , solid-pp
     , temporary ==1.3
@@ -73,6 +72,7 @@ executable solid
       List
       Maybe
       Platform
+      Prelude
       Solid
       Solid.Bind
       Solid.Bytes
@@ -88,7 +88,6 @@ executable solid
       Solid.Types
       String
       Distribution.Client.Main
-      Paths_solid
   hs-source-dirs:
       src
       driver
@@ -105,12 +104,12 @@ executable solid
       solid-pp:solid-pp
   build-depends:
       Cabal
-    , base ==4.18.0.0
     , bytestring
     , cabal-install ==3.10.1.0
     , containers
     , directory
     , filepath
+    , haskell-base
     , process
     , solid
     , solid-pp
@@ -130,6 +129,7 @@ test-suite spec
       List
       Maybe
       Platform
+      Prelude
       Solid
       Solid.Bind
       Solid.Bytes
@@ -161,7 +161,6 @@ test-suite spec
       Solid.TypesSpec
       StringSpec
       Test.Hspec.Hedgehog
-      Paths_solid
   hs-source-dirs:
       src
       test
@@ -181,11 +180,11 @@ test-suite spec
     , solid-pp:solid-pp
   build-depends:
       QuickCheck
-    , base ==4.18.0.0
     , bytestring
     , containers
     , directory
     , filepath
+    , haskell-base
     , hedgehog
     , hspec ==2.*
     , hspec-core

@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid (module Solid) where
 
 import Solid.Common as Solid

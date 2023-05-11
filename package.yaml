@@ -1,9 +1,10 @@
 name: solid
 
-copyright: (c) 2022 Simon Hengel
+copyright: (c) 2022-2023 Simon Hengel
 author: Simon Hengel <sol@typeful.net>
 
 language: GHC2021
+
 default-extensions:
   - NoImplicitPrelude
   - DataKinds
@@ -15,7 +16,7 @@ default-extensions:
 ghc-options: -Wall
 
 dependencies:
-  - base == 4.18.0.0
+  - haskell-base
   - bytestring
   - text
   - filepath
@@ -31,7 +32,10 @@ build-tools: solid-pp
 
 source-dirs: src
 
-library: {}
+library:
+  when:
+    condition: false
+    other-modules: Paths_solid
 
 executable:
   main: Main.hs
@@ -42,6 +46,9 @@ executable:
     - solid
     - Cabal
     - cabal-install == 3.10.1.0 # update / remove vendor/Distribution/Client/Main.hs
+  when:
+    condition: false
+    other-modules: Paths_solid
 
 tests:
   spec:
@@ -63,3 +70,6 @@ tests:
 
       - silently
       - mockery
+    when:
+      condition: false
+      other-modules: Paths_solid

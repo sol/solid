@@ -28,7 +28,7 @@ import           FilePath
 import           GHC.Stack
 import           Control.Exception (Exception(toException), SomeException, evaluate, throwIO, bracket, bracket_)
 
-import qualified Prelude as Haskell
+import qualified HaskellPrelude as Haskell
 import qualified Control.Exception as Haskell
 
 import           GHC.IO.Exception hiding (IOException)

@@ -8,7 +8,7 @@ name:           solid-pp
 version:        0.0.0
 author:         Simon Hengel <sol@typeful.net>
 maintainer:     Simon Hengel <sol@typeful.net>
-copyright:      (c) 2022 Simon Hengel
+copyright:      (c) 2022-2023 Simon Hengel
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple

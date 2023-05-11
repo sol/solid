@@ -1,6 +1,7 @@
 packages:
   .
   solid-pp
+  haskell-base
 
 package solid
   ghc-options: -Werror

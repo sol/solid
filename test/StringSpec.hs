@@ -1,6 +1,6 @@
 module StringSpec (spec) where
 
-import Prelude qualified
+import HaskellPrelude qualified as Haskell
 
 import Helper
 import Gen qualified
@@ -32,12 +32,12 @@ spec = do
         , (1, pure '\r')
         , (5, Gen.unicodeScalar)
         ]
-      map unpack xs.pack.lines === Prelude.lines xs
+      map unpack xs.pack.lines === Haskell.lines xs
 
   describe "unlines" $ do
     it "joins lines, appending a terminating newline after each" $ do
       xs :: [String] <- forAll $ listOfUpTo 10 (pack <$> listOfUpTo 10 Gen.unicodeAny)
-      xs.unlines === pack (Prelude.unlines (map unpack xs))
+      xs.unlines === pack (Haskell.unlines (map unpack xs))
 
   describe ".strip" $ do
     it "removes leading and trailing whitespace" $ do

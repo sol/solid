@@ -1,6 +1,19 @@
+# Haskell Language Server (LSP) support
+
+It is possible to use [Haskell Language Server](https://github.com/haskell/haskell-language-server)
+to get LSP diagnostics while developing a script.  This requires the following
+configuration:
+
+```yaml
+# hie.yaml
+cradle:
+  bios:
+    shell: "solid ghc-options $HIE_BIOS_ARG > $HIE_BIOS_OUTPUT"
+```
+
 # GHC
 
-`solid` uses `stack` to install GHC `9.4.4`.
+`solid` uses `stack` to install GHC `9.6.1`.
 
 # Limitations
 
