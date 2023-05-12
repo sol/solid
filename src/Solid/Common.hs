@@ -4,7 +4,7 @@ module Solid.Common (
 , pass
 ) where
 
-import           HaskellPrelude as Imports hiding (FilePath, String, lines, unlines, print, readFile, writeFile, error, length)
+import           HaskellPrelude as Imports hiding (FilePath, String, words, unwords, lines, unlines, print, readFile, writeFile, error, length)
 import           Data.Functor as Imports ((<&>))
 import           Data.Bifunctor as Imports
 import           Data.String as Imports (IsString(..))
@@ -13,6 +13,7 @@ import           GHC.Stack as Imports (CallStack)
 import           GHC.Records as Imports (HasField(..))
 import           GHC.Generics as Imports (Generic)
 import           Control.Monad as Imports
+import           Control.Monad.IO.Class as Imports
 import           Control.Applicative as Imports
 
 import           Data.Tuple (swap)

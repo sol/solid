@@ -22,7 +22,7 @@ repository :: String
 repository = "git@github.com:sol/solid.git"
 
 revision :: String
-revision = "b4e9863fc7f200a523c64e16d71ab788890b03d5"
+revision = "cd27310c76420cefbbf8a9665bb4caab2f963474"
 
 ghc :: String
 ghc = "9.6.1"
@@ -85,7 +85,7 @@ ensurePackageEnv self cache = do
         git ["remote", "add", "origin", repository]
         git ["fetch", "--depth", "1", "origin", revision, "-q"]
         git ["checkout", "FETCH_HEAD", "-q"]
-        cabal ["-v0", "install", "--lib", "--package-env={packageEnv}"]
+        cabal $ "-v0" : "install" : "--package-env={packageEnv}" : "--lib" : packages
   return packageEnv
   where
     git :: [String] -> IO ()
@@ -94,16 +94,17 @@ ensurePackageEnv self cache = do
     cabal :: [String] -> IO ()
     cabal args = callProcess self $ "cabal" : args
 
+    packages :: [String]
+    packages = ["lib:solid", "lib:haskell-base"]
+
     packageEnv :: FilePath
-    packageEnv = cache </> "{revision}.env".toFilePath
+    packageEnv = cache </> "{revision}-{packages.sort.unlines.md5sum}.env".toFilePath
 
 ghcOptions :: FilePath -> FilePath -> [String] -> [String]
 ghcOptions self packageEnv args = opts ++ args
   where
     opts = "-package-env={packageEnv}"
-      : "-package=base (Prelude as BasePrelude, System.Exit, Control.Monad, System.Environment)"
       : "-package=process"
-      : "-package=solid with (Solid as Prelude)"
       : desugar ++ exts
     desugar = ["-F", "-pgmF={self}", "-optF={desugarCommand}"]
     exts = map showExtension extensions

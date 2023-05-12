@@ -43,6 +43,12 @@ pack = Bytes . Text.encodeUtf8 . Text.pack
 unpack :: String -> [Char]
 unpack = Text.unpack . Text.decodeUtf8 . unBytes
 
+words :: String -> [String]
+words = coerce Char8.words
+
+unwords :: [String] -> String
+unwords = coerce Char8.unwords
+
 lines :: String -> [String]
 lines = coerce Char8.lines
 
@@ -75,6 +81,12 @@ instance HasField "pack" [Char] String where
 
 instance HasField "unpack" String [Char] where
   getField = unpack
+
+instance HasField "words" String [String] where
+  getField = words
+
+instance HasField "unwords" [String] String where
+  getField = unwords
 
 instance HasField "lines" String [String] where
   getField = lines

@@ -1,4 +1,4 @@
-{-# LANGUAGE ImplicitPrelude       #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE InstanceSigs          #-}
@@ -92,6 +92,7 @@ module Test.Hspec.Hedgehog
     , module Hedgehog
     ) where
 
+import           HaskellPrelude
 import           Control.Monad.IO.Class     (liftIO)
 import           Data.Coerce                (coerce)
 import           Data.IORef                 (newIORef, readIORef, writeIORef)
@@ -211,7 +212,7 @@ instance (m ~ IO) => Example (a -> PropertyT m ()) where
                                 , locationColumn = coerce spanStartColumn
                                 }
                     in
-                        Hspec.Failure (fromSpan <$> failureLocation) $ Reason ppresult
+                        Hspec.Failure (fromSpan <$> failureLocation) $ ColorizedReason ppresult
                 GaveUp ->
                     Failure Nothing (Reason "GaveUp")
                 OK ->
