@@ -10,7 +10,6 @@ import Solid.Common
 import Solid.Types
 import Solid.Exception
 import Solid.Bytes qualified as Bytes
-import String qualified
 
 import Data.Coerce (coerce)
 import Data.ByteString qualified as Haskell

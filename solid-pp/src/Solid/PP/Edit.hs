@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE NoFieldSelectors #-}
 module Solid.PP.Edit (
   StartColumn(..)
 , Edit(..)
@@ -10,16 +11,20 @@ module Solid.PP.Edit (
 
 import           Prelude ()
 import           Solid.PP.IO
+import           Data.List
+import qualified Data.Text as T
 
 import           Solid.PP.SrcLoc (StartColumn(..))
 
-import qualified Data.Text as T
-
-data Edit = Replace (Maybe StartColumn) Int Int Text
-  deriving (Eq, Show)
+data Edit = Replace {
+  startColumn :: Maybe StartColumn
+, start :: Int
+, old :: Int
+, new :: Text
+} deriving (Eq, Show)
 
 edit :: Handle -> Text -> [Edit] -> IO ()
-edit h input = go 0
+edit h input = go 0 . sortOn (.start)
   where
     go :: Int -> [Edit] -> IO ()
     go cursor = \ case

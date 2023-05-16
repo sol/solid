@@ -17,7 +17,8 @@ module Solid.PP.SrcLoc (
 import           Prelude ()
 import           Solid.PP.IO
 
-import           GHC.Types.SrcLoc
+import           GHC.Data.FastString (unpackFS)
+import           GHC.Types.SrcLoc hiding (srcSpanStart, srcSpanEnd)
 
 type WithBufferSpan = GenLocated BufferSpan
 
@@ -25,17 +26,28 @@ newtype StartColumn = StartColumn Int
   deriving newtype (Eq, Show, Num)
 
 data BufferSpan = BufferSpan {
-  start :: Int
+  file :: ~FilePath
+, start :: Int
 , end :: Int
+, startLine :: Int
+, endLine :: Int
 , startColumn :: StartColumn
+, endColumn :: Int
 } deriving (Eq, Show)
 
 instance HasField "length" BufferSpan Int where
   getField loc = loc.end - loc.start
 
 toBufferSpan :: PsSpan -> BufferSpan
-toBufferSpan PsSpan{..} = BufferSpan {..}
+toBufferSpan PsSpan{..} = BufferSpan {
+  file = unpackFS $ srcLocFile srcSpanStart
+, start = bufPos $ bufSpanStart psBufSpan
+, end = bufPos $ bufSpanEnd psBufSpan
+, startLine = srcLocLine srcSpanStart
+, endLine = srcLocLine srcSpanEnd
+, startColumn = StartColumn $ srcLocCol srcSpanStart
+, endColumn = srcLocCol srcSpanEnd
+}
   where
-    start = bufPos $ bufSpanStart psBufSpan
-    end = bufPos $ bufSpanEnd psBufSpan
-    startColumn = StartColumn . srcLocCol $ realSrcSpanStart psRealSpan
+    srcSpanStart = realSrcSpanStart psRealSpan
+    srcSpanEnd = realSrcSpanEnd psRealSpan

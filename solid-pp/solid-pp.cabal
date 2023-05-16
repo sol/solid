@@ -29,6 +29,7 @@ library
       src
       vendor
   default-extensions:
+      DataKinds
       OverloadedRecordDot
       LambdaCase
   ghc-options: -Wall
@@ -50,6 +51,7 @@ executable solid-pp
   other-modules:
       Paths_solid_pp
   default-extensions:
+      DataKinds
       OverloadedRecordDot
       LambdaCase
   ghc-options: -Wall
@@ -76,6 +78,7 @@ test-suite spec
   hs-source-dirs:
       test
   default-extensions:
+      DataKinds
       OverloadedRecordDot
       LambdaCase
   ghc-options: -Wall

@@ -12,6 +12,8 @@ import           Prelude as Exports hiding (readFile, writeFile, unlines)
 import           Control.Applicative as Exports
 import           Control.Arrow as Exports ((&&&))
 import           Control.Monad as Exports
+import           Data.Maybe as Exports
+import           Data.Foldable as Exports (for_)
 import           Data.String as Exports (IsString(..))
 import           System.IO as Exports (Handle, IOMode(..), withFile)
 import           Control.Exception as Exports

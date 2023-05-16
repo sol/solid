@@ -3,6 +3,7 @@
 {-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE DisambiguateRecordFields #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Lexer (
   Extension(..)
 , applyLanguagePragmas
@@ -24,8 +25,8 @@ module Solid.PP.Lexer (
 import           Prelude ()
 import           Solid.PP.IO
 
-import           Data.Maybe
 import           Data.List (stripPrefix, foldl')
+import qualified Data.Text.Encoding as T
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -46,6 +47,9 @@ import           GHC.Driver.Errors.Types
 import           GHC.Types.SourceError
 import           GHC.Driver.Session
 import qualified GHC.Parser.Header as ModuleHeader
+
+instance HasField "toText" FastString Text where
+  getField = T.decodeUtf8Lenient . bytesFS
 
 allExtensions :: Map String Extension
 allExtensions = Map.fromList $ zip (map showExtension extensions) extensions

@@ -15,7 +15,6 @@ import qualified Test.Mockery.Directory as Mockery
 
 import           Data.Typeable (typeOf)
 
-import qualified Platform
 import           Solid.TypeLits
 
 touch :: FilePath -> IO ()

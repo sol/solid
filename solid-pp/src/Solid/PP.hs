@@ -1,5 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DerivingStrategies #-}
 module Solid.PP (
   main
 
@@ -16,9 +17,15 @@ import           Data.Char
 import           Data.Word
 import qualified Data.Text as T
 import qualified Data.ByteString.Short as SB
+import           Data.Map (Map)
+import qualified Data.Map as Map
+import           Data.Set (Set)
+import qualified Data.Set as Set
+import qualified GHC.Data.FastString as FastString
+import           Data.Coerce (coerce)
 
 import           Solid.PP.DList
-import           Solid.PP.Edit
+import           Solid.PP.Edit (Edit(..), edit)
 import           Solid.PP.Lexer
 import           Solid.PP.Parser
 
@@ -30,6 +37,26 @@ extensions = [
   , OverloadedRecordDot
   , OverloadedStrings
   ]
+
+wellKnownModules :: Set Module
+wellKnownModules = Set.fromList [
+    "ByteString"
+  , "Env"
+  , "FilePath"
+  , "List"
+  , "Maybe"
+  , "Platform"
+  , "Prelude"
+  , "Process"
+  , "Solid"
+  , "String"
+  ]
+
+newtype Module = Module FastString
+  deriving newtype (Eq, Show, IsString)
+
+instance Ord Module where
+  compare = coerce FastString.uniqCompareFS
 
 data Result = Failure String | Success
   deriving (Eq, Show)
@@ -44,15 +71,66 @@ run src cur dst = do
   input <- readFile cur
   preProcesses src dst $ addLinePragma input
   where
-    addLinePragma = (linePragma <>)
-    linePragma = "{-# LINE 1 " <> pack (show src) <> " #-}\n"
+    addLinePragma = (linePragma 1 src <>)
+
+linePragma :: Int -> FilePath -> Text
+linePragma line src = pack $ "{-# LINE " <> show line <> " " <> show src <> " #-}\n"
 
 preProcesses :: FilePath -> FilePath -> Text -> IO Result
 preProcesses src dst input = case parse extensions src input of
   Left err -> return (Failure err)
   Right nodes -> withFile dst WriteMode $ \ h -> do
-    edit h input (pp nodes)
+    edit h input $ maybe id (:) (addImplicitImports nodes) (pp nodes)
     return Success
+
+addImplicitImports :: [Node] -> Maybe Edit
+addImplicitImports nodes = case afterModuleHeader nodes of
+  None -> Nothing
+  AfterModuleHeader {} | null imports -> Nothing
+  AfterModuleHeader offset file line -> Just $ insert offset $ "\n" <> T.unlines imports <> linePragma line file
+  GenerateModule offset file line -> Just $ insert offset $ "module Main where\n" <> T.unlines imports <> linePragma line file
+  where
+    imports :: [Text]
+    imports = map formatImport $ Map.toList (Map.restrictKeys modules wellKnownModules)
+
+    modules :: Map Module BufferSpan
+    modules = Map.fromList [(Module m, loc) | Token loc (ITqvarid (m, _)) <- reverse nodes]
+
+    formatImport :: (Module, BufferSpan) -> Text
+    formatImport (Module m, loc) = linePragma loc.startLine loc.file <> columnPragma <> "import qualified " <> columnPragma <> m.toText
+      where
+        columnPragma :: Text
+        columnPragma = "{-# COLUMN " <> pack (show loc.startColumn) <> " #-}"
+
+    insert :: Int -> Text -> Edit
+    insert offset = Replace Nothing offset 0
+
+data AfterModuleHeader = None | AfterModuleHeader Int FilePath Int | GenerateModule Int FilePath Int
+
+afterModuleHeader :: [Node] -> AfterModuleHeader
+afterModuleHeader nodes = afterExportList
+  where
+    afterExportList :: AfterModuleHeader
+    afterExportList = case dropWhile (token (/= ITmodule)) nodes of
+      Token _ ITmodule : rest -> case dropWhile (token (/= ITwhere)) rest of
+        Token loc ITwhere : _ -> AfterModuleHeader loc.end loc.file loc.endLine
+        _ -> None
+      _ -> afterLanguagePragmas
+
+    afterLanguagePragmas :: AfterModuleHeader
+    afterLanguagePragmas = case dropWhile (token isComment) nodes of
+      Token loc _ : _ -> GenerateModule loc.start loc.file loc.startLine
+      _ -> None
+      where
+        isComment = \ case
+          ITlineComment {} -> True
+          ITblockComment {} -> True
+          _ -> False
+
+    token :: (Token -> Bool) -> Node -> Bool
+    token p = \ case
+      Token _ t -> p t
+      LiteralString {} -> False
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
 desugarIdentifier start end identifier

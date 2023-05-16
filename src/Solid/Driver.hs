@@ -16,7 +16,6 @@ import qualified System.IO.Temp as Haskell
 
 import           Solid.PP (Extension, extensions)
 import           Solid.Process
-import qualified Env
 
 repository :: String
 repository = "git@github.com:sol/solid.git"

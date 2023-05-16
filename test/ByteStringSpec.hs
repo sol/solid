@@ -3,8 +3,6 @@ module ByteStringSpec (spec) where
 
 import Helper
 
-import ByteString qualified
-
 invalidUtf8 :: ByteString
 invalidUtf8 = Bytes "foo \xc3\x28 bar"
 
