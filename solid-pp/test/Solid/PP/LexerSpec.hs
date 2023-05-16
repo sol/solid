@@ -220,6 +220,27 @@ spec = do
               , end ""
               ]
 
+    context "with errors" $ do
+      let
+        input = unlines [
+            "foo :: Int -> Int"
+          , "foo = \\ case"
+          , "  23 -> 42"
+          , "  _  -> 65"
+          ]
+
+      it "reports missing extensions" $ do
+        (.errors) <$> Lexer.tokenize [] "main.hs" input `shouldBe` Right "main.hs:2:9: error: [GHC-51179] Illegal \\case"
+
+      it "takes provided extensions into account" $ do
+        (.errors) <$> Lexer.tokenize [LambdaCase] "main.hs" input `shouldBe` Right ""
+
+      it "takes LANGUAGE pragmas into account" $ do
+        (.errors) <$> Lexer.tokenize [] "main.hs" ("{-# LANGUAGE LambdaCase #-}\n" <> input) `shouldBe` Right ""
+
+      it "takes negated LANGUAGE pragmas into account" $ do
+        (.errors) <$> Lexer.tokenize [LambdaCase] "main.hs" ("{-# LANGUAGE NoLambdaCase #-}\n" <> input) `shouldBe` Right "main.hs:3:9: error: [GHC-51179] Illegal \\case"
+
   describe "applyLanguagePragmas" $ do
     it "applies module LANGUAGE pragmas" $ do
       applyLanguagePragmas [] "main.hs" "{-# LANGUAGE LambdaCase #-}" `shouldBe` [LambdaCase]
@@ -238,24 +259,3 @@ spec = do
             , "{-# LANGUAGE OverloadedStrings #-}"
             ]
         applyLanguagePragmas [LambdaCase] "main.hs" input `shouldBe` [OverloadedStrings]
-
-  describe "tokenizeWithErrors" $ do
-    let
-      input = unlines [
-          "foo :: Int -> Int"
-        , "foo = \\ case"
-        , "  23 -> 42"
-        , "  _  -> 65"
-        ]
-
-    it "reports missing extensions" $ do
-      (.errors) <$> Lexer.tokenize [] "main.hs" input `shouldBe` Right "main.hs:2:9: error: [GHC-51179] Illegal \\case"
-
-    it "takes provided extensions into account" $ do
-      (.errors) <$> Lexer.tokenize [LambdaCase] "main.hs" input `shouldBe` Right ""
-
-    it "takes LANGUAGE pragmas into account" $ do
-      (.errors) <$> Lexer.tokenize [] "main.hs" ("{-# LANGUAGE LambdaCase #-}\n" <> input) `shouldBe` Right ""
-
-    it "takes negated LANGUAGE pragmas into account" $ do
-      (.errors) <$> Lexer.tokenize [LambdaCase] "main.hs" ("{-# LANGUAGE NoLambdaCase #-}\n" <> input) `shouldBe` Right "main.hs:3:9: error: [GHC-51179] Illegal \\case"
