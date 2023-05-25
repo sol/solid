@@ -43,6 +43,7 @@ library
       NoImplicitPrelude
       DataKinds
       DeriveAnyClass
+      DuplicateRecordFields
       LambdaCase
       OverloadedRecordDot
       OverloadedStrings
@@ -96,6 +97,7 @@ executable solid
       NoImplicitPrelude
       DataKinds
       DeriveAnyClass
+      DuplicateRecordFields
       LambdaCase
       OverloadedRecordDot
       OverloadedStrings
@@ -169,6 +171,7 @@ test-suite spec
       NoImplicitPrelude
       DataKinds
       DeriveAnyClass
+      DuplicateRecordFields
       LambdaCase
       OverloadedRecordDot
       OverloadedStrings

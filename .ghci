@@ -2,6 +2,7 @@
 :set -XNoImplicitPrelude
 :set -XDataKinds
 :set -XDeriveAnyClass
+:set -XDuplicateRecordFields
 :set -XLambdaCase
 :set -XOverloadedRecordDot
 :set -XOverloadedStrings

@@ -33,6 +33,7 @@ extensions :: [Extension]
 extensions = [
     DataKinds
   , DeriveAnyClass
+  , DuplicateRecordFields
   , LambdaCase
   , OverloadedRecordDot
   , OverloadedStrings

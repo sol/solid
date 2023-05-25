@@ -9,6 +9,7 @@ default-extensions:
   - NoImplicitPrelude
   - DataKinds
   - DeriveAnyClass
+  - DuplicateRecordFields
   - LambdaCase
   - OverloadedRecordDot
   - OverloadedStrings
