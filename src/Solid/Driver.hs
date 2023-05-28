@@ -6,12 +6,13 @@ module Solid.Driver (
 , desugarCommand
 ) where
 
-import           Solid
+import Solid
+import Solid.Foreign.Haskell qualified as Haskell
 
 import           System.Environment (getProgName)
 import           System.Exit (exitFailure)
-import           System.Directory hiding (withCurrentDirectory)
-import qualified System.Directory as Haskell
+import           System.Directory.OsPath hiding (withCurrentDirectory)
+import qualified System.Directory.OsPath as Haskell
 import qualified System.IO.Temp as Haskell
 
 import           Solid.PP (Extension, extensions)
@@ -40,7 +41,7 @@ data Mode = GhcOptions | Run
 solid :: Mode -> FilePath -> [String] -> IO ()
 solid mode self args = do
   cache <- getCacheDirectory
-  ghc_dir <- determine_ghc_dir (cache </> "ghc-{ghc}".toFilePath)
+  ghc_dir <- determine_ghc_dir (cache </> "ghc-{ghc}".asFilePath)
   Env.path.extend ghc_dir do
     packageEnv <- ensurePackageEnv self cache
     let options = ghcOptions self packageEnv args
@@ -50,16 +51,16 @@ solid mode self args = do
 
 getCacheDirectory :: IO FilePath
 getCacheDirectory = do
-  cache <- getXdgDirectory XdgCache "solid"
+  cache <- getXdgDirectory XdgCache (Haskell.asOsPath "solid")
   createDirectoryIfMissing True cache
-  return cache.toFilePath
+  return (Haskell.fromOsPath cache)
 
 determine_ghc_dir :: FilePath -> IO FilePath
 determine_ghc_dir cache = do
   unless -< cache.exists? $ do
     dir <- find_ghc
     atomicWriteFile cache dir.toString
-  (.toFilePath) <$> readFile cache
+  String.asFilePath <$> readFile cache
 
 find_ghc :: IO FilePath
 find_ghc = Env.path.resolve "stack" >>= \ case
@@ -67,7 +68,7 @@ find_ghc = Env.path.resolve "stack" >>= \ case
   Just stack -> withSystemTempDirectory "stackage" $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
-    readProcess stack ["--resolver={resolver}", "path", "--compiler-bin"] "" <&> (.strip.toFilePath)
+    readProcess stack ["--resolver={resolver}", "path", "--compiler-bin"] "" <&> (.strip.asFilePath)
 
 atomicWriteFile :: FilePath -> String -> IO ()
 atomicWriteFile dst str = do
@@ -97,7 +98,7 @@ ensurePackageEnv self cache = do
     packages = ["lib:solid", "lib:haskell-base"]
 
     packageEnv :: FilePath
-    packageEnv = cache </> "{revision}-{packages.sort.unlines.md5sum}.env".toFilePath
+    packageEnv = cache </> "{revision}-{packages.sort.unlines.md5sum}.env".asFilePath
 
 ghcOptions :: FilePath -> FilePath -> [String] -> [String]
 ghcOptions self packageEnv args = opts ++ args
@@ -112,13 +113,15 @@ ghcOptions self packageEnv args = opts ++ args
     showExtension extension = "-X" <> pack (show extension)
 
 withTempDirectory :: FilePath -> String -> (FilePath -> IO a) -> IO a
-withTempDirectory dir template action = Haskell.withTempDirectory (unFilePath dir) template.unpack (action . (.toFilePath))
+withTempDirectory dir template action = do
+  path <- Haskell.toFilePath dir
+  Haskell.withTempDirectory path template.unpack (action . Haskell.fromFilePath!)
 
 withSystemTempDirectory :: String -> (FilePath -> IO a) -> IO a
-withSystemTempDirectory template action = Haskell.withSystemTempDirectory template.unpack (action . (.toFilePath))
+withSystemTempDirectory template action = Haskell.withSystemTempDirectory template.unpack (action . Haskell.fromFilePath!)
 
 withCurrentDirectory :: FilePath -> IO a -> IO a
-withCurrentDirectory dir = Haskell.withCurrentDirectory (unFilePath dir)
+withCurrentDirectory dir = Haskell.withCurrentDirectory (Haskell.asOsPath dir)
 
 exit :: (String -> String) -> IO a
 exit message = do

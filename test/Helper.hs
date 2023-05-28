@@ -15,10 +15,11 @@ import qualified Test.Mockery.Directory as Mockery
 
 import           Data.Typeable (typeOf)
 
-import           Solid.TypeLits
+import Solid.TypeLits
+import Solid.Foreign.Haskell qualified as Haskell
 
 touch :: FilePath -> IO ()
-touch = Mockery.touch . unFilePath
+touch = Haskell.toFilePath >=> Mockery.touch
 
 infix 1 `shouldThrow`
 

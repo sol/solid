@@ -1,7 +1,8 @@
 {-# LANGUAGE LambdaCase #-}
 module Main where
 
-import           Solid
+import Solid
+import Solid.Foreign.Haskell qualified as Haskell
 
 import qualified System.Environment as Haskell
 
@@ -18,8 +19,8 @@ withArgs :: [String] -> IO a -> IO a
 withArgs = Haskell.withArgs . map unpack
 
 getExecutablePath :: IO FilePath
-getExecutablePath = (.toFilePath) <$> do
-  sequence Haskell.executablePath >>= maybe Haskell.getProgName return . join
+getExecutablePath = do
+  (sequence Haskell.executablePath >>= maybe Haskell.getProgName return . join) >>= Haskell.fromFilePath
 
 main :: IO ()
 main = getArgs >>= \ case

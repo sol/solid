@@ -27,20 +27,10 @@ withDirectory action = inTempDirectory $ do
 spec :: Spec
 spec = do
   describe "Ord FilePath" $ do
-    it "behaves like Ord [Char]" $ do
-      xs <- forAll $ Gen.list (Range.linear 1 10) Gen.unicodeAny
-      ys <- forAll $ Gen.list (Range.linear 1 10) Gen.unicodeAny
-      compare xs.toFilePath ys.toFilePath === compare xs (ys :: [Char])
-
-  describe ".toFilePath @[Char]" $ do
-    it "converts [Char] to FilePath" $ do
-      let path = "foo.txt" :: [Char]
-      path.toFilePath `shouldBe` "foo.txt"
-
-  describe ".toFilePath @String" $ do
-    it "converts String to FilePath" $ do
-      let path = "foo.txt" :: String
-      path.toFilePath `shouldBe` "foo.txt"
+    it "behaves like Ord String" $ do
+      xs :: String <- forAll $ pack <$> Gen.list (Range.linear 1 10) Gen.unicodeAny
+      ys :: String <- forAll $ pack <$> Gen.list (Range.linear 1 10) Gen.unicodeAny
+      compare xs.asFilePath ys.asFilePath === compare xs ys
 
   describe ".toString" $ do
     it "converts a FilePath to a String" $ do

@@ -1,10 +1,11 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.MD5 (Fingerprint) where
 
-import           Solid.Common
-import           Solid.Types
-import           Solid.ToString
-import           FilePath
+import Solid.Common
+import Solid.Types
+import Solid.Foreign.Haskell qualified as Haskell
+import Solid.ToString
 
 import           GHC.Fingerprint
 import           GHC.Ptr (castPtr)
@@ -29,4 +30,4 @@ instance HasField "md5sum" [Fingerprint] Fingerprint where
   getField = fingerprintFingerprints
 
 instance HasField "md5sum" FilePath (IO Fingerprint) where
-  getField = getFileHash . unFilePath
+  getField = Haskell.toFilePath >=> getFileHash

@@ -84,3 +84,9 @@ spec = do
       let input = "foobar" :: String
       input.stripSuffix "bar" `shouldBe` Just "foo"
       String.stripSuffix "bar" input `shouldBe` Just "foo"
+
+  describe "asFilePath" $ do
+    it "converts a String to a FilePath" $ do
+      let path = "foo.txt" :: String
+      path.asFilePath `shouldBe` "foo.txt"
+      String.asFilePath path `shouldBe` "foo.txt"

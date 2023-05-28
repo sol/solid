@@ -6,7 +6,7 @@ module String (
 ) where
 
 import Solid.Common
-import Solid.Types
+import Solid.Types hiding (asFilePath)
 import Solid.Types qualified as Types
 import Solid.Bytes qualified as Bytes
 
@@ -87,6 +87,9 @@ endsWith = Bytes.endsWith
 contains :: String -> String -> Bool
 contains = isInfixOf
 
+asFilePath :: String -> FilePath
+asFilePath = Types.asFilePath
+
 instance HasField "length" String Int where
   getField = length
 
@@ -119,3 +122,6 @@ instance HasField "stripPrefix" String (String -> Maybe String) where
 
 instance HasField "stripSuffix" String (String -> Maybe String) where
   getField = flip stripSuffix
+
+instance HasField "asFilePath" String FilePath where
+  getField = asFilePath

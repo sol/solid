@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 module Env (
   get
 , set
@@ -15,10 +16,11 @@ module Env (
 ) where
 
 import Solid
+import Solid.Foreign.Haskell qualified as Haskell
 
 import Data.Coerce (coerce)
 import System.FilePath (searchPathSeparator)
-import System.Directory (findExecutable)
+import System.Directory.OsPath (findExecutable)
 
 import Env.Raw qualified as Raw
 import Env.Raw (clear, protect)
@@ -45,22 +47,36 @@ data PATH = PATH
   deriving Show
 
 instance HasField "resolve" PATH (FilePath -> IO (Maybe FilePath)) where
-  getField PATH name = fmap (.toFilePath) <$> findExecutable (unFilePath name)
+  getField PATH name = fmap Haskell.fromOsPath <$> findExecutable (Haskell.asOsPath name)
 
 instance HasField "extend" PATH (FilePath -> IO a -> IO a) => HasField "extend" PATH (FilePath -> IO a -> IO a) where
   getField PATH = extendPath
 
 extendPath :: FilePath -> IO a -> IO a
-extendPath dir action = do
-  (setup, restore) <- getPATH <&> \ case
-    Nothing -> (setPATH dir.toString, unsetPATH)
-    Just p -> (setPATH $ dir <:> p, setPATH p)
-  bracket_ setup restore action
+extendPath (FilePath.asByteString -> dir) = bracket setup restore . const
   where
-    _PATH = "PATH"
-    getPATH = Env.get _PATH
-    setPATH = Env.set _PATH
-    unsetPATH = Env.unset _PATH
+    setup :: IO (Maybe ByteString)
+    setup = do
+      old <- getPATH
+      case old of
+        Nothing -> setPATH dir
+        Just p -> setPATH (dir <:> p)
+      return old
 
-(<:>) :: FilePath -> String -> String
-(<:>) (FilePath dir) p = pack dir <> pack [searchPathSeparator] <> p
+    restore :: Maybe ByteString -> IO ()
+    restore = maybe unsetPATH setPATH
+
+    _PATH :: ByteString
+    _PATH = "PATH"
+
+    getPATH :: IO (Maybe ByteString)
+    getPATH = Raw.get _PATH
+
+    setPATH :: ByteString -> IO ()
+    setPATH = Raw.set _PATH
+
+    unsetPATH :: IO ()
+    unsetPATH = Raw.unset _PATH
+
+(<:>) :: ByteString -> ByteString -> ByteString
+(<:>) dir p = dir <> [searchPathSeparator].pack.asByteString <> p

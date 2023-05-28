@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Solid (module Solid) where
 
 import Solid.Common as Solid
@@ -6,7 +7,7 @@ import Solid.Exception as Solid
 import Solid.IO as Solid
 import Solid.Char ()
 import Solid.MD5 as Solid
-import FilePath as Solid
+import FilePath as Solid (FilePath, (</>), (<.>))
 import Solid.ToString as Solid
 
 import ByteString as Solid (ByteString)

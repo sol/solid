@@ -1,10 +1,13 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module FilePath (
   FilePath(..)
 , (</>)
 , (<.>)
+
+, toString
+, fromString
+, asByteString
 
 , exists?
 , file?
@@ -17,29 +20,42 @@ module FilePath (
 , rename
 ) where
 
-import           Solid.Common
-import           String
-import           Solid.ToString
-import           Data.Coerce
-
-import qualified System.FilePath as Haskell
-import qualified System.Directory as Haskell
-
-import qualified System.Posix.Files as Posix
-import qualified System.Posix.Directory as Posix
-
-import           Foreign.C
-import           System.Posix.Internals (withFilePath)
-import           System.Posix.Error (throwErrnoPathIfMinus1Retry_)
-
-newtype FilePath = FilePath { unFilePath :: Haskell.FilePath }
-  deriving newtype (Eq, Ord, Show, IsString, ToString)
+import Solid.Common hiding (IsString(..))
+import Solid.Common qualified as Solid
+import Solid.ToString qualified as Solid
+import Solid.Types hiding (asByteString)
+import Solid.Foreign.C
+import Data.Coerce (coerce)
+import Data.ByteString.Short (fromShort)
+import System.OsPath qualified as Haskell
+import System.OsString.Internal.Types (OsString(..), PosixString(..))
+import System.Directory.OsPath qualified as Haskell
+import System.Posix.Files.PosixString qualified as Posix
+import System.Posix.Directory.PosixPath qualified as Posix
 
 (</>) :: FilePath -> FilePath -> FilePath
 (</>) = coerce (Haskell.</>)
 
-(<.>) :: FilePath -> String -> FilePath
-(<.>) path ext = (path.unFilePath Haskell.<.> ext.unpack).toFilePath
+(<.>) :: FilePath -> FilePath -> FilePath
+(<.>) = coerce (Haskell.<.>)
+
+toString :: FilePath -> String
+toString = decodeUtf8 . asByteString
+
+fromString :: String -> FilePath
+fromString = asFilePath
+
+asByteString :: FilePath -> ByteString
+asByteString = Bytes . fromShort . getPosixString . getOsString . unFilePath
+
+instance Solid.ToString FilePath where
+  toString = toString
+
+instance Solid.IsString FilePath where
+  fromString = fromString . String.pack
+
+instance HasField "asByteString" FilePath ByteString where
+  getField = asByteString
 
 exists? :: FilePath -> IO Bool
 exists? = coerce Haskell.doesPathExist
@@ -51,7 +67,7 @@ directory? :: FilePath -> IO Bool
 directory? = coerce Haskell.doesDirectoryExist
 
 remove :: FilePath -> IO ()
-remove (FilePath path) =
+remove path =
   withFilePath path $ throwErrnoPathIfMinus1Retry_ "remove" path . c_remove
 
 foreign import ccall unsafe "remove"
@@ -65,12 +81,6 @@ rmdir = coerce Posix.removeDirectory
 
 rename :: FilePath -> FilePath -> IO ()
 rename = coerce Haskell.renamePath
-
-instance HasField "toFilePath" [Char] FilePath where
-  getField = FilePath
-
-instance HasField "toFilePath" String FilePath where
-  getField = FilePath . unpack
 
 instance HasField "toString" FilePath String where
   getField = toString

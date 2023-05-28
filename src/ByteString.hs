@@ -6,7 +6,7 @@ module ByteString (
 ) where
 
 import Solid.Common
-import Solid.Types hiding (asString, decodeUtf8)
+import Solid.Types hiding (asString, decodeUtf8, asFilePath)
 import Solid.Types qualified as Types
 import Solid.Exception
 import Solid.Bytes qualified as Bytes
@@ -87,6 +87,9 @@ endsWith = Bytes.endsWith
 contains :: ByteString -> ByteString -> Bool
 contains = isInfixOf
 
+asFilePath :: ByteString -> FilePath
+asFilePath = Types.asFilePath
+
 instance HasField "length" ByteString Int where
   getField = length
 
@@ -119,3 +122,6 @@ instance HasField "stripPrefix" ByteString (ByteString -> Maybe ByteString) wher
 
 instance HasField "stripSuffix" ByteString (ByteString -> Maybe ByteString) where
   getField = flip stripSuffix
+
+instance HasField "asFilePath" ByteString FilePath where
+  getField = asFilePath

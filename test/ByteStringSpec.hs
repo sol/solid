@@ -81,3 +81,9 @@ spec = do
       let input = "foobar" :: ByteString
       input.stripSuffix "bar" `shouldBe` Just "foo"
       ByteString.stripSuffix "bar" input `shouldBe` Just "foo"
+
+  describe "asFilePath" $ do
+    it "converts a ByteString to a FilePath" $ do
+      let path = "foo.txt" :: ByteString
+      path.asFilePath `shouldBe` "foo.txt"
+      ByteString.asFilePath path `shouldBe` "foo.txt"

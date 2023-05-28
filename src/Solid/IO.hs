@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.IO (
@@ -15,10 +16,10 @@ module Solid.IO (
 , stderr
 ) where
 
-import           Solid.Common
-import           Solid.Types
-import           Solid.Exception
-import           FilePath
+import Solid.Common
+import Solid.Types
+import Solid.Exception
+import Solid.Foreign.Haskell qualified as Haskell
 
 import           System.IO (Handle, stdin, stdout, stderr, hFlush)
 
@@ -39,13 +40,13 @@ readFile file = do
     Nothing -> throwIO UnicodeDecodeError
 
 writeFile :: FilePath -> String -> IO ()
-writeFile = coerce B.writeFile
+writeFile = writeBinaryFile
 
 readBinaryFile :: FilePath -> IO ByteString
-readBinaryFile = coerce B.readFile
+readBinaryFile = Haskell.toFilePath >=> fmap Bytes . B.readFile
 
 writeBinaryFile :: FilePath -> Bytes a -> IO ()
-writeBinaryFile = coerce B.writeFile
+writeBinaryFile path (Bytes content) = Haskell.toFilePath path >>= (`B.writeFile` content)
 
 instance (HasField "print" Handle (a -> IO ()), ToString a) => HasField "print" Handle (a -> IO ()) where
   getField self = self.writeLine . toString

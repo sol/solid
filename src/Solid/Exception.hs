@@ -21,9 +21,9 @@ module Solid.Exception (
 , handle
 ) where
 
-import           Solid.Common
-import           String
-import           FilePath
+import Solid.Common
+import Solid.Types (FilePath)
+import String
 
 import           GHC.Stack
 import           Control.Exception (Exception(toException), SomeException, evaluate, throwIO, bracket, bracket_)
@@ -67,7 +67,7 @@ transformException :: SomeException -> SomeException
 transformException e = case Haskell.fromException e of
   Nothing -> e
   Just err -> toException $ case (ioe_type err, ioe_description err, ioe_filename err) of
-    (NoSuchThing, "No such file or directory", Just name) -> FileNotFoundError (FilePath name)
-    (InappropriateType, "is a directory", Just name) -> IsADirectoryError (FilePath name)
-    (PermissionDenied, "Permission denied", Just name) -> PermissionError (FilePath name)
+    (NoSuchThing, "No such file or directory", Just name) -> FileNotFoundError name.pack.asFilePath
+    (InappropriateType, "is a directory", Just name) -> IsADirectoryError name.pack.asFilePath
+    (PermissionDenied, "Permission denied", Just name) -> PermissionError name.pack.asFilePath
     _ -> ForeignIOError err
