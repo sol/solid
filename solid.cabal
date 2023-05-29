@@ -147,6 +147,7 @@ test-suite spec
       Solid.Types
       String
       ByteStringSpec
+      EnvSpec
       FilePathSpec
       Gen
       Helper
