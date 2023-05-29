@@ -46,7 +46,7 @@ protect :: IO a -> IO a
 protect action = bracket Haskell.getEnvironment Haskell.setEnvironment $ \ _ -> action
 
 extend :: [(ByteString, ByteString)] -> IO a -> IO a
-extend env = modify (env ++)
+extend values = modify (values ++)
 
 modify :: ([(ByteString, ByteString)] -> [(ByteString, ByteString)]) -> IO a -> IO a
 modify f action = bracket Haskell.getEnvironment Haskell.setEnvironment $ \ env -> do

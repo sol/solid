@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Env (
   get
@@ -19,7 +20,6 @@ import Data.Coerce (coerce)
 import System.FilePath (searchPathSeparator)
 import System.Directory (findExecutable)
 
-import ByteString qualified
 import Env.Raw qualified as Raw
 import Env.Raw (clear, protect)
 

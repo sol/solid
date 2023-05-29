@@ -60,14 +60,27 @@ executable solid-pp
   build-depends:
       array
     , base ==4.*
+    , bytestring
+    , containers
     , ghc ==9.6.1
+    , ghc-boot
     , solid-pp
+    , text
+    , transformers
   default-language: GHC2021
 
 test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Solid.PP
+      Solid.PP.DList
+      Solid.PP.Edit
+      Solid.PP.IO
+      Solid.PP.Lexer
+      Solid.PP.Parser
+      Solid.PP.SrcLoc
+      Lexer
       EndToEndSpec
       Solid.PP.EditSpec
       Solid.PP.IOSpec
@@ -76,22 +89,31 @@ test-suite spec
       Solid.PPSpec
       Paths_solid_pp
   hs-source-dirs:
+      src
+      vendor
       test
   default-extensions:
       DataKinds
       OverloadedRecordDot
       LambdaCase
   ghc-options: -Wall
+  cpp-options: -DTEST
   build-tools:
       alex
     , solid-pp
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
-      array
+      HUnit
+    , array
     , base ==4.*
+    , bytestring
+    , containers
     , ghc ==9.6.1
+    , ghc-boot
     , hspec ==2.*
+    , hspec-expectations >=0.8.3
     , mockery
-    , solid-pp
+    , text
+    , transformers
   default-language: GHC2021

@@ -17,18 +17,18 @@ dependencies:
   - array
   - ghc == 9.6.1
 
+  - containers
+  - transformers
+  - ghc-boot
+  - text
+  - bytestring
+
 build-tools: alex
 
 library:
   source-dirs:
     - src
     - vendor
-  dependencies:
-    - containers
-    - transformers
-    - ghc-boot
-    - text
-    - bytestring
 
 executable:
   main: driver/Main.hs
@@ -37,13 +37,17 @@ executable:
 
 tests:
   spec:
+    cpp-options: -DTEST
     build-tools:
       - hspec-discover
       - solid-pp
     main: Spec.hs
     source-dirs:
+      - src
+      - vendor
       - test
     dependencies:
-      - solid-pp
       - hspec == 2.*
+      - hspec-expectations >= 0.8.3
+      - HUnit
       - mockery

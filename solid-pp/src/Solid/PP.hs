@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DerivingStrategies #-}
@@ -8,6 +9,11 @@ module Solid.PP (
 , run
 , Extension
 , extensions
+
+#ifdef TEST
+, ModuleHeader(..)
+, parseModuleHeader
+#endif
 ) where
 
 import           Prelude ()
@@ -89,12 +95,20 @@ type Imports = Map Module BufferSpan
 addImplicitImports :: [Node] -> Maybe Edit
 addImplicitImports nodes = case parseModuleHeader nodes of
   None -> Nothing
-  ModuleHeader {} | null imports -> Nothing
-  ModuleHeader offset file line -> Just $ insert offset $ "\n" <> T.unlines imports <> linePragma line file
-  GenerateModuleHeader offset file line -> Just $ insert offset $ "module Main where\n" <> T.unlines imports <> linePragma line file
+  ModuleHeader self offset file line -> do
+    let
+      importsWithoutSelf :: Imports
+      importsWithoutSelf = maybe id Map.delete self imports
+    case Map.null importsWithoutSelf of
+      True -> Nothing
+      False -> Just $ insert offset $ "\n" <> formatImports importsWithoutSelf <> linePragma line file
+  GenerateModuleHeader offset file line -> Just $ insert offset $ "module Main where\n" <> formatImports imports <> linePragma line file
   where
-    imports :: [Text]
-    imports = map formatImport $ Map.toList (Map.restrictKeys modules wellKnownModules)
+    imports :: Imports
+    imports = Map.restrictKeys modules wellKnownModules
+
+    formatImports :: Imports -> Text
+    formatImports = T.unlines . map formatImport . Map.toList
 
     modules :: Imports
     modules = Map.fromList [(Module m, loc) | Token loc (ITqvarid (m, _)) <- reverse nodes]
@@ -108,7 +122,7 @@ addImplicitImports nodes = case parseModuleHeader nodes of
     insert :: Int -> Text -> Edit
     insert offset = Replace Nothing offset 0
 
-data ModuleHeader = None | ModuleHeader Int FilePath Int | GenerateModuleHeader Int FilePath Int
+data ModuleHeader = None | ModuleHeader (Maybe Module) Int FilePath Int | GenerateModuleHeader Int FilePath Int
   deriving (Eq, Show)
 
 parseModuleHeader :: [Node] -> ModuleHeader
@@ -117,7 +131,14 @@ parseModuleHeader nodes = afterExportList
     afterExportList :: ModuleHeader
     afterExportList = case dropWhile (token (/= ITmodule)) nodes of
       Token _ ITmodule : rest -> case dropWhile (token (/= ITwhere)) rest of
-        Token loc ITwhere : _ -> ModuleHeader loc.end loc.file loc.endLine
+        Token loc ITwhere : _ -> do
+          let
+            self :: Maybe Module
+            self = case dropWhile (token isComment) rest of
+              Token _ (ITconid name) : _ -> Just (Module name)
+              Token _ (ITqconid (qualified, name)) : _ -> Just (Module $ qualified <> "." <> name)
+              _ -> Nothing
+          ModuleHeader self loc.end loc.file loc.endLine
         _ -> None
       _ -> afterLanguagePragmas
 

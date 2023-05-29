@@ -5,9 +5,14 @@ import           Prelude ()
 import           Solid.PP.IO
 
 import           Test.Hspec
+import           Test.HUnit
+import           Test.Hspec.Expectations.Contrib (annotate)
 import           Test.Mockery.Directory
 
-import           Solid.PP
+import           Solid.PP.Parser
+
+import           Solid.PP hiding (parseModuleHeader)
+import qualified Solid.PP as PP
 
 infix 1 `shouldDesugarTo`
 
@@ -18,8 +23,25 @@ shouldDesugarTo input expected = do
   Success <- run file file file
   readFile file `shouldReturn` ("{-# LINE 1 " <> pack (show file) <> " #-}\nmodule Main where\n{-# LINE 1 " <> pack (show file) <> " #-}\n" <> expected)
 
+parseModuleHeader :: HasCallStack => Text -> (ModuleHeader -> IO a) -> IO a
+parseModuleHeader input action = case parse extensions "src.hs" input of
+  Left err -> assertFailure err
+  Right nodes -> annotate (show [t | Token _ t <- nodes]) $ do
+    action (PP.parseModuleHeader nodes)
+
 spec :: Spec
 spec = do
+  describe "parseModuleHeader" $ do
+    it "parses the module header" $ do
+      parseModuleHeader "module Foo where" (`shouldBe` ModuleHeader (Just "Foo") 16 "src.hs" 1)
+
+    it "ignores comments" $ do
+      parseModuleHeader "module {- some comment -} Foo where" (`shouldBe` ModuleHeader (Just "Foo") 35 "src.hs" 1)
+
+    context "with a hierarchical module" $ do
+      it "parses the module header" $ do
+        parseModuleHeader "module Foo.Bar where" (`shouldBe` ModuleHeader (Just "Foo.Bar") 20 "src.hs" 1)
+
   describe "run" $ around_ inTempDirectory $ do
     context "on error" $ do
       it "reports error locations" $ do
@@ -143,6 +165,18 @@ spec = do
             , "{-# LINE 2 \"src.hs\" #-}"
             , ""
             , "foo :: String -> Int"
+            , "foo = String.length"
+            ]
+
+        it "does not implicitly import itself" $ do
+          writeFile "cur.hs" $ unlines [
+              "module String where"
+            , "foo = String.length"
+            ]
+          run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+          readFile "dst.hs" `shouldReturn` unlines [
+              "{-# LINE 1 \"src.hs\" #-}"
+            , "module String where"
             , "foo = String.length"
             ]
 

@@ -3,7 +3,8 @@ module Gen (module Gen) where
 import Solid
 
 import Hedgehog
-import Hedgehog.Gen as Gen hiding (enum, ascii, unicodeAll)
+import Hedgehog.Gen as Gen hiding (enum, ascii, unicodeAll, bytes)
+import Hedgehog.Gen qualified as HedgehogGen
 import Range
 
 ascii :: MonadGen m => m Char
@@ -42,3 +43,6 @@ enumRange :: (MonadGen m, Enum a) => (Int -> Int -> Range Int) -> a -> a -> m a
 enumRange range lo hi =
   fmap toEnum . Gen.integral $
     range (fromEnum lo) (fromEnum hi)
+
+bytes :: MonadGen m => Range Int -> m ByteString
+bytes = fmap Bytes . HedgehogGen.bytes
