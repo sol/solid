@@ -84,17 +84,19 @@ preProcesses src dst input = case parse extensions src input of
     edit h input $ maybe id (:) (addImplicitImports nodes) (pp nodes)
     return Success
 
+type Imports = Map Module BufferSpan
+
 addImplicitImports :: [Node] -> Maybe Edit
-addImplicitImports nodes = case afterModuleHeader nodes of
+addImplicitImports nodes = case parseModuleHeader nodes of
   None -> Nothing
-  AfterModuleHeader {} | null imports -> Nothing
-  AfterModuleHeader offset file line -> Just $ insert offset $ "\n" <> T.unlines imports <> linePragma line file
-  GenerateModule offset file line -> Just $ insert offset $ "module Main where\n" <> T.unlines imports <> linePragma line file
+  ModuleHeader {} | null imports -> Nothing
+  ModuleHeader offset file line -> Just $ insert offset $ "\n" <> T.unlines imports <> linePragma line file
+  GenerateModuleHeader offset file line -> Just $ insert offset $ "module Main where\n" <> T.unlines imports <> linePragma line file
   where
     imports :: [Text]
     imports = map formatImport $ Map.toList (Map.restrictKeys modules wellKnownModules)
 
-    modules :: Map Module BufferSpan
+    modules :: Imports
     modules = Map.fromList [(Module m, loc) | Token loc (ITqvarid (m, _)) <- reverse nodes]
 
     formatImport :: (Module, BufferSpan) -> Text
@@ -106,27 +108,28 @@ addImplicitImports nodes = case afterModuleHeader nodes of
     insert :: Int -> Text -> Edit
     insert offset = Replace Nothing offset 0
 
-data AfterModuleHeader = None | AfterModuleHeader Int FilePath Int | GenerateModule Int FilePath Int
+data ModuleHeader = None | ModuleHeader Int FilePath Int | GenerateModuleHeader Int FilePath Int
+  deriving (Eq, Show)
 
-afterModuleHeader :: [Node] -> AfterModuleHeader
-afterModuleHeader nodes = afterExportList
+parseModuleHeader :: [Node] -> ModuleHeader
+parseModuleHeader nodes = afterExportList
   where
-    afterExportList :: AfterModuleHeader
+    afterExportList :: ModuleHeader
     afterExportList = case dropWhile (token (/= ITmodule)) nodes of
       Token _ ITmodule : rest -> case dropWhile (token (/= ITwhere)) rest of
-        Token loc ITwhere : _ -> AfterModuleHeader loc.end loc.file loc.endLine
+        Token loc ITwhere : _ -> ModuleHeader loc.end loc.file loc.endLine
         _ -> None
       _ -> afterLanguagePragmas
 
-    afterLanguagePragmas :: AfterModuleHeader
+    afterLanguagePragmas :: ModuleHeader
     afterLanguagePragmas = case dropWhile (token isComment) nodes of
-      Token loc _ : _ -> GenerateModule loc.start loc.file loc.startLine
+      Token loc _ : _ -> GenerateModuleHeader loc.start loc.file loc.startLine
       _ -> None
-      where
-        isComment = \ case
-          ITlineComment {} -> True
-          ITblockComment {} -> True
-          _ -> False
+
+    isComment = \ case
+      ITlineComment {} -> True
+      ITblockComment {} -> True
+      _ -> False
 
     token :: (Token -> Bool) -> Node -> Bool
     token p = \ case
