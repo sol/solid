@@ -14,6 +14,7 @@ import           GHC.Records as Imports (HasField(..))
 import           GHC.Generics as Imports (Generic)
 import           Control.Monad as Imports
 import           Control.Monad.IO.Class as Imports
+import           Control.Arrow as Imports ((>>>))
 import           Control.Applicative as Imports
 
 import           Data.Tuple (swap)

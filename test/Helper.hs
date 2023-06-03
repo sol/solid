@@ -2,6 +2,7 @@
 module Helper (
   module Imports
 , touch
+, capture_
 , shouldThrow
 , isADirectoryError
 ) where
@@ -11,6 +12,7 @@ import           Test.Hspec as Imports hiding (shouldThrow)
 import           Test.Hspec.Hedgehog as Imports
 import           Test.Mockery.Directory as Imports (inTempDirectory)
 
+import System.IO.Silently qualified as Silently
 import qualified Test.Mockery.Directory as Mockery
 
 import           Data.Typeable (typeOf)
@@ -20,6 +22,9 @@ import Solid.Foreign.Haskell qualified as Haskell
 
 touch :: FilePath -> IO ()
 touch = Haskell.toFilePath >=> Mockery.touch
+
+capture_ :: IO a -> IO String
+capture_ = fmap pack . Silently.capture_
 
 infix 1 `shouldThrow`
 

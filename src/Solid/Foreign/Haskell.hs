@@ -8,6 +8,10 @@ module Solid.Foreign.Haskell (
 , asOsPath
 , fromOsPath
 
+, Haskell.PlatformPath
+, asPlatformPath
+, fromPlatformPath
+
 , Haskell.FilePath
 , toFilePath
 , toFilePath!
@@ -22,6 +26,8 @@ import System.IO.Unsafe (unsafePerformIO)
 import Data.ByteString qualified as Haskell
 import System.FilePath qualified as Haskell
 import System.OsPath qualified as Haskell
+import System.OsPath.Types qualified as Haskell
+import System.OsString.Internal.Types (OsString(..))
 
 asByteString :: ByteString -> Haskell.ByteString
 asByteString = unBytes
@@ -34,6 +40,12 @@ asOsPath = unFilePath
 
 fromOsPath :: Haskell.OsPath -> FilePath
 fromOsPath = FilePath
+
+asPlatformPath :: FilePath -> Haskell.PlatformPath
+asPlatformPath = getOsString . unFilePath
+
+fromPlatformPath :: Haskell.PlatformPath -> FilePath
+fromPlatformPath = FilePath . OsString
 
 toFilePath :: FilePath -> IO Haskell.FilePath
 toFilePath = Haskell.decodeFS . unFilePath

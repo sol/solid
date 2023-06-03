@@ -168,6 +168,7 @@ test-suite spec
       Solid.MD5Spec
       Solid.ToStringSpec
       Solid.TypesSpec
+      SolidSpec
       StringSpec
       Test.Hspec.Hedgehog
   hs-source-dirs:

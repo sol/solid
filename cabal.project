@@ -11,3 +11,5 @@ package solid-pp
 
 allow-newer: cabal-install:base
 allow-newer: cabal-install-solver:base
+
+tests: True

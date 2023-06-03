@@ -2,7 +2,6 @@ module Solid.DriverSpec (spec) where
 
 import           Helper
 
-import           System.IO.Silently
 import           System.Exit
 import qualified Env
 

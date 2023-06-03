@@ -12,6 +12,7 @@ import           Data.Text.Encoding (encodeUtf8)
 import           Data.Text (Text)
 import           Data.Typeable (TypeRep)
 import           GHC.Stack (prettyCallStack)
+import           System.Exit (ExitCode(..))
 
 import           String
 
@@ -64,3 +65,4 @@ instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i
 
 instance ToString Ordering
 instance ToString TypeRep
+instance ToString ExitCode

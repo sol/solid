@@ -49,7 +49,8 @@ data PATH = PATH
 instance HasField "resolve" PATH (FilePath -> IO (Maybe FilePath)) where
   getField PATH name = fmap Haskell.fromOsPath <$> findExecutable (Haskell.asOsPath name)
 
-instance HasField "extend" PATH (FilePath -> IO a -> IO a) => HasField "extend" PATH (FilePath -> IO a -> IO a) where
+instance HasField "extend" PATH (FilePath -> IO a -> IO a) =>
+         HasField "extend" PATH (FilePath -> IO a -> IO a) where
   getField PATH = extendPath
 
 extendPath :: FilePath -> IO a -> IO a

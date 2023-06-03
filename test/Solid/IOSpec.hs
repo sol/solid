@@ -2,11 +2,9 @@
 {-# LANGUAGE ViewPatterns #-}
 module Solid.IOSpec (spec) where
 
-import           Helper
-import qualified Gen
-import qualified Range
-
-import           System.IO.Silently
+import Helper
+import Gen qualified
+import Range qualified
 
 number :: Int
 number = 23
@@ -43,25 +41,18 @@ spec = do
       evalIO (writeFile file xs.pack)
       evalIO (readFile file) >>= (=== xs) . unpack
 
-  describe "print" $ do
-    it "prints a number " $ do
-      capture_ (print number) `shouldReturn` "23\n"
-
-    it "prints a string" $ do
-      capture_ (print string) `shouldReturn` "foo\n"
-
   describe "Handle" $ do
-    describe ".print" $ do
-      it "prints a number " $ do
+    describe "print" $ do
+      it "prints a number" $ do
         capture_ (stdout.print number) `shouldReturn` "23\n"
 
       it "prints a string" $ do
         capture_ (stdout.print string) `shouldReturn` "foo\n"
 
-    describe ".write" $ do
+    describe "write" $ do
       it "writes a string to a Handle" $ do
         capture_ (stdout.write "foo") `shouldReturn` "foo"
 
-    describe ".writeLine" $ do
+    describe "writeLine" $ do
       it "writes a string and a newline to a Handle" $ do
         capture_ (stdout.writeLine "foo") `shouldReturn` "foo\n"
