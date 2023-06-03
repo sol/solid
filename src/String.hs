@@ -84,6 +84,9 @@ startsWith = Bytes.startsWith
 endsWith :: String -> String -> Bool
 endsWith = Bytes.endsWith
 
+contains :: String -> String -> Bool
+contains = isInfixOf
+
 instance HasField "length" String Int where
   getField = length
 
@@ -109,7 +112,7 @@ instance HasField "strip" String String where
   getField = strip
 
 instance HasField "contains" String (String -> Bool) where
-  getField = flip isInfixOf
+  getField = flip contains
 
 instance HasField "stripPrefix" String (String -> Maybe String) where
   getField = flip stripPrefix

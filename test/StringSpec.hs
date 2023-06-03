@@ -10,40 +10,50 @@ import Range qualified
 listOfUpTo :: MonadGen m => Int -> m a -> m [a]
 listOfUpTo n = Gen.list (Range.linear 0 n)
 
+arbitrary :: MonadGen m => m String
+arbitrary = Gen.string (Range.linear 0 10) Gen.unicodeScalar
+
 spec :: Spec
 spec = do
   describe "length" $ do
     it "returns the length of a String" $ do
-      xs <- forAll $ listOfUpTo 10 Gen.unicodeAny
-      xs.pack.length === xs.length
+      input <- forAll arbitrary
+      input.length === input.unpack.length
+      String.length input === input.unpack.length
 
   describe "pack" $ do
     it "creates a String from a list of Char" $ do
-      pack ("foo" :: [Char]) `shouldBe` ("foo" :: String)
+      let input = "foo" :: [Char]
+      input.pack `shouldBe` ("foo" :: String)
+      String.pack input `shouldBe` ("foo" :: String)
 
   describe "unpack" $ do
     it "is inverse to pack" $ do
-      xs <- forAll $ listOfUpTo 10 Gen.unicodeScalar
-      unpack (pack xs) === xs
+      input :: [Char] <- forAll $ listOfUpTo 10 Gen.unicodeScalar
+      input.pack.unpack === input
+      String.unpack (String.pack input) === input
 
   describe "lines" $ do
     it "breaks a string into separate lines" $ do
-      xs :: [Char] <- forAll $ listOfUpTo 100 $ Gen.frequency [
+      input <- forAll $ Gen.string (Range.linear 0 100) $ Gen.frequency [
           (1, pure '\n')
         , (1, pure '\r')
         , (5, Gen.unicodeScalar)
         ]
-      map unpack xs.pack.lines === Haskell.lines xs
+      input.lines === map pack (Haskell.lines input.unpack)
+      String.lines input === map pack (Haskell.lines input.unpack)
 
   describe "unlines" $ do
     it "joins lines, appending a terminating newline after each" $ do
-      xs :: [String] <- forAll $ listOfUpTo 10 (pack <$> listOfUpTo 10 Gen.unicodeAny)
-      xs.unlines === pack (Haskell.unlines (map unpack xs))
+      input :: [String] <- forAll $ listOfUpTo 10 arbitrary
+      input.unlines === pack (Haskell.unlines (map unpack input))
+      String.unlines input === pack (Haskell.unlines (map unpack input))
 
   describe "strip" $ do
     it "removes leading and trailing whitespace" $ do
       let input = "  foo\n \r" :: String
       input.strip `shouldBe` "foo"
+      String.strip input `shouldBe` "foo"
 
   describe "startsWith" $ do
     it "checks if a string starts with an other string" $ do
@@ -61,13 +71,16 @@ spec = do
     it "checks if a string contains an other string" $ do
       let input = "123" :: String
       input.contains "2" `shouldBe` True
+      String.contains "2" input `shouldBe` True
 
   describe "stripPrefix" $ do
     it "strips prefix" $ do
       let input = "foobar" :: String
       input.stripPrefix "foo" `shouldBe` Just "bar"
+      String.stripPrefix "foo" input `shouldBe` Just "bar"
 
   describe "stripSuffix" $ do
     it "strips suffix" $ do
       let input = "foobar" :: String
       input.stripSuffix "bar" `shouldBe` Just "foo"
+      String.stripSuffix "bar" input `shouldBe` Just "foo"

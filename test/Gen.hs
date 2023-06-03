@@ -4,7 +4,7 @@ import Solid
 import Solid.Foreign.Haskell qualified as Haskell
 
 import Hedgehog
-import Hedgehog.Gen as Gen hiding (enum, ascii, unicodeAll, bytes)
+import Hedgehog.Gen as Gen hiding (enum, ascii, unicodeAll, bytes, string)
 import Hedgehog.Gen qualified as HedgehogGen
 import Range
 
@@ -47,3 +47,6 @@ enumRange range lo hi =
 
 bytes :: MonadGen m => Range Int -> m ByteString
 bytes = fmap Haskell.fromByteString . HedgehogGen.bytes
+
+string :: MonadGen m => Range Int -> m Char -> m String
+string range = fmap pack . HedgehogGen.string range

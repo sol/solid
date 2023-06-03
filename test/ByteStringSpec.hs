@@ -2,19 +2,19 @@
 module ByteStringSpec (spec) where
 
 import Helper
+import Gen qualified
+import Range qualified
 
 invalidUtf8 :: ByteString
 invalidUtf8 = "foo " <> ByteString.pack [0xC3, 0x28] <> " bar"
 
 spec :: Spec
 spec = do
-  describe "length" $ do
-    it "returns the length of a ByteString" $ do
-      ByteString.length "foo" `shouldBe` (3 :: Int)
-
   describe "asString" $ do
     it "converts a ByteString to a String" $ do
-      ByteString.asString "foo" `shouldBe` Just "foo"
+      let input = "foo" :: ByteString
+      input.asString `shouldBe` Just "foo"
+      ByteString.asString input `shouldBe` Just "foo"
 
     context "on invalid UTF-8" $ do
       it "returns Nothing" $ do
@@ -22,7 +22,9 @@ spec = do
 
   describe "asString!" $ do
     it "converts a ByteString to a String" $ do
-      ByteString.asString! "foo" `shouldBe` "foo"
+      let input = "foo" :: ByteString
+      input.asString! `shouldBe` "foo"
+      ByteString.asString! input `shouldBe` "foo"
 
     context "on invalid UTF-8" $ do
       it "throws an exception" $ do
@@ -30,16 +32,25 @@ spec = do
 
   describe "decodeUtf8" $ do
     it "converts a ByteString to a String" $ do
-      ByteString.decodeUtf8 "foo" `shouldBe` "foo"
+      let input = "foo" :: ByteString
+      input.decodeUtf8 `shouldBe` "foo"
+      ByteString.decodeUtf8 input `shouldBe` "foo"
 
     context "on invalid UTF-8" $ do
       it "inserts Unicode replacement characters" $ do
         invalidUtf8.decodeUtf8 `shouldBe` "foo \xFFFD( bar"
 
+  describe "length" $ do
+    it "returns the length of a ByteString" $ do
+      input <- forAll $ Gen.bytes (Range.linear 0 10)
+      input.length === input.unpack.length
+      ByteString.length input === input.unpack.length
+
   describe "strip" $ do
     it "removes leading and trailing whitespace" $ do
       let input = "  foo\n \r" :: ByteString
       input.strip `shouldBe` "foo"
+      ByteString.strip input `shouldBe` "foo"
 
   describe "startsWith" $ do
     it "checks if a string starts with an other string" $ do
@@ -57,13 +68,16 @@ spec = do
     it "checks if a string contains an other string" $ do
       let input = "123" :: ByteString
       input.contains "2" `shouldBe` True
+      ByteString.contains "2" input `shouldBe` True
 
   describe "stripPrefix" $ do
     it "strips prefix" $ do
       let input = "foobar" :: ByteString
       input.stripPrefix "foo" `shouldBe` Just "bar"
+      ByteString.stripPrefix "foo" input `shouldBe` Just "bar"
 
   describe "stripSuffix" $ do
     it "strips suffix" $ do
       let input = "foobar" :: ByteString
       input.stripSuffix "bar" `shouldBe` Just "foo"
+      ByteString.stripSuffix "bar" input `shouldBe` Just "foo"
