@@ -18,6 +18,8 @@ module IO.Handle (
 , tell
 , seek
 , rewind
+, getContents
+, withLock
 ) where
 
 import Solid.Common
@@ -31,6 +33,9 @@ import qualified Data.ByteString as B
 
 import           ByteString ()
 import           Solid.ToString
+
+import           GHC.IO.Handle.Types (Handle(..))
+import           Control.Concurrent.MVar (withMVar)
 
 print :: ToString a => Handle -> a -> IO ()
 print h = writeLine h . toString
@@ -55,11 +60,21 @@ flush = Haskell.hFlush
 tell :: Handle -> IO Integer
 tell = Haskell.hTell
 
-seek :: Handle -> SeekMode -> Integer -> IO ()
-seek = Haskell.hSeek
+seek :: SeekMode -> Integer -> Handle -> IO ()
+seek mode n h = Haskell.hSeek h mode n
 
 rewind :: Handle -> IO ()
-rewind h = seek h AbsoluteSeek 0
+rewind = seek AbsoluteSeek 0
+
+getContents :: Handle -> IO ByteString
+getContents = fmap Bytes . B.hGetContents
+
+withLock :: IO a -> Handle -> IO a
+withLock action h = withMVar handle__ $ \ _ -> action
+  where
+    handle__ = case h of
+      FileHandle _ m -> m
+      DuplexHandle _ m _ -> m
 
 instance (ToString a, HasField "print" Handle (a -> IO ()))
                    => HasField "print" Handle (a -> IO ()) where
@@ -84,7 +99,14 @@ instance HasField "tell" Handle (IO Integer) where
   getField = tell
 
 instance HasField "seek" Handle (SeekMode -> Integer -> IO ()) where
-  getField = seek
+  getField h mode n = seek mode n h
 
 instance HasField "rewind" Handle (IO ()) where
   getField = rewind
+
+instance HasField "getContents" Handle (IO ByteString) where
+  getField = getContents
+
+instance HasField "withLock" Handle (IO a -> IO a) =>
+         HasField "withLock" Handle (IO a -> IO a) where
+  getField = flip withLock

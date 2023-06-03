@@ -58,6 +58,10 @@ wellKnownModules = Set.fromList [
   , "Platform"
   , "Prelude"
   , "Process"
+  , "Process.Config"
+  , "Process.Config.STDIN"
+  , "Process.Config.STDOUT"
+  , "Process.Config.STDERR"
   , "String"
   , "Temp"
   ]

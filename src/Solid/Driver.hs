@@ -8,7 +8,6 @@ module Solid.Driver (
 
 import Solid
 import Solid.PP (Extension, extensions)
-import Solid.Process
 
 import System.Directory.Import
 import System.Environment.Import (getProgName)
@@ -43,7 +42,7 @@ solid mode self args = do
     let options = ghcOptions self packageEnv args
     case mode of
       GhcOptions -> stdout.print options.unlines
-      Run -> rawSystem (ghc_dir </> "runghc") options >>= throwIO
+      Run -> (Process.command (ghc_dir </> "runghc") options).with Process.status >>= throwIO
 
 getCacheDirectory :: IO FilePath
 getCacheDirectory = do
@@ -64,7 +63,7 @@ find_ghc = Env.path.resolve "stack" >>= \ case
   Just stack -> Temp.withDirectory $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
-    readProcess stack ["--resolver={resolver}", "path", "--compiler-bin"] "" <&> (.strip.asFilePath)
+    (Process.command stack ["--resolver={resolver}", "path", "--compiler-bin"]).read <&> (.strip.asFilePath)
 
 atomicWriteFile :: FilePath -> String -> IO ()
 atomicWriteFile dst str = do
@@ -85,10 +84,10 @@ ensurePackageEnv self cache = do
   return packageEnv
   where
     git :: [String] -> IO ()
-    git = callProcess "git"
+    git args = (Process.command "git" args).run
 
     cabal :: [String] -> IO ()
-    cabal args = callProcess self $ "cabal" : args
+    cabal args = (Process.command self ("cabal" : args)).run
 
     packages :: [String]
     packages = ["lib:solid", "lib:haskell-base"]

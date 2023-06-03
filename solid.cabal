@@ -27,6 +27,11 @@ library
       Maybe
       Platform
       Prelude
+      Process
+      Process.Config
+      Process.Config.STDERR
+      Process.Config.STDIN
+      Process.Config.STDOUT
       Solid
       Solid.Ansi
       Solid.Bytes
@@ -36,7 +41,6 @@ library
       Solid.Foreign.C
       Solid.Foreign.Haskell
       Solid.MD5
-      Solid.Process
       Solid.ToString
       Solid.TypeLits
       Solid.Types
@@ -69,8 +73,10 @@ library
     , haskell-base
     , process
     , solid-pp
+    , stm
     , text
     , time
+    , typed-process
     , unix ==2.8.1.0
   default-language: GHC2021
 
@@ -89,6 +95,11 @@ executable solid
       Maybe
       Platform
       Prelude
+      Process
+      Process.Config
+      Process.Config.STDERR
+      Process.Config.STDIN
+      Process.Config.STDOUT
       Solid
       Solid.Ansi
       Solid.Bytes
@@ -98,7 +109,6 @@ executable solid
       Solid.Foreign.C
       Solid.Foreign.Haskell
       Solid.MD5
-      Solid.Process
       Solid.ToString
       Solid.TypeLits
       Solid.Types
@@ -137,8 +147,10 @@ executable solid
     , process
     , solid
     , solid-pp
+    , stm
     , text
     , time
+    , typed-process
     , unix ==2.8.1.0
   default-language: GHC2021
 
@@ -158,6 +170,11 @@ test-suite spec
       Maybe
       Platform
       Prelude
+      Process
+      Process.Config
+      Process.Config.STDERR
+      Process.Config.STDIN
+      Process.Config.STDOUT
       Solid
       Solid.Ansi
       Solid.Bytes
@@ -167,7 +184,6 @@ test-suite spec
       Solid.Foreign.C
       Solid.Foreign.Haskell
       Solid.MD5
-      Solid.Process
       Solid.ToString
       Solid.TypeLits
       Solid.Types
@@ -187,6 +203,11 @@ test-suite spec
       IOSpec
       ListSpec
       MaybeSpec
+      Process.Config.STDERRSpec
+      Process.Config.STDINSpec
+      Process.Config.STDOUTSpec
+      Process.ConfigSpec
+      ProcessSpec
       Range
       Solid.AnsiSpec
       Solid.CharSpec
@@ -234,7 +255,9 @@ test-suite spec
     , solid
     , solid-pp
     , splitmix
+    , stm
     , text
     , time
+    , typed-process
     , unix ==2.8.1.0
   default-language: GHC2021

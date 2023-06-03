@@ -3,6 +3,7 @@ module Helper (
   module Imports
 , touch
 , capture_
+, hCapture_
 , shouldThrow
 , isADirectoryError
 ) where
@@ -25,6 +26,9 @@ touch = Haskell.toFilePath >=> Mockery.touch
 
 capture_ :: IO a -> IO String
 capture_ = fmap pack . Silently.capture_
+
+hCapture_ :: [Handle] -> IO a -> IO String
+hCapture_ handles = fmap pack . Silently.hCapture_ handles
 
 infix 1 `shouldThrow`
 
