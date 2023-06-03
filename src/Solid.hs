@@ -9,7 +9,7 @@ import Solid.MD5 as Solid
 import FilePath as Solid
 import Solid.ToString as Solid
 
-import ByteString as Solid (Bytes(..), ByteString)
+import ByteString as Solid (ByteString)
 import String as Solid (String, pack, unpack, words, unwords, lines, unlines)
 import Maybe ()
 import List ()

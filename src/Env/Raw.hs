@@ -14,6 +14,7 @@ module Env.Raw (
 ) where
 
 import Solid hiding (all)
+import Solid.Types
 import Data.Coerce (coerce)
 import System.Posix.Env (getEnvironmentPrim)
 import System.Posix.Env.ByteString qualified as Haskell

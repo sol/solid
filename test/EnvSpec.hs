@@ -18,3 +18,19 @@ spec = around_ Env.protect $ do
     it "extends the environment" $ do
       Env.extend [("foo", "bar")] $ do
         Env.get "foo" `shouldReturn` Just "bar"
+
+  describe "path" $ do
+    describe "extend" $ do
+      context "when PATH is not set" $ do
+        it "sets the PATH" $ do
+          Env.unset "PATH"
+          Env.path.extend "/foo/bar" $ do
+            Env.get "PATH" `shouldReturn` Just "/foo/bar"
+          Env.get "PATH" `shouldReturn` Nothing
+
+      context "when PATH is set" $ do
+        it "extends the PATH" $ do
+          path <- Env.get "PATH"
+          Env.path.extend "/foo/bar" $ do
+            (>>= flip (.stripPrefix) "/foo/bar:") <$> Env.get "PATH" `shouldReturn` path
+          Env.get "PATH" `shouldReturn` path

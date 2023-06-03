@@ -1,5 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Solid.Bytes where
+module Solid.Bytes (
+  Bytes(..)
+, module Solid.Bytes
+) where
 
 import Solid.Common
 import Solid.Types
@@ -13,8 +16,14 @@ isPrefixOf = coerce Haskell.isPrefixOf
 isSuffixOf :: Bytes a -> Bytes a -> Bool
 isSuffixOf = coerce Haskell.isSuffixOf
 
+startsWith :: Bytes a -> Bytes a -> Bool
+startsWith = isPrefixOf
+
+endsWith :: Bytes a -> Bytes a -> Bool
+endsWith = isSuffixOf
+
 instance HasField "startsWith" (Bytes a) (Bytes a -> Bool) where
-  getField = flip isPrefixOf
+  getField = flip startsWith
 
 instance HasField "endsWith" (Bytes a) (Bytes a -> Bool) where
-  getField = flip isSuffixOf
+  getField = flip endsWith

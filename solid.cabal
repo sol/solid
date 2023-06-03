@@ -30,6 +30,7 @@ library
       Solid.Common
       Solid.Driver
       Solid.Exception
+      Solid.Foreign.Haskell
       Solid.IO
       Solid.MD5
       Solid.Process
@@ -81,6 +82,7 @@ executable solid
       Solid.Common
       Solid.Driver
       Solid.Exception
+      Solid.Foreign.Haskell
       Solid.IO
       Solid.MD5
       Solid.Process
@@ -139,6 +141,7 @@ test-suite spec
       Solid.Common
       Solid.Driver
       Solid.Exception
+      Solid.Foreign.Haskell
       Solid.IO
       Solid.MD5
       Solid.Process

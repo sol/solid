@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module String (
   String
@@ -6,6 +7,7 @@ module String (
 
 import Solid.Common
 import Solid.Types
+import Solid.Types qualified as Types
 import Solid.Bytes qualified as Bytes
 
 import Data.Bits ((.&.))
@@ -15,6 +17,9 @@ import Data.ByteString.Char8 qualified as Char8
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+
+asByteString :: String -> ByteString
+asByteString = Types.asByteString
 
 toText :: String -> Text
 toText = Text.decodeUtf8 . unBytes
@@ -72,6 +77,12 @@ stripPrefix = coerce Haskell.stripPrefix
 
 stripSuffix :: String -> String -> Maybe String
 stripSuffix = coerce Haskell.stripSuffix
+
+startsWith :: String -> String -> Bool
+startsWith = Bytes.startsWith
+
+endsWith :: String -> String -> Bool
+endsWith = Bytes.endsWith
 
 instance HasField "length" String Int where
   getField = length

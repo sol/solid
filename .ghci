@@ -1,4 +1,5 @@
 :set -isrc -ivendor/cabal-install -ivendor/hspec-hedgehog/src -itest
+
 :set -XNoImplicitPrelude
 :set -XDataKinds
 :set -XDeriveAnyClass
@@ -6,3 +7,6 @@
 :set -XLambdaCase
 :set -XOverloadedRecordDot
 :set -XOverloadedStrings
+
+:set -fno-show-error-context
+:set -fno-diagnostics-show-caret

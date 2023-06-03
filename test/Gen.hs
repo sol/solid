@@ -1,6 +1,7 @@
 module Gen (module Gen) where
 
 import Solid
+import Solid.Foreign.Haskell qualified as Haskell
 
 import Hedgehog
 import Hedgehog.Gen as Gen hiding (enum, ascii, unicodeAll, bytes)
@@ -45,4 +46,4 @@ enumRange range lo hi =
     range (fromEnum lo) (fromEnum hi)
 
 bytes :: MonadGen m => Range Int -> m ByteString
-bytes = fmap Bytes . HedgehogGen.bytes
+bytes = fmap Haskell.fromByteString . HedgehogGen.bytes

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE ViewPatterns #-}
 module Solid.IOSpec (spec) where
 
@@ -14,7 +15,7 @@ string :: String
 string = "foo"
 
 invalidUtf8 :: ByteString
-invalidUtf8 = Bytes "foo \xc3\x28 bar"
+invalidUtf8 = "foo " <> ByteString.pack [0xC3, 0x28] <> " bar"
 
 file :: FilePath
 file = "foo.txt"

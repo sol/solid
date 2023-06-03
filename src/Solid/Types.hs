@@ -4,6 +4,8 @@ module Solid.Types where
 import Solid.Common
 
 import Data.ByteString qualified as Haskell
+import Data.Text.Encoding qualified as Text
+import Data.Text.Encoding.Error qualified as Text
 
 newtype Bytes a = Bytes { unBytes :: Haskell.ByteString }
   deriving newtype (Eq, Ord, Semigroup, Monoid)
@@ -18,3 +20,11 @@ asByteString = Bytes . unBytes
 
 instance HasField "asByteString" (Bytes a) ByteString where
   getField = asByteString
+
+asString :: Bytes a -> Maybe String
+asString (Bytes string) = if Haskell.isValidUtf8 string then Just (Bytes string) else Nothing
+
+decodeUtf8 :: Bytes a -> String
+decodeUtf8 input = case asString input of
+  Just xs -> xs
+  Nothing -> Bytes . Text.encodeUtf8 $ Text.decodeUtf8With Text.lenientDecode (unBytes input)

@@ -4,6 +4,8 @@ import Helper
 import Gen qualified
 import Range qualified
 
+import Solid.Types
+
 listOfUpTo :: MonadGen m => Int -> m a -> m [a]
 listOfUpTo n = Gen.list (Range.linear 0 n)
 

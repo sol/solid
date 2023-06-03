@@ -1,21 +1,19 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ByteString (
-  Bytes(..)
-, ByteString
+  ByteString
 , module ByteString
 ) where
 
 import Solid.Common
-import Solid.Types
+import Solid.Types hiding (asString, decodeUtf8)
+import Solid.Types qualified as Types
 import Solid.Exception
 import Solid.Bytes qualified as Bytes
 
 import Data.Coerce (coerce)
 import Data.ByteString qualified as Haskell
 import Data.ByteString.Char8 qualified as Char8
-import Data.Text.Encoding qualified as Text
-import Data.Text.Encoding.Error qualified as Text
 
 instance Show ByteString where
   showsPrec n = showsPrec n . unBytes
@@ -27,15 +25,13 @@ length :: ByteString -> Int
 length = coerce Haskell.length
 
 asString :: ByteString -> Maybe String
-asString (Bytes string) = if Haskell.isValidUtf8 string then Just (Bytes string) else Nothing
+asString = Types.asString
 
 asString! :: HasCallStack => ByteString -> String
 asString! (Bytes string) = if Haskell.isValidUtf8 string then Bytes string else throw! UnicodeDecodeError
 
 decodeUtf8 :: ByteString -> String
-decodeUtf8 input = case input.asString of
-  Just xs -> xs
-  Nothing -> Bytes . Text.encodeUtf8 $ Text.decodeUtf8With Text.lenientDecode (unBytes input)
+decodeUtf8 = Types.decodeUtf8
 
 pack :: [Word8] -> ByteString 
 pack = Bytes . Haskell.pack
@@ -60,6 +56,12 @@ stripPrefix = coerce Haskell.stripPrefix
 
 stripSuffix :: ByteString -> ByteString -> Maybe ByteString
 stripSuffix = coerce Haskell.stripSuffix
+
+startsWith :: ByteString -> ByteString -> Bool
+startsWith = Bytes.startsWith
+
+endsWith :: ByteString -> ByteString -> Bool
+endsWith = Bytes.endsWith
 
 instance HasField "length" ByteString Int where
   getField = length
