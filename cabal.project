@@ -2,6 +2,7 @@ packages:
   .
   solid-pp
   haskell-base
+  vendor/typed-process
 
 package solid
   ghc-options: -Werror
