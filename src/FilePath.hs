@@ -13,7 +13,10 @@ module FilePath (
 , file?
 , directory?
 
+, absolute
+
 , remove
+, remove!
 , unlink
 , rmdir
 
@@ -66,12 +69,18 @@ file? = coerce Haskell.doesFileExist
 directory? :: FilePath -> IO Bool
 directory? = coerce Haskell.doesDirectoryExist
 
+absolute :: FilePath -> IO FilePath
+absolute = coerce Haskell.makeAbsolute
+
 remove :: FilePath -> IO ()
 remove path =
   withFilePath path $ throwErrnoPathIfMinus1Retry_ "remove" path . c_remove
 
 foreign import ccall unsafe "remove"
   c_remove :: CString -> IO CInt
+
+remove! :: FilePath -> IO ()
+remove! = coerce Haskell.removePathForcibly
 
 unlink :: FilePath -> IO ()
 unlink = coerce Posix.removeLink
@@ -94,8 +103,14 @@ instance HasField "file\660" FilePath (IO Bool) where
 instance HasField "directory\660" FilePath (IO Bool) where
   getField = directory?
 
+instance HasField "absolute" FilePath (IO FilePath) where
+  getField = absolute
+
 instance HasField "remove" FilePath (IO ()) where
   getField = remove
+
+instance HasField "remove\7433" FilePath (IO ()) where
+  getField = remove!
 
 instance HasField "unlink" FilePath (IO ()) where
   getField = unlink

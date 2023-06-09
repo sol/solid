@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.Common (
   module Imports
+, (-<)
 , pass
 ) where
 
@@ -18,6 +19,22 @@ import           Control.Arrow as Imports ((>>>))
 import           Control.Applicative as Imports
 
 import           Data.Tuple (swap)
+
+class Bind m r where
+  bind :: (a -> r) -> m a -> r
+
+instance Monad m => Bind m (m b) where
+  bind :: (a -> m b) -> m a -> m b
+  bind = (=<<)
+
+instance Bind m r => Bind m (b -> r) where
+  bind :: (a -> b -> r) -> m a -> b -> r
+  bind f ma b = bind (flip f b) ma
+
+infixl 1 -<
+
+(-<) :: Bind m r => (a -> r) -> m a -> r
+(-<) = bind
 
 pass :: Applicative m => m ()
 pass = pure ()

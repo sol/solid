@@ -2,7 +2,6 @@
 module Solid (module Solid) where
 
 import Solid.Common as Solid
-import Solid.Bind as Solid ((-<))
 import Solid.Exception as Solid
 import IO as Solid (Handle, readFile, writeFile, readBinaryFile, writeBinaryFile, stdin, stdout, stderr)
 import Solid.Char ()

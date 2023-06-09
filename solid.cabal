@@ -16,6 +16,7 @@ build-type:     Simple
 library
   exposed-modules:
       ByteString
+      Directory
       Env
       Env.Raw
       FilePath
@@ -26,7 +27,6 @@ library
       Platform
       Prelude
       Solid
-      Solid.Bind
       Solid.Bytes
       Solid.Char
       Solid.Common
@@ -70,6 +70,7 @@ executable solid
   main-is: Main.hs
   other-modules:
       ByteString
+      Directory
       Env
       Env.Raw
       FilePath
@@ -80,7 +81,6 @@ executable solid
       Platform
       Prelude
       Solid
-      Solid.Bind
       Solid.Bytes
       Solid.Char
       Solid.Common
@@ -131,6 +131,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       ByteString
+      Directory
       Env
       Env.Raw
       FilePath
@@ -141,7 +142,6 @@ test-suite spec
       Platform
       Prelude
       Solid
-      Solid.Bind
       Solid.Bytes
       Solid.Char
       Solid.Common
@@ -165,7 +165,6 @@ test-suite spec
       ListSpec
       MaybeSpec
       Range
-      Solid.BindSpec
       Solid.CharSpec
       Solid.CommonSpec
       Solid.DriverSpec

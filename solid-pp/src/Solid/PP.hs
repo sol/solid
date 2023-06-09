@@ -48,8 +48,10 @@ extensions = [
 wellKnownModules :: Set Module
 wellKnownModules = Set.fromList [
     "ByteString"
+  , "Directory"
   , "Env"
   , "FilePath"
+  , "IO"
   , "List"
   , "Maybe"
   , "Platform"

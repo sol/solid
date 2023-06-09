@@ -7,6 +7,18 @@ add = (+)
 
 spec :: Spec
 spec = do
+  describe "(-<)" $ do
+    let
+      int :: IO Int
+      int = return 23
+
+      str :: IO String
+      str = return "foo"
+
+    it "binds" $ do
+      let action a b = return (a, b)
+      (action -< int -< str) `shouldReturn` (23, "foo")
+
   describe ".uncurry" $ do
     it "converts a curried function to a function on pairs" $ do
       add.uncurry (23, 42) `shouldBe` 65

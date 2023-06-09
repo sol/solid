@@ -33,7 +33,7 @@ decodeUtf8 input = case asString input of
   Nothing -> Bytes . Text.encodeUtf8 $ Text.decodeUtf8With Text.lenientDecode (unBytes input)
 
 newtype FilePath = FilePath { unFilePath :: OsPath }
-  deriving newtype (Eq, Ord, Show)
+  deriving newtype (Eq, Ord, Show, Semigroup, Monoid)
 
 asFilePath :: Bytes a -> FilePath
 asFilePath = FilePath . OsString . PosixString . toShort . unBytes

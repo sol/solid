@@ -3,6 +3,7 @@ module FilePathSpec (spec) where
 
 import Helper hiding (shouldThrow)
 import Test.Hspec (shouldThrow)
+import GHC.IO.Exception
 import System.IO.Error
 import Gen qualified
 import Range qualified
@@ -85,6 +86,15 @@ spec = do
         withDirectory $ \ dir -> do
           dir.directory? `shouldReturn` True
 
+  describe "absolute" $ do
+    it "makes a path absolute" $ do
+      dir <- Directory.getCurrent
+      let
+        path = "foo" :: FilePath
+        expected = dir </> path
+      path.absolute `shouldReturn` expected
+      FilePath.absolute path `shouldReturn` expected
+
   describe "remove" $ do
     context "with a non-existing path" $ do
       it "throws an exception" $ do
@@ -92,16 +102,36 @@ spec = do
           path.remove `shouldThrow` isDoesNotExistError
 
     context "with a file" $ do
-      it "removes given file" $ do
+      it "removes the file" $ do
         withFile $ \ file -> do
           file.remove
           file.exists? `shouldReturn` False
 
     context "with a directory" $ do
-      it "removes given directory" $ do
+      it "removes the directory" $ do
         withDirectory $ \ dir -> do
           dir.remove
           dir.exists? `shouldReturn` False
+
+      context "when the directory is not empty" $ do
+        it "throws an exception" $ do
+          withDirectory $ \ dir -> do
+            touch (dir </> "foo")
+            FilePath.remove dir `shouldThrow` (ioe_type >>> (== UnsatisfiedConstraints))
+
+  describe "remove!" $ do
+    context "with a non-existing path" $ do
+      it "does nothing" $ do
+        withPath $ \ path -> do
+          path.remove!
+
+    context "with a directory" $ do
+      context "when the directory is not empty" $ do
+        it "removes the directory" $ do
+          withDirectory $ \ dir -> do
+            touch (dir </> "foo")
+            dir.remove!
+            dir.exists? `shouldReturn` False
 
   describe "rename" $ do
     let dst = "bar"
@@ -111,14 +141,14 @@ spec = do
           path.rename dst `shouldThrow` isDoesNotExistError
 
     context "with a file" $ do
-      it "renames given file" $ do
+      it "renames the file" $ do
         withFile $ \ src -> do
           src.rename dst
           src.exists? `shouldReturn` False
           dst.exists? `shouldReturn` True
 
     context "with a directory" $ do
-      it "renames given directory" $ do
+      it "renames the directory" $ do
         withDirectory $ \ src -> do
           src.rename dst
           src.exists? `shouldReturn` False
