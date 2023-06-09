@@ -20,6 +20,7 @@ library
       Env.Raw
       FilePath
       IO
+      IO.Handle
       List
       Maybe
       Platform
@@ -73,6 +74,7 @@ executable solid
       Env.Raw
       FilePath
       IO
+      IO.Handle
       List
       Maybe
       Platform
@@ -133,6 +135,7 @@ test-suite spec
       Env.Raw
       FilePath
       IO
+      IO.Handle
       List
       Maybe
       Platform
@@ -157,6 +160,7 @@ test-suite spec
       FilePathSpec
       Gen
       Helper
+      IO.HandleSpec
       IOSpec
       ListSpec
       MaybeSpec

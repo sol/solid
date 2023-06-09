@@ -6,12 +6,6 @@ import Helper
 import Gen qualified
 import Range qualified
 
-number :: Int
-number = 23
-
-string :: String
-string = "foo"
-
 invalidUtf8 :: ByteString
 invalidUtf8 = "foo " <> ByteString.pack [0xC3, 0x28] <> " bar"
 
@@ -40,19 +34,3 @@ spec = do
       xs <- forAll $ Gen.list (Range.linear 0 100) Gen.unicodeScalar
       evalIO (writeFile file xs.pack)
       evalIO (readFile file) >>= (=== xs) . unpack
-
-  describe "Handle" $ do
-    describe "print" $ do
-      it "prints a number" $ do
-        capture_ (stdout.print number) `shouldReturn` "23\n"
-
-      it "prints a string" $ do
-        capture_ (stdout.print string) `shouldReturn` "foo\n"
-
-    describe "write" $ do
-      it "writes a string to a Handle" $ do
-        capture_ (stdout.write "foo") `shouldReturn` "foo"
-
-    describe "writeLine" $ do
-      it "writes a string and a newline to a Handle" $ do
-        capture_ (stdout.writeLine "foo") `shouldReturn` "foo\n"
