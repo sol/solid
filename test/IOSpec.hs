@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE ViewPatterns #-}
-module Solid.IOSpec (spec) where
+module IOSpec (spec) where
 
 import Helper
 import Gen qualified

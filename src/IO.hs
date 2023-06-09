@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Solid.IO (
+module IO (
 
   readFile
 , writeFile

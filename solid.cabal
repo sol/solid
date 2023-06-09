@@ -19,6 +19,7 @@ library
       Env
       Env.Raw
       FilePath
+      IO
       List
       Maybe
       Platform
@@ -32,7 +33,6 @@ library
       Solid.Exception
       Solid.Foreign.C
       Solid.Foreign.Haskell
-      Solid.IO
       Solid.MD5
       Solid.Process
       Solid.ToString
@@ -72,6 +72,7 @@ executable solid
       Env
       Env.Raw
       FilePath
+      IO
       List
       Maybe
       Platform
@@ -85,7 +86,6 @@ executable solid
       Solid.Exception
       Solid.Foreign.C
       Solid.Foreign.Haskell
-      Solid.IO
       Solid.MD5
       Solid.Process
       Solid.ToString
@@ -132,6 +132,7 @@ test-suite spec
       Env
       Env.Raw
       FilePath
+      IO
       List
       Maybe
       Platform
@@ -145,7 +146,6 @@ test-suite spec
       Solid.Exception
       Solid.Foreign.C
       Solid.Foreign.Haskell
-      Solid.IO
       Solid.MD5
       Solid.Process
       Solid.ToString
@@ -157,6 +157,7 @@ test-suite spec
       FilePathSpec
       Gen
       Helper
+      IOSpec
       ListSpec
       MaybeSpec
       Range
@@ -164,7 +165,6 @@ test-suite spec
       Solid.CharSpec
       Solid.CommonSpec
       Solid.DriverSpec
-      Solid.IOSpec
       Solid.MD5Spec
       Solid.ToStringSpec
       Solid.TypesSpec
