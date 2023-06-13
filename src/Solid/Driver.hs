@@ -9,7 +9,7 @@ module Solid.Driver (
 import Solid
 import Solid.Foreign.Haskell qualified as Haskell
 
-import           System.Environment (getProgName)
+import           System.Environment.Import (getProgName)
 import           System.Exit (exitFailure)
 import           System.Directory.OsPath hiding (withCurrentDirectory)
 import qualified System.Directory.OsPath as Haskell
@@ -125,6 +125,6 @@ withCurrentDirectory dir = Haskell.withCurrentDirectory (Haskell.asOsPath dir)
 
 exit :: (String -> String) -> IO a
 exit message = do
-  name <- pack <$> getProgName
+  name <- getProgName
   stderr.print $ message name
   exitFailure

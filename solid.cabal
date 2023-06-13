@@ -40,6 +40,7 @@ library
       Solid.TypeLits
       Solid.Types
       String
+      System.Environment.Import
       System.FilePath.Import
   hs-source-dirs:
       src
@@ -96,6 +97,7 @@ executable solid
       Solid.TypeLits
       Solid.Types
       String
+      System.Environment.Import
       System.FilePath.Import
       Distribution.Client.Main
   hs-source-dirs:
@@ -159,6 +161,7 @@ test-suite spec
       Solid.TypeLits
       Solid.Types
       String
+      System.Environment.Import
       System.FilePath.Import
       ByteStringSpec
       EnvSpec

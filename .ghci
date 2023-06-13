@@ -1,4 +1,4 @@
-:set -isrc -ivendor/cabal-install -ivendor/hspec-hedgehog/src -itest
+:set -isrc -iimport -ivendor/cabal-install -ivendor/hspec-hedgehog/src -itest
 
 :set -XNoImplicitPrelude
 :set -XDataKinds

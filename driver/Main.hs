@@ -1,10 +1,10 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE LambdaCase #-}
 module Main where
 
 import Solid
-import Solid.Foreign.Haskell qualified as Haskell
 
-import qualified System.Environment as Haskell
+import System.Environment.Import hiding (getExecutablePath)
 
 import qualified Distribution.Client.Main as Cabal
 
@@ -12,15 +12,8 @@ import           Solid.PP qualified as PP
 import           Solid.Driver (Mode(..), solid)
 import qualified Solid.Driver as Driver
 
-getArgs :: IO [String]
-getArgs = map pack <$> Haskell.getArgs
-
-withArgs :: [String] -> IO a -> IO a
-withArgs = Haskell.withArgs . map unpack
-
 getExecutablePath :: IO FilePath
-getExecutablePath = do
-  (sequence Haskell.executablePath >>= maybe Haskell.getProgName return . join) >>= Haskell.fromFilePath
+getExecutablePath = sequence executablePath >>= maybe (String.asFilePath <$> getProgName) return . join
 
 main :: IO ()
 main = getArgs >>= \ case
