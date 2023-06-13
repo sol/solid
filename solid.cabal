@@ -28,6 +28,7 @@ library
       Platform
       Prelude
       Solid
+      Solid.Ansi
       Solid.Bytes
       Solid.Char
       Solid.Common
@@ -41,6 +42,8 @@ library
       Solid.Types
       String
       Temp
+      Data.ByteString.Import
+      Data.Text.Import
       System.Directory.Import
       System.Environment.Import
       System.FilePath.Import
@@ -55,7 +58,7 @@ library
       LambdaCase
       OverloadedRecordDot
       OverloadedStrings
-  ghc-options: -Wall
+  ghc-options: -Wall -fhide-source-paths
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
@@ -87,6 +90,7 @@ executable solid
       Platform
       Prelude
       Solid
+      Solid.Ansi
       Solid.Bytes
       Solid.Char
       Solid.Common
@@ -100,6 +104,8 @@ executable solid
       Solid.Types
       String
       Temp
+      Data.ByteString.Import
+      Data.Text.Import
       System.Directory.Import
       System.Environment.Import
       System.FilePath.Import
@@ -117,7 +123,7 @@ executable solid
       LambdaCase
       OverloadedRecordDot
       OverloadedStrings
-  ghc-options: -Wall
+  ghc-options: -Wall -fhide-source-paths
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
@@ -153,6 +159,7 @@ test-suite spec
       Platform
       Prelude
       Solid
+      Solid.Ansi
       Solid.Bytes
       Solid.Char
       Solid.Common
@@ -166,6 +173,8 @@ test-suite spec
       Solid.Types
       String
       Temp
+      Data.ByteString.Import
+      Data.Text.Import
       System.Directory.Import
       System.Environment.Import
       System.FilePath.Import
@@ -179,6 +188,7 @@ test-suite spec
       ListSpec
       MaybeSpec
       Range
+      Solid.AnsiSpec
       Solid.CharSpec
       Solid.CommonSpec
       Solid.DriverSpec
@@ -202,7 +212,7 @@ test-suite spec
       LambdaCase
       OverloadedRecordDot
       OverloadedStrings
-  ghc-options: -Wall
+  ghc-options: -Wall -fhide-source-paths
   build-tools:
       solid
   build-tool-depends:

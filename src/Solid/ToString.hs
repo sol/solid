@@ -10,8 +10,10 @@ import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as LB
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.Text (Text)
+import           Data.Int
+import           Data.Word
 import           Data.Typeable (TypeRep)
-import           GHC.Stack (prettyCallStack)
+import           GHC.Stack (CallStack, prettyCallStack)
 import           System.Exit (ExitCode(..))
 
 import           String
@@ -39,9 +41,17 @@ instance ToString CallStack where
 
 instance ToString ()
 instance ToString Bool
-instance ToString Int
 instance ToString Integer
+instance ToString Int
+instance ToString Int8
+instance ToString Int16
+instance ToString Int32
+instance ToString Int64
 instance ToString Word
+instance ToString Word8
+instance ToString Word16
+instance ToString Word32
+instance ToString Word64
 instance ToString Float
 instance ToString Double
 

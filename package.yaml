@@ -14,7 +14,7 @@ default-extensions:
   - OverloadedRecordDot
   - OverloadedStrings
 
-ghc-options: -Wall
+ghc-options: -Wall -fhide-source-paths
 
 dependencies:
   - haskell-base

@@ -8,7 +8,8 @@ module List (
 ) where
 
 import Solid.Common
-import Data.List hiding (nub, nubBy)
+import Data.List hiding (nub, nubBy, length)
+import GHC.OldList as Data.List (length)
 import Data.List qualified as Haskell
 
 import Data.Set qualified as Set
@@ -33,8 +34,12 @@ nub!! = Haskell.nub
 instance HasField "length" [a] Int where
   getField = length
 
-instance HasField "map" [a] ((a -> b) -> [b]) => HasField "map" [a] ((a -> b) -> [b]) where
+instance HasField "map" [a] ((a -> b) -> [b])
+      => HasField "map" [a] ((a -> b) -> [b]) where
   getField xs f = map f xs
+
+instance HasField "reverse" [a] [a] where
+  getField = reverse
 
 instance Eq a => HasField "startsWith" [a] ([a] -> Bool) where
   getField = flip isPrefixOf

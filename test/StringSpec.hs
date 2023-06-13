@@ -90,3 +90,9 @@ spec = do
       let path = "foo.txt" :: String
       path.asFilePath `shouldBe` "foo.txt"
       String.asFilePath path `shouldBe` "foo.txt"
+
+  describe "join" $ do
+    it "joins a list of strings" $ do
+      let xs = ["foo", "bar", "baz"]
+      xs.join ", " `shouldBe` "foo, bar, baz"
+      String.join ", " xs `shouldBe` "foo, bar, baz"

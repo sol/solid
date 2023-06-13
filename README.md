@@ -64,3 +64,25 @@ cradle:
   module Foo where bar :: Int
                    bar = 23
   ```
+- Some modules are imported implicitly.  As of now, explicit imports do not
+  prevent implicit imports of the same name.
+
+  Example:
+
+  ```haskell
+  import Data.Text qualified as String
+
+  foo = String.length
+  ```
+
+  will be desugared to
+
+  ```haskell
+  import String qualified
+  import Data.Text qualified as String
+
+  foo = String.length
+  ```
+  resultin in `String.length` being ambiguous.
+
+  This will be addressed eventually.

@@ -4,6 +4,10 @@ module Solid.Foreign.Haskell (
 , asByteString
 , fromByteString
 
+, Text
+, toText
+, fromText
+
 , Haskell.OsPath
 , asOsPath
 , fromOsPath
@@ -20,7 +24,7 @@ module Solid.Foreign.Haskell (
 ) where
 
 import Solid.Common
-import Solid.Types (ByteString, Bytes(..), FilePath(..))
+import Solid.Types (String, ByteString, Bytes(..), FilePath(..))
 
 import System.IO.Unsafe (unsafePerformIO)
 import Data.ByteString qualified as Haskell
@@ -29,11 +33,20 @@ import System.OsPath qualified as Haskell
 import System.OsPath.Types qualified as Haskell
 import System.OsString.Internal.Types (OsString(..))
 
+import Data.Text (Text)
+import Data.Text.Encoding qualified as Text
+
 asByteString :: ByteString -> Haskell.ByteString
 asByteString = unBytes
 
 fromByteString :: Haskell.ByteString -> ByteString
 fromByteString = Bytes
+
+toText :: String -> Text
+toText = Text.decodeUtf8 . unBytes
+
+fromText :: Text -> String
+fromText = Bytes . Text.encodeUtf8
 
 asOsPath :: FilePath -> Haskell.OsPath
 asOsPath = unFilePath

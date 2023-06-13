@@ -58,7 +58,6 @@ wellKnownModules = Set.fromList [
   , "Platform"
   , "Prelude"
   , "Process"
-  , "Solid"
   , "String"
   , "Temp"
   ]

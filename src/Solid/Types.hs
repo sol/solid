@@ -11,12 +11,18 @@ import System.OsPath (OsPath)
 import System.OsString.Internal.Types (OsString(..), PosixString(..))
 
 newtype Bytes a = Bytes { unBytes :: Haskell.ByteString }
-  deriving newtype (Eq, Ord, Semigroup, Monoid)
+  deriving newtype (Eq, Ord)
 
 type ByteString = Bytes Word8
 
+deriving newtype instance Semigroup ByteString
+deriving newtype instance Monoid ByteString
+
 data Utf8
 type String = Bytes Utf8
+
+deriving newtype instance Semigroup String
+deriving newtype instance Monoid String
 
 asByteString :: Bytes a -> ByteString
 asByteString = Bytes . unBytes

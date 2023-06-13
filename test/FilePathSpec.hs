@@ -34,7 +34,7 @@ spec = do
       ys :: String <- forAll $ pack <$> Gen.list (Range.linear 1 10) Gen.unicodeAny
       compare xs.asFilePath ys.asFilePath === compare xs ys
 
-  describe ".toString" $ do
+  describe "toString" $ do
     it "converts a FilePath to a String" $ do
       let path = "foo.txt" :: FilePath
       path.toString `shouldBe` "foo.txt"

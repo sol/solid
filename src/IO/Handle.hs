@@ -23,7 +23,7 @@ module IO.Handle (
 import Solid.Common
 import Solid.Types
 
-import           System.IO (SeekMode(..), Handle, stdin, stdout, stderr)
+import           System.IO (SeekMode(..), stdin, stdout, stderr)
 import qualified System.IO as Haskell
 
 import           Data.Coerce

@@ -1,8 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Exception (
-  HasCallStack
-
-, Exception
+  Exception
 , fromException
 , SomeException
 

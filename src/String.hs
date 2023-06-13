@@ -90,6 +90,17 @@ contains = isInfixOf
 asFilePath :: String -> FilePath
 asFilePath = Types.asFilePath
 
+-- |
+-- Join a list of strings.
+--
+-- >>> String.join ", " ["foo", "bar", "baz"]
+-- "foo, bar, baz"
+--
+-- >>> ["foo", "bar", "baz" :: String].join ", "
+-- "foo, bar, baz"
+join :: String -> [String] -> String
+join = coerce Haskell.intercalate
+
 instance HasField "length" String Int where
   getField = length
 
@@ -125,3 +136,6 @@ instance HasField "stripSuffix" String (String -> Maybe String) where
 
 instance HasField "asFilePath" String FilePath where
   getField = asFilePath
+
+instance HasField "join" [String] (String -> String) where
+  getField = flip String.join

@@ -10,3 +10,4 @@
 
 :set -fno-show-error-context
 :set -fno-diagnostics-show-caret
+:set -fhide-source-paths
