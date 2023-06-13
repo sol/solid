@@ -31,7 +31,9 @@ dependencies:
 
 build-tools: solid-pp
 
-source-dirs: src
+source-dirs:
+  - src
+  - import
 
 library:
   when:

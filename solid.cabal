@@ -40,8 +40,10 @@ library
       Solid.TypeLits
       Solid.Types
       String
+      System.FilePath.Import
   hs-source-dirs:
       src
+      import
   default-extensions:
       NoImplicitPrelude
       DataKinds
@@ -94,9 +96,11 @@ executable solid
       Solid.TypeLits
       Solid.Types
       String
+      System.FilePath.Import
       Distribution.Client.Main
   hs-source-dirs:
       src
+      import
       driver
       vendor/cabal-install
   default-extensions:
@@ -155,6 +159,7 @@ test-suite spec
       Solid.TypeLits
       Solid.Types
       String
+      System.FilePath.Import
       ByteStringSpec
       EnvSpec
       FilePathSpec
@@ -176,6 +181,7 @@ test-suite spec
       Test.Hspec.Hedgehog
   hs-source-dirs:
       src
+      import
       test
       vendor/hspec-hedgehog/src
   default-extensions:
