@@ -16,11 +16,10 @@ module Env (
 ) where
 
 import Solid
-import Solid.Foreign.Haskell qualified as Haskell
 
 import Data.Coerce (coerce)
 import System.FilePath (searchPathSeparator)
-import System.Directory.OsPath (findExecutable)
+import System.Directory.Import (findExecutable)
 
 import Env.Raw qualified as Raw
 import Env.Raw (clear, protect)
@@ -47,7 +46,7 @@ data PATH = PATH
   deriving Show
 
 instance HasField "resolve" PATH (FilePath -> IO (Maybe FilePath)) where
-  getField PATH name = fmap Haskell.fromOsPath <$> findExecutable (Haskell.asOsPath name)
+  getField PATH name = findExecutable name
 
 instance HasField "extend" PATH (FilePath -> IO a -> IO a) =>
          HasField "extend" PATH (FilePath -> IO a -> IO a) where

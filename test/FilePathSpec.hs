@@ -8,7 +8,7 @@ import System.IO.Error
 import Gen qualified
 import Range qualified
 
-import qualified System.Directory as Haskell
+import qualified System.Directory.Import as Haskell
 
 withPath :: (FilePath -> IO a) -> IO a
 withPath action = inTempDirectory $ do
@@ -22,8 +22,9 @@ withFile action = inTempDirectory $ do
 
 withDirectory :: (FilePath -> IO a) -> IO a
 withDirectory action = inTempDirectory $ do
-  Haskell.createDirectory "foo"
-  action "foo"
+  let dir = "foo"
+  Haskell.createDirectory dir
+  action dir
 
 spec :: Spec
 spec = do
