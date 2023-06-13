@@ -2,7 +2,7 @@
 module Solid (module Solid) where
 
 import Solid.Common as Solid
-import Solid.Exception as Solid
+import Exception as Solid hiding (handle)
 import IO as Solid (Handle, readFile, writeFile, readBinaryFile, writeBinaryFile, stdin, stdout, stderr)
 import Solid.Char ()
 import Solid.MD5 as Solid

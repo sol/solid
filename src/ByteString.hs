@@ -8,7 +8,7 @@ module ByteString (
 import Solid.Common
 import Solid.Types hiding (asString, decodeUtf8, asFilePath)
 import Solid.Types qualified as Types
-import Solid.Exception
+import Exception
 import Solid.Bytes qualified as Bytes
 
 import Data.Coerce (coerce)

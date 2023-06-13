@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-module Solid.Exception (
+module Exception (
   HasCallStack
 
 , Exception

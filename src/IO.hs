@@ -11,7 +11,7 @@ module IO (
 
 import Solid.Common
 import Solid.Types
-import Solid.Exception
+import Exception
 import Solid.Foreign.Haskell qualified as Haskell
 
 import qualified Data.ByteString as B

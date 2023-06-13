@@ -50,6 +50,7 @@ wellKnownModules = Set.fromList [
     "ByteString"
   , "Directory"
   , "Env"
+  , "Exception"
   , "FilePath"
   , "IO"
   , "List"
