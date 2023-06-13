@@ -7,16 +7,12 @@ module Solid.Driver (
 ) where
 
 import Solid
-import Solid.Foreign.Haskell qualified as Haskell
+import Solid.PP (Extension, extensions)
+import Solid.Process
 
-import           System.Environment.Import (getProgName)
-import           System.Exit (exitFailure)
-import           System.Directory.OsPath hiding (withCurrentDirectory)
-import qualified System.Directory.OsPath as Haskell
-import qualified System.IO.Temp as Haskell
-
-import           Solid.PP (Extension, extensions)
-import           Solid.Process
+import System.Directory.Import
+import System.Environment.Import (getProgName)
+import System.Exit (exitFailure)
 
 repository :: String
 repository = "git@github.com:sol/solid.git"
@@ -51,9 +47,9 @@ solid mode self args = do
 
 getCacheDirectory :: IO FilePath
 getCacheDirectory = do
-  cache <- getXdgDirectory XdgCache (Haskell.asOsPath "solid")
-  createDirectoryIfMissing True cache
-  return (Haskell.fromOsPath cache)
+  cache <- getXdgDirectory XdgCache "solid"
+  Directory.ensure cache
+  return cache
 
 determine_ghc_dir :: FilePath -> IO FilePath
 determine_ghc_dir cache = do
@@ -65,7 +61,7 @@ determine_ghc_dir cache = do
 find_ghc :: IO FilePath
 find_ghc = Env.path.resolve "stack" >>= \ case
   Nothing -> exit "{}: could not find stack"
-  Just stack -> withSystemTempDirectory "stackage" $ \ tmp -> do
+  Just stack -> Temp.withDirectory $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
     readProcess stack ["--resolver={resolver}", "path", "--compiler-bin"] "" <&> (.strip.asFilePath)
@@ -79,8 +75,8 @@ atomicWriteFile dst str = do
 ensurePackageEnv :: FilePath -> FilePath -> IO FilePath
 ensurePackageEnv self cache = do
   unless -< packageEnv.exists? $ do
-    withTempDirectory cache "solid" $ \ tmp -> do
-      withCurrentDirectory tmp do
+    Temp.withDirectoryAt cache $ \ tmp -> do
+      Directory.withCurrent tmp do
         git ["init", "-q"]
         git ["remote", "add", "origin", repository]
         git ["fetch", "--depth", "1", "origin", revision, "-q"]
@@ -111,17 +107,6 @@ ghcOptions self packageEnv args = opts ++ args
 
     showExtension :: Extension -> String
     showExtension extension = "-X" <> pack (show extension)
-
-withTempDirectory :: FilePath -> String -> (FilePath -> IO a) -> IO a
-withTempDirectory dir template action = do
-  path <- Haskell.toFilePath dir
-  Haskell.withTempDirectory path template.unpack (action . Haskell.fromFilePath!)
-
-withSystemTempDirectory :: String -> (FilePath -> IO a) -> IO a
-withSystemTempDirectory template action = Haskell.withSystemTempDirectory template.unpack (action . Haskell.fromFilePath!)
-
-withCurrentDirectory :: FilePath -> IO a -> IO a
-withCurrentDirectory dir = Haskell.withCurrentDirectory (Haskell.asOsPath dir)
 
 exit :: (String -> String) -> IO a
 exit message = do

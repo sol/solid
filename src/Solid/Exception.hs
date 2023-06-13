@@ -19,6 +19,7 @@ module Solid.Exception (
 , try
 , catch
 , handle
+, finally
 ) where
 
 import Solid.Common
@@ -26,7 +27,7 @@ import Solid.Types (FilePath)
 import String
 
 import           GHC.Stack
-import           Control.Exception (Exception(toException), SomeException, evaluate, throwIO, bracket, bracket_)
+import           Control.Exception (Exception(toException), SomeException, evaluate, throwIO, bracket, bracket_, finally)
 
 import qualified HaskellPrelude as Haskell
 import qualified Control.Exception as Haskell

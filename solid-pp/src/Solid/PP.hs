@@ -59,6 +59,7 @@ wellKnownModules = Set.fromList [
   , "Process"
   , "Solid"
   , "String"
+  , "Temp"
   ]
 
 newtype Module = Module FastString
