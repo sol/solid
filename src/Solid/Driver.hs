@@ -10,14 +10,12 @@ import Solid
 import Solid.PP (Extension, extensions)
 
 import System.Directory.Import
-import System.Environment.Import (getProgName)
-import System.Exit (exitFailure)
 
 repository :: String
 repository = "git@github.com:sol/solid.git"
 
 revision :: String
-revision = "cd27310c76420cefbbf8a9665bb4caab2f963474"
+revision = "3980eb163ca70afedd1c73c1d464da0a4ae376eb"
 
 ghc :: String
 ghc = "9.6.1"
@@ -59,7 +57,7 @@ determine_ghc_dir cache = do
 
 find_ghc :: IO FilePath
 find_ghc = Env.path.resolve "stack" >>= \ case
-  Nothing -> exit "{}: could not find stack"
+  Nothing -> Process.exit "{}: could not find stack"
   Just stack -> Temp.withDirectory $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
@@ -106,9 +104,3 @@ ghcOptions self packageEnv args = opts ++ args
 
     showExtension :: Extension -> String
     showExtension extension = "-X" <> pack (show extension)
-
-exit :: (String -> String) -> IO a
-exit message = do
-  name <- getProgName
-  stderr.print $ message name
-  exitFailure

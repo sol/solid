@@ -4,7 +4,7 @@ module Main where
 
 import Solid
 
-import System.Environment.Import hiding (getExecutablePath)
+import System.Environment.Import (executablePath, withArgs)
 
 import qualified Distribution.Client.Main as Cabal
 
@@ -13,10 +13,10 @@ import           Solid.Driver (Mode(..), solid)
 import qualified Solid.Driver as Driver
 
 getExecutablePath :: IO FilePath
-getExecutablePath = sequence executablePath >>= maybe (String.asFilePath <$> getProgName) return . join
+getExecutablePath = sequence executablePath >>= maybe (String.asFilePath <$> Process.name) return . join
 
 main :: IO ()
-main = getArgs >>= \ case
+main = Process.args >>= \ case
   "cabal" : args -> withArgs args Cabal.main
   [src, cur, dst, command] | command == Driver.desugarCommand -> PP.main src.unpack cur.unpack dst.unpack
   "ghc-options" : args -> (solid GhcOptions -< getExecutablePath) args

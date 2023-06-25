@@ -27,9 +27,6 @@ class ToString a where
 instance ToString String where
   toString = id
 
-instance ToString [Char] where
-  toString = pack
-
 instance ToString Char where
   toString = Bytes . LB.toStrict . Builder.toLazyByteString . Builder.charUtf8
 
@@ -57,6 +54,7 @@ instance ToString Double
 
 instance Show a => ToString (Maybe a)
 instance (Show a, Show b) => ToString (Either a b)
+instance Show a => ToString [a] where
 
 instance (Show a, Show b) => ToString (a, b)
 instance (Show a, Show b, Show c) => ToString (a, b, c)

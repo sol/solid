@@ -8,9 +8,6 @@ spec = do
     it "converts String to String" $ do
       toString ("foo" :: String) `shouldBe` "foo"
 
-    it "converts [Char] to String" $ do
-      toString ("foo" :: [Char]) `shouldBe` "foo"
-
     it "converts Char to String" $ do
       toString 'c' `shouldBe` "c"
 

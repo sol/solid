@@ -32,6 +32,7 @@ library
       Process.Config.STDERR
       Process.Config.STDIN
       Process.Config.STDOUT
+      Process.Self
       Solid
       Solid.Ansi
       Solid.Bytes
@@ -100,6 +101,7 @@ executable solid
       Process.Config.STDERR
       Process.Config.STDIN
       Process.Config.STDOUT
+      Process.Self
       Solid
       Solid.Ansi
       Solid.Bytes
@@ -175,6 +177,7 @@ test-suite spec
       Process.Config.STDERR
       Process.Config.STDIN
       Process.Config.STDOUT
+      Process.Self
       Solid
       Solid.Ansi
       Solid.Bytes
@@ -207,6 +210,7 @@ test-suite spec
       Process.Config.STDINSpec
       Process.Config.STDOUTSpec
       Process.ConfigSpec
+      Process.SelfSpec
       ProcessSpec
       Range
       Solid.AnsiSpec

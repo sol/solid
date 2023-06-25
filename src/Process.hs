@@ -28,6 +28,10 @@ module Process (
 , read
 
 , escape
+
+, Self.name
+, Self.exit
+, Self.args
 ) where
 
 import Solid hiding (stdin, stdout, stderr, read)
@@ -42,6 +46,7 @@ import System.Process.Typed.Internal qualified as Haskell
 
 import Solid.Foreign.Haskell qualified as Haskell
 import Process.Config (Config)
+import Process.Self qualified as Self
 
 escape :: String -> String
 escape = pack . translate . unpack
