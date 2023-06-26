@@ -30,6 +30,7 @@ dependencies:
   - typed-process
 
   - solid-pp
+  - doctest
 
 build-tools: solid-pp
 

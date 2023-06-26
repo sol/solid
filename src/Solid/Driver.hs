@@ -8,6 +8,7 @@ module Solid.Driver (
 
 import Solid
 import Solid.PP (Extension, extensions)
+import Test.DocTest (doctest)
 
 import System.Directory.Import
 
@@ -29,7 +30,7 @@ internalCommand name = "{name}-{marker}"
     marker :: String
     marker = "f817da5ee1a2164ad58986293141e5bf"
 
-data Mode = GhcOptions | Run
+data Mode = GhcOptions | Doctest | Run
 
 solid :: Mode -> FilePath -> [String] -> IO ()
 solid mode self args = do
@@ -40,6 +41,7 @@ solid mode self args = do
     let options = ghcOptions self packageEnv args
     case mode of
       GhcOptions -> stdout.print options.unlines
+      Doctest -> doctest (options.map unpack)
       Run -> (Process.command (ghc_dir </> "runghc") options).with Process.status >>= throwIO
 
 getCacheDirectory :: IO FilePath

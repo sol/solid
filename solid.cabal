@@ -70,6 +70,7 @@ library
       bytestring
     , containers
     , directory
+    , doctest
     , filepath
     , haskell-base
     , process
@@ -144,6 +145,7 @@ executable solid
     , cabal-install ==3.10.1.0
     , containers
     , directory
+    , doctest
     , filepath
     , haskell-base
     , process
@@ -248,6 +250,7 @@ test-suite spec
     , bytestring
     , containers
     , directory
+    , doctest
     , filepath
     , haskell-base
     , hedgehog

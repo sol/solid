@@ -20,4 +20,5 @@ main = Process.args >>= \ case
   "cabal" : args -> withArgs args Cabal.main
   [src, cur, dst, command] | command == Driver.desugarCommand -> PP.main src.unpack cur.unpack dst.unpack
   "ghc-options" : args -> (solid GhcOptions -< getExecutablePath) args
+  "doctest" : args -> (solid Doctest -< getExecutablePath) args
   args -> (solid Run -< getExecutablePath) args
