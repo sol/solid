@@ -35,11 +35,25 @@ $ ./main.hs
 Hey Joe 👋
 ```
 
-# Haskell Language Server (LSP) support
+# Tooling
+
+`solid` uses `stack` to install GHC `9.6.1` to a private location.  It does not
+use any system provided GHC.
+
+As of now `solid` needs a recent version of `stack` to be available on the
+`PATH`.  This requirement will be lifted eventually.
+
+`solid` uses the global cabal store (e.g.
+`.local/state/cabal/store/ghc-9.6.1/`) for caching.  This reduces build times
+and is usually safe.  However, in the unlikely case that you use a different
+build of GHC `9.6.1` that is not ABI compatible to what `stack` provides you
+may run into issues.
+
+## Haskell Language Server (LSP) support
 
 It is possible to use [Haskell Language Server](https://github.com/haskell/haskell-language-server)
 to get LSP diagnostics while developing a script.  This requires the following
-configuration:
+configuration file next to your script:
 
 ```yaml
 # hie.yaml
@@ -48,9 +62,69 @@ cradle:
     shell: "solid ghc-options $HIE_BIOS_ARG > $HIE_BIOS_OUTPUT"
 ```
 
-# GHC
 
-`solid` uses `stack` to install GHC `9.6.1`.
+## Using third-party tools
+
+You can use `solid` with third-party tools that expect GHC options.
+
+Examples:
+
+```bash
+# start a GHCi session
+$ solid with ghci main.hs
+```
+
+```bash
+# run doctest
+$ solid with doctest main.hs
+```
+
+```bash
+# run sensei
+$ solid with sensei main.hs
+```
+
+`solid with` does two things:
+
+1. It puts a suitable version of GHC on the `PATH`
+1. It calls the specified executable with all required GHC options
+
+## Running `doctest`
+
+`solid with` can be used to run `doctest`.  However, this only works if a
+suitable version of `doctest` is available on the `PATH`.  `solid doctest`
+provides a more robust way to run `doctest`.
+
+Example:
+
+```bash
+$ solid doctest main.hs
+```
+
+## Specifying additional dependencies
+
+As of now, `solid` does not provide a mechanism to manage third-party
+dependencies.  This limitation will be lifted eventually.
+
+However, `solid` accepts arbitrary GHC options, including `-package`, and
+`-package` ca be used to specify arbitrary additional Haskell dependencies.
+
+Example:
+
+```bash
+$ solid with ghci -package hspec -package QuickCheck test/FormatSpec.hs
+```
+
+Note that for this to work, a version of the requested package has to be
+present in the cabal store.  If a package is not yet in the cabal store, then
+you have to populate the cabal store manually, e.g. with `cabal repl
+--build-depends`.
+
+Example:
+
+```bash
+$ cabal repl --build-depends hspec,QuickCheck
+```
 
 # Limitations
 

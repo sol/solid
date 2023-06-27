@@ -50,6 +50,12 @@ instance Eq a => HasField "endsWith" [a] ([a] -> Bool) where
 instance Eq a => HasField "contains" [a] ([a] -> Bool) where
   getField = flip isInfixOf
 
+instance Eq a => HasField "span" [a] ((a -> Bool) -> ([a], [a])) where
+  getField = flip span
+
+instance Eq a => HasField "break" [a] ((a -> Bool) -> ([a], [a])) where
+  getField = flip break
+
 instance Eq a => HasField "stripPrefix" [a] ([a] -> Maybe [a]) where
   getField = flip stripPrefix
 

@@ -16,7 +16,7 @@ repository :: String
 repository = "git@github.com:sol/solid.git"
 
 revision :: String
-revision = "3980eb163ca70afedd1c73c1d464da0a4ae376eb"
+revision = "814849d6005d2536adfa3dbff71e6ee06deab06c"
 
 ghc :: String
 ghc = "9.6.1"
@@ -30,7 +30,7 @@ internalCommand name = "{name}-{marker}"
     marker :: String
     marker = "f817da5ee1a2164ad58986293141e5bf"
 
-data Mode = GhcOptions | Doctest | Run
+data Mode = GhcOptions | Doctest | With FilePath | Run
 
 solid :: Mode -> FilePath -> [String] -> IO ()
 solid mode self args = do
@@ -42,6 +42,7 @@ solid mode self args = do
     case mode of
       GhcOptions -> stdout.print options.unlines
       Doctest -> doctest (options.map unpack)
+      With command -> (Process.command command options).with Process.status >>= throwIO
       Run -> (Process.command (ghc_dir </> "runghc") options).with Process.status >>= throwIO
 
 getCacheDirectory :: IO FilePath
