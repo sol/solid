@@ -3,15 +3,20 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NoFieldSelectors #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Parser (
-  parse
+  parseModule
+, parseExpression
 
+, Module(..)
+, ModuleHeader(..)
 , ModuleName(..)
+, ExportList(..)
 , Node
 , Expression
 , Subject(..)
@@ -153,13 +158,19 @@ data Error =
 error :: Error -> Parser a
 error = fancyFailure . Set.singleton . ErrorCustom
 
-parse :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String [Node]
-parse extensions src line input = do
+parseModule :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String (Module BufferSpan)
+parseModule = parse pModule
+
+parseExpression :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String [Node]
+parseExpression = parse pModuleBody
+
+parse :: Parser a -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String a
+parse parser extensions src line input = do
   result <- tokenize extensions src line input
   let
     stream :: TokenStream
     stream = TokenStream input result.tokens
-  case P.parse (many pNode <* eof) src stream of
+  case P.parse parser src stream of
     Left err -> Left $ errorBundlePretty err
     Right r -> Right r
 
@@ -170,6 +181,31 @@ require :: Lexer.Token -> Parser BufferSpan
 require expected = token \ case
   L loc t | t == expected -> Just loc
   _ -> Nothing
+
+pModule :: Parser (Module BufferSpan)
+pModule = Module <$> pModuleHeader <*> pModuleBody
+
+pModuleHeader :: Parser (ModuleHeader BufferSpan)
+pModuleHeader = moduleHeader <|> pure NoModuleHeader
+  where
+    moduleHeader = do
+      start <- require ITmodule
+      name <- pModuleName
+      exports <- pExportList
+      end <- require ITwhere
+      return $ ModuleHeader (start.merge end) name exports
+
+pModuleName :: Parser ModuleName
+pModuleName = fmap ModuleName . token $ \ case
+  L _ (ITconid name) -> Just name
+  L _ (ITqconid (qualified, name)) -> Just (qualified <> "." <> name)
+  _ -> Nothing
+
+pExportList :: Parser (ExportList BufferSpan)
+pExportList = oparen *> (ExportList <$> pBracketedInner) <* cparen <|> pure NoExportList
+
+pModuleBody :: Parser [NodeWith BufferSpan]
+pModuleBody = many pNode <* eof
 
 pNode :: Parser Node
 pNode = pMethodChain <|> pAnyToken
@@ -216,15 +252,15 @@ pInterpolatedString = pTokenBegin <*> pExpression
 
 pBracketed :: Parser (Subject BufferSpan)
 pBracketed =
-      bracketed Round <$> oparen <*> inner <*> cparen
-  <|> bracketed Square <$> obrack <*> inner <*> cbrack
-  <|> bracketed Curly <$> ocurly <*> inner <*> ccurly
+      bracketed Round <$> oparen <*> pBracketedInner <*> cparen
+  <|> bracketed Square <$> obrack <*> pBracketedInner <*> cbrack
+  <|> bracketed Curly <$> ocurly <*> pBracketedInner <*> ccurly
   where
-    inner :: Parser [[Node]]
-    inner = many pNode `sepBy` comma
-
     bracketed :: BracketStyle -> BufferSpan -> [[Node]] -> BufferSpan -> Subject BufferSpan
     bracketed style start nodes end = Bracketed style (start.merge end) nodes
+
+pBracketedInner :: Parser [[NodeWith BufferSpan]]
+pBracketedInner = many pNode `sepBy` comma
 
 pName :: Parser (Subject BufferSpan)
 pName = do
@@ -304,11 +340,20 @@ pattern TokenEnd loc src <- L loc (ITstring_interpolation_end (SourceText src) _
 pattern TokenEndBegin :: BufferSpan -> String -> Token
 pattern TokenEndBegin loc src <- L loc (ITstring_interpolation_end_begin (SourceText src) _)
 
+data Module loc = Module (ModuleHeader loc) [NodeWith loc]
+  deriving (Eq, Show, Functor)
+
+data ModuleHeader loc = NoModuleHeader | ModuleHeader loc ModuleName (ExportList loc)
+  deriving (Eq, Show, Functor)
+
 newtype ModuleName = ModuleName FastString
   deriving newtype (Eq, Show, IsString)
 
 instance Ord ModuleName where
   compare = coerce GHC.uniqCompareFS
+
+data ExportList loc = NoExportList | ExportList [[NodeWith loc]]
+  deriving (Eq, Show, Functor)
 
 type Node = NodeWith BufferSpan
 type Expression = ExpressionWith BufferSpan

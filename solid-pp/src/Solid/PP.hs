@@ -19,8 +19,6 @@ module Solid.PP (
 
 #ifdef TEST
 , usedModules
-, ModuleHeader(..)
-, parseModuleHeader
 #endif
 ) where
 
@@ -83,7 +81,7 @@ data Result = Failure String | Success
   deriving (Eq, Show)
 
 desugarExpression :: FilePath -> Int -> Text -> Either String Text
-desugarExpression src line input = execWriter . edit tell input . pp <$> parse extensions src line input
+desugarExpression src line input = execWriter . edit tell input . (.build) . pp <$> parseExpression extensions src line input
 
 main :: String -> String -> String -> IO ()
 main src cur dst = run src cur dst >>= \ case
@@ -101,33 +99,31 @@ linePragma :: Int -> FilePath -> Text
 linePragma line src = pack $ "{-# LINE " <> show line <> " " <> show src <> " #-}\n"
 
 preProcesses :: FilePath -> FilePath -> Text -> IO Result
-preProcesses src dst input = case parse extensions src 1 input of
+preProcesses src dst input = case parseModule extensions src 1 input of
   Left err -> return (Failure err)
-  Right nodes -> withFile dst WriteMode $ \ h -> do
-    edit (hPutStr h) input $ maybe id (:) (addImplicitImports nodes) (pp nodes)
+  Right module_ -> withFile dst WriteMode $ \ h -> do
+    edit (hPutStr h) input $ addImplicitImports module_ (ppModule module_)
     return Success
 
-addImplicitImports :: [Node] -> Maybe Edit
-addImplicitImports nodes = case parseModuleHeader nodes of
-  Empty -> Nothing
-  ModuleHeader self offset file line -> do
-    let
-      importsWithoutSelf :: Set ModuleName
-      importsWithoutSelf = maybe id Set.delete self imports
-    case Set.null importsWithoutSelf of
-      True -> Nothing
-      False -> Just $ insert offset $ "\n" <> formatImports importsWithoutSelf <> linePragma line file
-  NoModuleHeader offset file line -> do
-    case Set.null imports of
-      True -> Nothing
-      False -> Just $ insert offset $ formatImports imports <> linePragma line file
+data Where = Before | After
 
+addImplicitImports :: Module BufferSpan -> [Edit] -> [Edit]
+addImplicitImports module_ = case module_ of
+  Module NoModuleHeader [] -> id
+  Module NoModuleHeader (node : _) -> addImports Before node.start modules
+  Module (ModuleHeader loc name _) _ -> addImports After loc.endLoc (Set.delete name modules)
   where
-    imports :: Set ModuleName
-    imports = Set.intersection (usedModules nodes) wellKnownModules
+    addImports where_ loc imports = case Set.null imports of
+      True -> id
+      False -> (:) $ insert loc.offset $ formatImports where_ imports <> linePragma loc.line loc.file
 
-    formatImports :: Set ModuleName -> Text
-    formatImports = T.unlines . map formatImport . Set.toList
+    modules :: Set ModuleName
+    modules = Set.intersection (usedModules module_) wellKnownModules
+
+    formatImports :: Where -> Set ModuleName -> Text
+    formatImports = \ case
+      Before -> T.unlines . map formatImport . Set.toList
+      After -> ("\n" <>) . T.unlines . map formatImport . Set.toList
 
     formatImport :: ModuleName -> Text
     formatImport (ModuleName m) = "import qualified " <> m.toText
@@ -135,9 +131,22 @@ addImplicitImports nodes = case parseModuleHeader nodes of
     insert :: Int -> Text -> Edit
     insert offset = Replace Nothing offset 0
 
-usedModules :: [NodeWith loc] -> Set ModuleName
-usedModules = Set.fromList . (.build) . fromNodes . map void
+usedModules :: Module BufferSpan-> Set ModuleName
+usedModules = Set.fromList . (.build) . fromModule . void
   where
+    fromModule :: Module () -> DList ModuleName
+    fromModule (Module header nodes) = fromModuleHeader header <> fromNodes nodes
+
+    fromModuleHeader :: ModuleHeader () -> DList ModuleName
+    fromModuleHeader = \ case
+      NoModuleHeader -> mempty
+      ModuleHeader () (_ :: ModuleName) exports -> fromExportList exports
+
+    fromExportList :: ExportList () -> DList ModuleName
+    fromExportList = \ case
+      NoExportList -> mempty
+      ExportList nodes -> concatMap fromNodes nodes
+
     fromNodes :: [NodeWith ()] -> DList ModuleName
     fromNodes = concatMap fromNode
 
@@ -170,38 +179,6 @@ usedModules = Set.fromList . (.build) . fromNodes . map void
     fromExpression (Expression nodes end) = fromNodes nodes <> case end of
       EndBegin () (_ :: String) expression -> fromExpression expression
       End () (_ :: String) -> mempty
-
-data ModuleHeader = Empty | ModuleHeader (Maybe ModuleName) Int FilePath Int | NoModuleHeader Int FilePath Int
-  deriving (Eq, Show)
-
-parseModuleHeader :: [Node] -> ModuleHeader
-parseModuleHeader nodes = afterExportList
-  where
-    afterExportList :: ModuleHeader
-    afterExportList = case seekTo ITmodule nodes of
-      Just (_, rest) -> case seekTo ITwhere rest of
-        Just (loc, _) -> do
-          let
-            self :: Maybe ModuleName
-            self = case rest of
-              Token _ (ITconid name) : _ -> Just (ModuleName name)
-              Token _ (ITqconid (qualified, name)) : _ -> Just (ModuleName $ qualified <> "." <> name)
-              _ -> Nothing
-          ModuleHeader self loc.end loc.file loc.endLine
-        Nothing -> Empty
-      Nothing -> case nodes of
-        node : _ -> NoModuleHeader node.start.offset node.start.file node.start.line
-        [] -> Empty
-
-seekTo :: Token -> [Node] -> Maybe (BufferSpan, [Node])
-seekTo t nodes = case dropWhile (not . isToken t) nodes of
-  Token loc _ : rest -> Just (loc, rest)
-  _ -> Nothing
-
-isToken :: Token -> Node -> Bool
-isToken expected = \ case
-  Token _ actual -> actual == expected
-  MethodChain {} -> False
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
 desugarIdentifier start end identifier
@@ -257,8 +234,21 @@ unescapeStringLiteral loc old
   where
     new = unescapeString old
 
-pp :: [Node] -> [Edit]
-pp = (.build) . ppNodes
+ppModule :: Module BufferSpan -> [Edit]
+ppModule (Module header nodes) = (ppHeader header <> pp nodes).build
+
+ppHeader :: ModuleHeader BufferSpan -> DList Edit
+ppHeader = \ case
+  NoModuleHeader -> mempty
+  ModuleHeader _loc _name exports -> ppExportList exports
+
+ppExportList :: ExportList BufferSpan -> DList Edit
+ppExportList = \ case
+  NoExportList -> mempty
+  ExportList nodes -> concatMap pp nodes
+
+pp :: [Node] -> DList Edit
+pp = ppNodes
   where
     ppNodes :: Foldable sequence_of => sequence_of Node -> DList Edit
     ppNodes = concatMap ppNode

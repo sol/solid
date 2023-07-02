@@ -5,16 +5,13 @@ import           Prelude ()
 import           Solid.PP.IO
 
 import           Test.Hspec
-import           Test.HUnit (assertFailure)
-import           Test.Hspec.Expectations.Contrib (annotate)
 import           Test.Mockery.Directory
 import           Data.Set (Set)
 import qualified Data.Set as Set
 
 import           Solid.PP.Parser
 
-import           Solid.PP hiding (parseModuleHeader)
-import qualified Solid.PP as PP
+import           Solid.PP
 
 infix 1 `shouldDesugarTo`
 
@@ -38,18 +35,12 @@ interpolationShouldDesugarTo input expected = do
     <> "{-# LINE 1 " <> pack (show file) <> " #-}\n"
     <> expected
 
-parseModuleHeader :: HasCallStack => Text -> (ModuleHeader -> IO a) -> IO a
-parseModuleHeader input action = case parse extensions "src.hs" 1 input of
-  Left err -> assertFailure err
-  Right nodes -> annotate (show [t | Token _ t <- nodes]) $ do
-    action (PP.parseModuleHeader nodes)
-
 spec :: Spec
 spec = do
   describe "usedModules" $ do
     let
       modules :: HasCallStack => Text -> Set ModuleName
-      modules = usedModules . either undefined id . parse extensions "src.hs" 1
+      modules = usedModules . either undefined id . parseModule extensions "src.hs" 1
 
     context "with a qualified identifier" $ do
       it "extracts module name" $ do
@@ -59,20 +50,13 @@ spec = do
       it "extracts module names" $ do
         modules "foo(String.length bar)" `shouldBe` Set.fromList ["String"]
 
+    context "within an export list" $ do
+      it "extracts module names" $ do
+        modules "module Foo (String.length) where" `shouldBe` Set.fromList ["String"]
+
     context "within an interpolated string" $ do
       it "extracts module names" $ do
         modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` Set.fromList ["Solid.ToString", "Bar", "Foo"]
-
-  describe "parseModuleHeader" $ do
-    it "parses the module header" $ do
-      parseModuleHeader "module Foo where" (`shouldBe` ModuleHeader (Just "Foo") 16 "src.hs" 1)
-
-    it "ignores comments" $ do
-      parseModuleHeader "module {- some comment -} Foo where" (`shouldBe` ModuleHeader (Just "Foo") 35 "src.hs" 1)
-
-    context "with a hierarchical module" $ do
-      it "parses the module header" $ do
-        parseModuleHeader "module Foo.Bar where" (`shouldBe` ModuleHeader (Just "Foo.Bar") 20 "src.hs" 1)
 
   describe "desugarExpression" $ around_ inTempDirectory $ do
     it "desugars identifiers" $ do
@@ -258,21 +242,6 @@ spec = do
                 , "{-# LINE 1 \"src.hs\" #-}"
                 , ""
                 ]
-
-      context "with a partial module header" $ do
-        it "does not implicitly import anything" $ do
-          writeFile "cur.hs" $ unlines [
-              "module Foo (foo)"
-            , "foo :: String -> Int"
-            , "foo = String.length"
-            ]
-          run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
-          readFile "dst.hs" `shouldReturn` unlines [
-              "{-# LINE 1 \"src.hs\" #-}"
-            , "module Foo (foo)"
-            , "foo :: String -> Int"
-            , "foo = String.length"
-            ]
 
     context "when pre-processing identifiers" $ do
       it "desugars postfix bangs" $ do

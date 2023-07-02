@@ -17,8 +17,13 @@ import           GHC.Data.FastString (FastString)
 
 import           Solid.PP (extensions)
 import           Solid.PP.Lexer (Token(..))
-import           Solid.PP.Parser hiding (parse)
+import           Solid.PP.Parser
 import qualified Solid.PP.Parser as Parser
+
+instance IsList (Module ()) where
+  type Item (Module ()) = NodeWith ()
+  fromList = Module NoModuleHeader
+  toList = undefined
 
 instance IsList (End () -> ExpressionWith ()) where
   type Item (End () -> ExpressionWith ()) = NodeWith ()
@@ -56,8 +61,8 @@ token = Token ()
 nameWith :: FastString -> Arguments () -> NodeWith ()
 nameWith n args = MethodChain (Name () n args) []
 
-parse :: HasCallStack => String -> [NodeWith ()]
-parse = either expectationFailurePure (map void) . Parser.parse extensions "main.hs" 1 . fromString
+parse :: HasCallStack => String -> Module ()
+parse = either expectationFailurePure void . Parser.parseModule extensions "main.hs" 1 . fromString
 
 spec :: Spec
 spec = do
@@ -78,6 +83,16 @@ spec = do
     bracketed style inner = MethodChain (Bracketed style () inner) []
 
   describe "parse" $ do
+    context "when parsing module headers" $ do
+      it "accepts an unqualified module name" $ do
+        parse "module Foo where" `shouldBe` Module (ModuleHeader () "Foo" NoExportList) [Token () ITvocurly]
+
+      it "accepts a qualified module name" $ do
+        parse "module Foo.Bar where" `shouldBe` Module (ModuleHeader () "Foo.Bar" NoExportList) [Token () ITvocurly]
+
+      it "accepts an export list" $ do
+        parse "module Foo (bar, baz) where" `shouldBe` Module (ModuleHeader () "Foo" (ExportList [["bar"], ["baz"]])) [Token () ITvocurly]
+
     context "when parsing function calls" $ do
       it "accepts qualified names" $ do
         parse "String.foo(23)" `shouldBe` [MethodChain (QualifiedName () "String" "foo" [[23]]) []]
@@ -158,13 +173,13 @@ spec = do
 
       context "on unexpected end of line" $ do
         it "reports an error" $ do
-          Parser.parse extensions "main.hs" 1 "\"foo    \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
-          Parser.parse extensions "main.hs" 1 "\"foo {  \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
+          Parser.parseModule extensions "main.hs" 1 "\"foo    \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
+          Parser.parseModule extensions "main.hs" 1 "\"foo {  \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
 
       context "on unexpected end of input" $ do
         it "reports an error" $ do
-          Parser.parse extensions "main.hs" 1 "\"foo    " `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
-          let Left err = Parser.parse extensions "main.hs" 1 "\"foo {  "
+          Parser.parseModule extensions "main.hs" 1 "\"foo    " `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
+          let Left err = Parser.parseModule extensions "main.hs" 1 "\"foo {  "
           err `shouldBe` (unpack . unlines) [
               "main.hs:1:7:"
             , "  |"
@@ -175,7 +190,7 @@ spec = do
 
       context "unexpected token" $ do
         it "reports an error" $ do
-          let Left err = Parser.parse extensions "main.hs" 1 $ unlines [
+          let Left err = Parser.parseModule extensions "main.hs" 1 $ unlines [
                   "some tokens"
                 , "bar ].foo"
                 , "some more tokens"
