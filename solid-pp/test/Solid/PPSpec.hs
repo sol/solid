@@ -5,11 +5,13 @@ import           Prelude ()
 import           Solid.PP.IO
 
 import           Test.Hspec
-import           Test.HUnit
+import           Test.HUnit (assertFailure)
 import           Test.Hspec.Expectations.Contrib (annotate)
 import           Test.Mockery.Directory
+import qualified Data.Map as Map
 
 import           Solid.PP.Parser
+import           Solid.PP.Lexer
 
 import           Solid.PP hiding (parseModuleHeader)
 import qualified Solid.PP as PP
@@ -31,6 +33,26 @@ parseModuleHeader input action = case parse extensions "src.hs" input of
 
 spec :: Spec
 spec = do
+  describe "usedModules" $ do
+    let
+      modulesWithLocation :: HasCallStack => Text -> [(Module, BufferSpan)]
+      modulesWithLocation = Map.toList . usedModules . either undefined id . parse extensions "src.hs"
+
+      modules :: HasCallStack => Text -> [Module]
+      modules src = [name | (name, _) <- modulesWithLocation src]
+
+    context "with a qualified identifier" $ do
+      it "extracts module name" $ do
+        modules "foo = String.length" `shouldBe` ["String"]
+
+    context "when the same module name occurs multiple times" $ do
+      it "uses the source location of the first occurrence" $ do
+        map (fmap (.startColumn)) (modulesWithLocation "foo = Foo.foo && Foo.bar") `shouldBe` [("Foo", 7)]
+
+    context "within an interpolated string" $ do
+      it "extracts module names" $ do
+        modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` ["Foo", "Bar"]
+
   describe "parseModuleHeader" $ do
     it "parses the module header" $ do
       parseModuleHeader "module Foo where" (`shouldBe` ModuleHeader (Just "Foo") 16 "src.hs" 1)

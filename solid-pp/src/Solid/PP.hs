@@ -11,6 +11,8 @@ module Solid.PP (
 , extensions
 
 #ifdef TEST
+, Module
+, usedModules
 , ModuleHeader(..)
 , parseModuleHeader
 #endif
@@ -112,13 +114,10 @@ addImplicitImports nodes = case parseModuleHeader nodes of
   GenerateModuleHeader offset file line -> Just $ insert offset $ "module Main where\n" <> formatImports imports <> linePragma line file
   where
     imports :: Imports
-    imports = Map.restrictKeys modules wellKnownModules
+    imports = Map.restrictKeys (usedModules nodes) wellKnownModules
 
     formatImports :: Imports -> Text
     formatImports = T.unlines . map formatImport . Map.toList
-
-    modules :: Imports
-    modules = Map.fromList [(Module m, loc) | Token loc (ITqvarid (m, _)) <- reverse nodes]
 
     formatImport :: (Module, BufferSpan) -> Text
     formatImport (Module m, loc) = linePragma loc.startLine loc.file <> columnPragma <> "import qualified " <> columnPragma <> m.toText
@@ -128,6 +127,24 @@ addImplicitImports nodes = case parseModuleHeader nodes of
 
     insert :: Int -> Text -> Edit
     insert offset = Replace Nothing offset 0
+
+usedModules :: [Node] -> Imports
+usedModules = Map.fromList . reverse . (.build) . modules
+  where
+    modules :: [Node] -> DList (Module, BufferSpan)
+    modules = concatMap fromNodes
+
+    fromNodes :: Node -> DList (Module, BufferSpan)
+    fromNodes = \ case
+      Token loc (ITqvarid (m, _)) -> singleton (Module m, loc)
+      Token _ _ -> mempty
+      LiteralString (Begin _ _ expression) -> fromExpression expression
+      LiteralString (Literal _ _) -> mempty
+
+    fromExpression :: Expression -> DList (Module, BufferSpan)
+    fromExpression (Expression nodes end) = modules nodes <> case end of
+      EndBegin _ _ expression -> fromExpression expression
+      End _ _ -> mempty
 
 data ModuleHeader = None | ModuleHeader (Maybe Module) Int FilePath Int | GenerateModuleHeader Int FilePath Int
   deriving (Eq, Show)
@@ -154,15 +171,16 @@ parseModuleHeader nodes = afterExportList
       Token loc _ : _ -> GenerateModuleHeader loc.start loc.file loc.startLine
       _ -> None
 
-    isComment = \ case
-      ITlineComment {} -> True
-      ITblockComment {} -> True
-      _ -> False
+isComment :: Token -> Bool
+isComment = \ case
+  ITlineComment {} -> True
+  ITblockComment {} -> True
+  _ -> False
 
-    token :: (Token -> Bool) -> Node -> Bool
-    token p = \ case
-      Token _ t -> p t
-      LiteralString {} -> False
+token :: (Token -> Bool) -> Node -> Bool
+token p = \ case
+  Token _ t -> p t
+  LiteralString {} -> False
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
 desugarIdentifier start end identifier
@@ -216,7 +234,7 @@ pp = (.build) . onNodes
 
     onNode :: Node -> DList Edit
     onNode = \ case
-      Token loc token -> onToken loc token
+      Token loc t -> onToken loc t
       LiteralString string -> onLiteralString string
 
     onToken :: BufferSpan -> Token -> DList Edit
