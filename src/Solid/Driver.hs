@@ -11,6 +11,7 @@ import Solid.PP (Extension, extensions)
 import Test.DocTest (doctest)
 
 import System.Directory.Import
+import Solid.Ansi qualified as Ansi
 
 repository :: String
 repository = "git@github.com:sol/solid.git"
@@ -24,33 +25,33 @@ ghc = "9.6.2"
 tty :: FilePath
 tty = "/dev/tty"
 
-null_device :: FilePath
-null_device = "/dev/null"
-
 data Console = Console {
-  info :: Handle
-, error :: Handle
+  info :: String -> IO ()
+, handle :: Handle
+, tty? :: Bool
 , release :: IO ()
 }
+
+instance HasField "command" Console (FilePath -> [String] -> Process.Config () () ()) where
+  getField console name args = ((Process.command name args).stdout.useHandle console.handle).stderr.useHandle console.handle
 
 withConsole :: (Console -> IO a) -> IO a
 withConsole = with console
   where
     console :: IO Console
     console = IO.try (tty.open IO.WriteMode) >>= \ case
-      Left _ -> do
-        handle <- IO.try (null_device.open IO.WriteMode)
-        return Console {
-          info = handle.right_or stderr
-        , error = stderr
-        , release = handle.fold (\ _ -> pass) (.release)
-        }
-      Right handle -> do
-        return Console {
-          info = handle
-        , error = handle
-        , release = handle.release
-        }
+      Left _ -> return Console {
+        info = \ _ -> pass
+      , handle = stderr
+      , tty? = False
+      , release = pass
+      }
+      Right handle -> return Console {
+        info = \ output -> handle.write output >> handle.flush
+      , handle = handle
+      , tty? = True
+      , release = handle.release
+      }
 
 desugarCommand :: String
 desugarCommand = internalCommand "desugar"
@@ -68,7 +69,7 @@ solid mode self args = withConsole $ \ console -> do
   cache <- getCacheDirectory
   ghc_dir <- determine_ghc_dir console self (cache </> "ghc-{ghc}".asFilePath)
   Env.path.extend ghc_dir do
-    packageEnv <- ensurePackageEnv self cache
+    packageEnv <- ensurePackageEnv console self cache
     let options = ghcOptions self packageEnv args
     case mode of
       GhcOptions -> stdout.print options.unlines
@@ -101,16 +102,16 @@ determine_ghc_dir console self cache = do
 
 find_ghc :: Console -> FilePath -> IO FilePath
 find_ghc console self = do
-  console.info.write "Installing GHC {ghc}... "
+  console.info "Installing GHC {ghc}... "
   Temp.withDirectory $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
     ghc_dir <- (stack ["--resolver={resolver}", "path", "--compiler-bin"]).with Process.stdout
-      <* console.info.print (String.ansi "✔").green
+      <* console.info "{(String.ansi "✔").green}\n"
     return ghc_dir.strip.asFilePath
   where
     stack :: [String] -> Process.Config () (IO ByteString) ()
-    stack args = (Process.command self ("stack" : "--verbosity" : "error" : args)).stdout.capture.stderr.useHandle console.error
+    stack args = (console.command self ("stack" : "--verbosity" : "error" : args)).stdout.capture
 
 atomicWriteFile :: FilePath -> ByteString -> IO ()
 atomicWriteFile dst str = do
@@ -118,23 +119,29 @@ atomicWriteFile dst str = do
   writeBinaryFile tmp str
   tmp.rename dst
 
-ensurePackageEnv :: FilePath -> FilePath -> IO FilePath
-ensurePackageEnv self cache = do
+ensurePackageEnv :: Console -> FilePath -> FilePath -> IO FilePath
+ensurePackageEnv console self cache = do
   unless -< packageEnv.exists? $ do
-    Temp.withDirectoryAt cache $ \ tmp -> do
-      Directory.withCurrent tmp do
-        git ["init", "-q"]
-        git ["remote", "add", "origin", repository]
-        git ["fetch", "--depth", "1", "origin", revision, "-q"]
-        git ["checkout", "FETCH_HEAD", "-q"]
-        cabal $ "-v0" : "install" : "--package-env={packageEnv}" : "--lib" : packages
+    console.info "Creating package environment...\n"
+    let intensity = Ansi.Faint
+    bracket_ (console.info intensity.set) (console.info intensity.reset) do
+      Temp.withDirectoryAt cache $ \ tmp -> do
+        Directory.withCurrent tmp do
+          git ["init", "-q"]
+          git ["remote", "add", "origin", repository]
+          git ["fetch", "--depth", "1", "origin", revision, "-q"]
+          git ["checkout", "FETCH_HEAD", "-q"]
+          cabal $ "install" : "--package-env={packageEnv}" : "--lib" : packages
   return packageEnv
   where
     git :: [String] -> IO ()
-    git args = (Process.command "git" args).run
+    git args = (console.command "git" args).run
+
+    verbosity :: [String] -> [String]
+    verbosity = console.tty?.fold ("-v0" :) id
 
     cabal :: [String] -> IO ()
-    cabal args = (Process.command self ("cabal" : args)).run
+    cabal args = (console.command self ("cabal" : verbosity args)).run
 
     packages :: [String]
     packages = ["lib:solid", "lib:haskell-base"]
@@ -149,7 +156,7 @@ ghcOptions self packageEnv args = opts ++ args
       : "-package=process"
       : desugar ++ exts
     desugar = ["-F", "-pgmF={self}", "-optF={desugarCommand}"]
-    exts = map showExtension extensions
+    exts = "-XNoFieldSelectors" : map showExtension extensions
 
     showExtension :: Extension -> String
     showExtension extension = "-X" <> pack (show extension)

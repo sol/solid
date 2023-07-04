@@ -31,6 +31,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FieldSelectors #-}
 -- | This module is __internal__ and its contents may change without a warning
 -- or announcement. It is not subject to the PVP.
 module Solid.Process.Typed.Internal where

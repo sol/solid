@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Process (
   Config

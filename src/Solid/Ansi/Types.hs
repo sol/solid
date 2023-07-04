@@ -12,6 +12,7 @@ data Modifier =
   | Underline
   | Inverse
   | Foreground Color
+  | Background Color
   deriving (Eq, Show)
 
 data Color =

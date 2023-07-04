@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Solid.Common (
   WithStackTrace
 , module Imports
@@ -41,6 +42,7 @@ import           Control.Arrow as Imports ((>>>))
 import           Control.Applicative as Imports
 
 import           Data.Tuple (swap)
+import           Data.Bool (bool)
 
 import qualified GHC.Stack as GHC
 
@@ -85,3 +87,7 @@ instance HasField "fst" (a, b) a where
 
 instance HasField "snd" (a, b) b where
   getField = snd
+
+instance HasField "fold" Bool (a -> a -> a)
+      => HasField "fold" Bool (a -> a -> a) where
+  getField value t f = bool t f value

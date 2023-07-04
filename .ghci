@@ -7,3 +7,4 @@
 :set -XLambdaCase
 :set -XOverloadedRecordDot
 :set -XOverloadedStrings
+:set -XNoFieldSelectors

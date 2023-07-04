@@ -13,6 +13,7 @@ default-extensions:
   - LambdaCase
   - OverloadedRecordDot
   - OverloadedStrings
+  - NoFieldSelectors
 
 ghc-options: -Wall -fhide-source-paths
 

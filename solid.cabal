@@ -70,6 +70,7 @@ library
       LambdaCase
       OverloadedRecordDot
       OverloadedStrings
+      NoFieldSelectors
   ghc-options: -Wall -fhide-source-paths
   build-tool-depends:
       solid-pp:solid-pp
@@ -111,6 +112,7 @@ executable solid
       LambdaCase
       OverloadedRecordDot
       OverloadedStrings
+      NoFieldSelectors
   ghc-options: -Wall -fhide-source-paths
   build-tool-depends:
       solid-pp:solid-pp
@@ -235,6 +237,7 @@ test-suite spec
       LambdaCase
       OverloadedRecordDot
       OverloadedStrings
+      NoFieldSelectors
   ghc-options: -Wall -fhide-source-paths
   build-tools:
       solid

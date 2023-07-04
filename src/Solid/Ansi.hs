@@ -16,6 +16,18 @@ module Solid.Ansi (
 , cyan
 , white
 , rgb
+
+, on_black
+, on_red
+, on_green
+, on_yellow
+, on_blue
+, on_magenta
+, on_cyan
+, on_white
+, on_rgb
+
+, Modifier(..)
 ) where
 
 import Solid.Common
@@ -32,12 +44,16 @@ modifier m (Ansi ms a) = Ansi (m : ms) a
 foreground :: Color -> Ansi a -> Ansi a
 foreground = modifier . Foreground
 
+background :: Color -> Ansi a -> Ansi a
+background = modifier . Background
+
 modifierSet :: Modifier -> String
 modifierSet = \ case
   Bold -> "1"
   Faint -> "2"
   Underline -> "4"
   Inverse -> "7"
+
   Foreground Black -> "30"
   Foreground Red -> "31"
   Foreground Green -> "32"
@@ -48,6 +64,19 @@ modifierSet = \ case
   Foreground White -> "37"
   Foreground (RGB r g b) -> "38;2;{r};{g};{b}"
 
+  Background Black -> "40"
+  Background Red -> "41"
+  Background Green -> "42"
+  Background Yellow -> "43"
+  Background Blue -> "44"
+  Background Magenta -> "45"
+  Background Cyan -> "46"
+  Background White -> "47"
+  Background (RGB r g b) -> "48;2;{r};{g};{b}"
+
+instance ToString Modifier where
+  toString m = "\ESC[{modifierSet m}m"
+
 modifierUnset :: Modifier -> String
 modifierUnset = \ case
   Bold -> "22"
@@ -55,6 +84,13 @@ modifierUnset = \ case
   Underline -> "24"
   Inverse -> "27"
   Foreground _ -> "39"
+  Background _ -> "49"
+
+instance HasField "set" Modifier String where
+  getField m = "\ESC[{modifierSet m}m"
+
+instance HasField "reset" Modifier String where
+  getField m = "\ESC[{modifierUnset m}m"
 
 instance ToString a => ToString (Ansi a) where
   toString (Ansi modifiers a) = set <> toString a <> unset
@@ -126,6 +162,33 @@ white = foreground White
 rgb :: Word8 -> Word8 -> Word8 -> Ansi a -> Ansi a
 rgb r g b = foreground (RGB r g b)
 
+on_black :: Ansi a -> Ansi a
+on_black = background Black
+
+on_red :: Ansi a -> Ansi a
+on_red = background Red
+
+on_green :: Ansi a -> Ansi a
+on_green = background Green
+
+on_yellow :: Ansi a -> Ansi a
+on_yellow = background Yellow
+
+on_blue :: Ansi a -> Ansi a
+on_blue = background Blue
+
+on_magenta :: Ansi a -> Ansi a
+on_magenta = background Magenta
+
+on_cyan :: Ansi a -> Ansi a
+on_cyan = background Cyan
+
+on_white :: Ansi a -> Ansi a
+on_white = background White
+
+on_rgb :: Word8 -> Word8 -> Word8 -> Ansi a -> Ansi a
+on_rgb r g b = background (RGB r g b)
+
 instance HasField "black" (Ansi a) (Ansi a) where
   getField = black
 
@@ -152,3 +215,30 @@ instance HasField "white" (Ansi a) (Ansi a) where
 
 instance HasField "rgb" (Ansi a) (Word8 -> Word8 -> Word8 -> Ansi a) where
   getField xs r g b = rgb r g b xs
+
+instance HasField "on_black" (Ansi a) (Ansi a) where
+  getField = on_black
+
+instance HasField "on_red" (Ansi a) (Ansi a) where
+  getField = on_red
+
+instance HasField "on_green" (Ansi a) (Ansi a) where
+  getField = on_green
+
+instance HasField "on_yellow" (Ansi a) (Ansi a) where
+  getField = on_yellow
+
+instance HasField "on_blue" (Ansi a) (Ansi a) where
+  getField = on_blue
+
+instance HasField "on_magenta" (Ansi a) (Ansi a) where
+  getField = on_magenta
+
+instance HasField "on_cyan" (Ansi a) (Ansi a) where
+  getField = on_cyan
+
+instance HasField "on_white" (Ansi a) (Ansi a) where
+  getField = on_white
+
+instance HasField "on_rgb" (Ansi a) (Word8 -> Word8 -> Word8 -> Ansi a) where
+  getField xs r g b = on_rgb r g b xs

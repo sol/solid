@@ -31,6 +31,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FieldSelectors #-}
 -- | The simplest way to get started with this API is to turn on
 -- @OverloadedStrings@ and call 'runProcess'.  The following will
 -- write the contents of @/home@ to @stdout@ and then print the exit
