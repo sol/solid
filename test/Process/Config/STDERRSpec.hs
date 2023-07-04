@@ -20,6 +20,10 @@ spec = do
     it "captures stderr" $ do
       echo.stderr.capture.with Process.stderr `shouldReturn` "foo\n"
 
+  describe "toStdout" $ do
+    it "redirects stderr to stdout" $ do
+      echo.stderr.toStdout.stdout.capture.with Process.stdout `shouldReturn` "foo\n"
+
   describe "useFile" $ do
     it "redirects stderr to a file" $ do
       Temp.withDirectory $ \ dir -> do

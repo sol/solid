@@ -3,6 +3,7 @@ module Process.Config.STDERR (
   inherit
 , null
 , capture
+, toStdout
 , useFile
 , createPipe
 , useHandle
@@ -29,6 +30,9 @@ null = Haskell.setStderr Haskell.nullStream
 capture :: Config stdin stdout stderr -> Config stdin stdout (IO ByteString)
 capture = Haskell.setStderr (STM.atomically <$> fmap (Bytes . LB.toStrict) <$> Haskell.byteStringOutput)
 
+toStdout :: Config stdin stdout stderr -> Config stdin stdout ()
+toStdout = useHandle stdout
+
 useFile :: FilePath -> Config stdin stdout stderr -> Config stdin stdout ()
 useFile = Haskell.setStderr . fileOutput
 
@@ -51,6 +55,9 @@ instance HasField "null" (STDERR stdin stdout stderr) (Config stdin stdout ()) w
 
 instance HasField "capture" (STDERR stdin stdout stderr) (Config stdin stdout (IO ByteString)) where
   getField (STDERR config) = capture config
+
+instance HasField "toStdout" (STDERR stdin stdout stderr) (Config stdin stdout ()) where
+  getField (STDERR config) = toStdout config
 
 instance HasField "useFile" (STDERR stdin stdout stderr) (FilePath -> Config stdin stdout ()) where
   getField (STDERR config) file = useFile file config
