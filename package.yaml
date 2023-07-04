@@ -21,6 +21,7 @@ dependencies:
   - bytestring
   - text
   - filepath
+  - file-io
   - directory
   - containers
   - unix == 2.8.1.0 # remove CPP from src/Env/Raw.hs when >= 2.8.1.1

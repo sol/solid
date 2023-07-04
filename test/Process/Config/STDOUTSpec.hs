@@ -20,6 +20,13 @@ spec = do
     it "captures stdout" $ do
       echo.stdout.capture.with Process.stdout `shouldReturn` "foo\n"
 
+  describe "useFile" $ do
+    it "redirects stdout to a file" $ do
+      Temp.withDirectory $ \ dir -> do
+        let file = dir </> "foo.txt"
+        (echo.stdout.useFile file).run
+        readFile file `shouldReturn` "foo\n"
+
   describe "createPipe" $ do
     it "creates a pipe for stdout" $ do
       echo.stdout.createPipe.with $ \ process -> do

@@ -20,6 +20,13 @@ spec = do
     it "captures stderr" $ do
       echo.stderr.capture.with Process.stderr `shouldReturn` "foo\n"
 
+  describe "useFile" $ do
+    it "redirects stderr to a file" $ do
+      Temp.withDirectory $ \ dir -> do
+        let file = dir </> "foo.txt"
+        (echo.stderr.useFile file).run
+        readFile file `shouldReturn` "foo\n"
+
   describe "createPipe" $ do
     it "creates a pipe for stderr" $ do
       echo.stderr.createPipe.with $ \ process -> do

@@ -5,6 +5,7 @@ module Process.Config.STDIN (
 , set
 , setBytes
 , setByteString
+, useFile
 , createPipe
 , useHandle
 , useAndCloseHandle
@@ -17,6 +18,8 @@ import Solid.Types
 import Data.ByteString.Lazy qualified as LB
 import System.Process.Typed (Config)
 import System.Process.Typed qualified as Haskell
+
+import Process.Config.FileStream
 
 inherit :: Config stdin stdout stderr -> Config () stdout stderr
 inherit = Haskell.setStdin Haskell.inherit
@@ -32,6 +35,9 @@ setBytes input = setByteString input.asByteString
 
 setByteString :: ByteString -> Config stdin stdout stderr -> Config () stdout stderr
 setByteString = Haskell.setStdin . Haskell.byteStringInput . LB.fromStrict . unBytes
+
+useFile :: FilePath -> Config stdin stdout stderr -> Config () stdout stderr
+useFile = Haskell.setStdin . fileInput
 
 createPipe :: Config stdin stdout stderr -> Config Handle stdout stderr
 createPipe = Haskell.setStdin Haskell.createPipe
@@ -59,6 +65,9 @@ instance HasField "setBytes" (STDIN stdin stdout stderr) (Bytes a -> Config () s
 
 instance HasField "setByteString" (STDIN stdin stdout stderr) (ByteString -> Config () stdout stderr) where
   getField (STDIN config) = flip setByteString config
+
+instance HasField "useFile" (STDIN stdin stdout stderr) (FilePath -> Config () stdout stderr) where
+  getField (STDIN config) file = useFile file config
 
 instance HasField "createPipe" (STDIN stdin stdout stderr) (Config Handle stdout stderr) where
   getField (STDIN config) = createPipe config

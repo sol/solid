@@ -23,7 +23,7 @@ module Process (
 , stdout
 , stderr
 
-, with
+, Process.with
 , run
 , read
 
@@ -151,14 +151,14 @@ with config action = bracket config.start stop $ \ process -> do
   action process <* wait process
 
 run :: Config stdin stdout stderr -> IO ()
-run config = with config checkStatus
+run config = Process.with config checkStatus
 
 read :: Config () () () -> IO ByteString
-read config = with config.stdout.capture stdout
+read config = Process.with config.stdout.capture stdout
 
 instance HasField "with" (Config stdin stdout stderr) ((Process stdin stdout stderr -> IO a) -> IO a)
       => HasField "with" (Config stdin stdout stderr) ((Process stdin stdout stderr -> IO a) -> IO a) where
-  getField = with
+  getField = Process.with
 
 instance HasField "run" (Config () () ()) (IO ()) where
   getField = run

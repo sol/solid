@@ -7,12 +7,15 @@ module IO.Handle (
 , stdout
 , stderr
 
+, Mode
+, Haskell.IOMode(..)
 , SeekMode(..)
 
 , print
 , write
 , writeLine
 , open?
+, open
 , close
 , flush
 , tell
@@ -27,6 +30,7 @@ import Solid.Types
 
 import           System.IO (SeekMode(..), stdin, stdout, stderr)
 import qualified System.IO as Haskell
+import qualified System.File.OsPath as OsPath
 
 import           Data.Coerce
 import qualified Data.ByteString as B
@@ -36,6 +40,8 @@ import           Solid.ToString
 
 import           GHC.IO.Handle.Types (Handle(..))
 import           Control.Concurrent.MVar (withMVar)
+
+type Mode = Haskell.IOMode
 
 print :: ToString a => Handle -> a -> IO ()
 print h = writeLine h . toString
@@ -50,6 +56,9 @@ writeLine self str = do
 
 open? :: Handle -> IO Bool
 open? = Haskell.hIsOpen
+
+open :: FilePath -> Mode -> IO Handle
+open = OsPath.openFile . coerce
 
 close :: Handle -> IO ()
 close = Haskell.hClose
@@ -90,6 +99,9 @@ instance HasField "open\660" Handle (IO Bool) where
   getField = open?
 
 instance HasField "close" Handle (IO ()) where
+  getField = close
+
+instance HasField "release" Handle (IO ()) where
   getField = close
 
 instance HasField "flush" Handle (IO ()) where

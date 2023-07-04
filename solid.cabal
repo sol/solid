@@ -29,6 +29,7 @@ library
       Prelude
       Process
       Process.Config
+      Process.Config.FileStream
       Process.Config.STDERR
       Process.Config.STDIN
       Process.Config.STDOUT
@@ -71,6 +72,7 @@ library
     , containers
     , directory
     , doctest
+    , file-io
     , filepath
     , haskell-base
     , process
@@ -99,6 +101,7 @@ executable solid
       Prelude
       Process
       Process.Config
+      Process.Config.FileStream
       Process.Config.STDERR
       Process.Config.STDIN
       Process.Config.STDOUT
@@ -146,6 +149,7 @@ executable solid
     , containers
     , directory
     , doctest
+    , file-io
     , filepath
     , haskell-base
     , process
@@ -176,6 +180,7 @@ test-suite spec
       Prelude
       Process
       Process.Config
+      Process.Config.FileStream
       Process.Config.STDERR
       Process.Config.STDIN
       Process.Config.STDOUT
@@ -251,6 +256,7 @@ test-suite spec
     , containers
     , directory
     , doctest
+    , file-io
     , filepath
     , haskell-base
     , hedgehog

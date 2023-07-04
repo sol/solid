@@ -1,7 +1,9 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Process.Config.STDERR (
   inherit
 , null
 , capture
+, useFile
 , createPipe
 , useHandle
 , useAndCloseHandle
@@ -16,6 +18,8 @@ import Data.ByteString.Lazy qualified as LB
 import System.Process.Typed (Config)
 import System.Process.Typed qualified as Haskell
 
+import Process.Config.FileStream
+
 inherit :: Config stdin stdout stderr -> Config stdin stdout ()
 inherit = Haskell.setStderr Haskell.inherit
 
@@ -24,6 +28,9 @@ null = Haskell.setStderr Haskell.nullStream
 
 capture :: Config stdin stdout stderr -> Config stdin stdout (IO ByteString)
 capture = Haskell.setStderr (STM.atomically <$> fmap (Bytes . LB.toStrict) <$> Haskell.byteStringOutput)
+
+useFile :: FilePath -> Config stdin stdout stderr -> Config stdin stdout ()
+useFile = Haskell.setStderr . fileOutput
 
 createPipe :: Config stdin stdout stderr -> Config stdin stdout Handle
 createPipe = Haskell.setStderr Haskell.createPipe
@@ -44,6 +51,9 @@ instance HasField "null" (STDERR stdin stdout stderr) (Config stdin stdout ()) w
 
 instance HasField "capture" (STDERR stdin stdout stderr) (Config stdin stdout (IO ByteString)) where
   getField (STDERR config) = capture config
+
+instance HasField "useFile" (STDERR stdin stdout stderr) (FilePath -> Config stdin stdout ()) where
+  getField (STDERR config) file = useFile file config
 
 instance HasField "createPipe" (STDERR stdin stdout stderr) (Config stdin stdout Handle) where
   getField (STDERR config) = createPipe config

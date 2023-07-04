@@ -3,6 +3,7 @@ module Solid.Common (
   module Imports
 , (-<)
 , pass
+, with
 ) where
 
 import           HaskellPrelude as Imports hiding (FilePath, String, words, unwords, lines, unlines, print, readFile, writeFile, error, length, getContents)
@@ -14,6 +15,7 @@ import           System.IO as Imports (Handle)
 import           GHC.Stack as Imports (HasCallStack)
 import           GHC.Records as Imports (HasField(..))
 import           GHC.Generics as Imports (Generic)
+import           Control.Exception (bracket)
 import           Control.Monad as Imports
 import           Control.Monad.IO.Class as Imports
 import           Control.Arrow as Imports ((>>>))
@@ -39,6 +41,9 @@ infixl 1 -<
 
 pass :: Applicative m => m ()
 pass = pure ()
+
+with :: HasField "release" resource (IO ()) => IO resource -> (resource -> IO a) -> IO a
+with acquire = bracket acquire (.release)
 
 instance HasField "curry" ((a, b) -> c) (a -> b -> c) where
   getField = curry

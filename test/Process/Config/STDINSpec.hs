@@ -49,6 +49,13 @@ spec = do
     it "provides a ByteString as stdin" $ do
       (cat.stdin.setByteString "foo").read `shouldReturn` "foo"
 
+  describe "useFile" $ do
+    it "provides the content of a file as stdin" $ do
+      Temp.withDirectory $ \ dir -> do
+        let file = dir </> "foo.txt"
+        writeFile file "foo"
+        (cat.stdin.useFile file).read `shouldReturn` "foo"
+
   describe "createPipe" $ do
     it "creates a pipe for stdin" $ do
       Process.with cat.stdout.capture.stdin.createPipe $ \ process -> do
