@@ -224,6 +224,7 @@ test-suite spec
       Solid.CharSpec
       Solid.CommonSpec
       Solid.DriverSpec
+      Solid.Foreign.CSpec
       Solid.MD5Spec
       Solid.ToStringSpec
       Solid.TypesSpec

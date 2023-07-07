@@ -17,3 +17,6 @@ import List ()
 
 print :: ToString a => a -> IO ()
 print = stdout.print
+
+putStrLn :: String -> IO ()
+putStrLn = stdout.writeLine

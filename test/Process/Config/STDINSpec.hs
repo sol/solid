@@ -43,11 +43,7 @@ spec = do
 
   describe "setBytes" $ do
     it "provides a sequence of bytes as stdin" $ do
-      (cat.stdin.setBytes ("foo" :: String)).read `shouldReturn` "foo"
-
-  describe "setByteString" $ do
-    it "provides a ByteString as stdin" $ do
-      (cat.stdin.setByteString "foo").read `shouldReturn` "foo"
+      (cat.stdin.setBytes ("foo" :: ByteString)).read `shouldReturn` "foo"
 
   describe "useFile" $ do
     it "provides the content of a file as stdin" $ do

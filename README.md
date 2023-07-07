@@ -5,7 +5,7 @@
 
 ...
 
-# Solid: A functional scripting environment
+# Solid: A modern reimagination of Haskell
 
 ```
 git clone git@github.com:sol/solid.git
@@ -160,3 +160,8 @@ $ cabal repl --build-depends hspec,QuickCheck
   resultin in `String.length` being ambiguous.
 
   This will be addressed eventually.
+
+# Differences from Haskell
+
+- The `IsString` instance of `ByteString` encodes the input string as UTF-8
+  (instead of truncating to octets)

@@ -4,7 +4,6 @@ module Process.Config.STDIN (
 , null
 , set
 , setBytes
-, setByteString
 , useFile
 , createPipe
 , useHandle
@@ -31,10 +30,7 @@ set :: String -> Config stdin stdout stderr -> Config () stdout stderr
 set = setBytes
 
 setBytes :: Bytes a -> Config stdin stdout stderr -> Config () stdout stderr
-setBytes input = setByteString input.asByteString
-
-setByteString :: ByteString -> Config stdin stdout stderr -> Config () stdout stderr
-setByteString = Haskell.setStdin . Haskell.byteStringInput . LB.fromStrict . unBytes
+setBytes = Haskell.setStdin . Haskell.byteStringInput . LB.fromStrict . unBytes
 
 useFile :: FilePath -> Config stdin stdout stderr -> Config () stdout stderr
 useFile = Haskell.setStdin . fileInput
@@ -62,9 +58,6 @@ instance HasField "set" (STDIN stdin stdout stderr) (String -> Config () stdout 
 instance HasField "setBytes" (STDIN stdin stdout stderr) (Bytes a -> Config () stdout stderr) =>
          HasField "setBytes" (STDIN stdin stdout stderr) (Bytes a -> Config () stdout stderr) where
   getField (STDIN config) = flip setBytes config
-
-instance HasField "setByteString" (STDIN stdin stdout stderr) (ByteString -> Config () stdout stderr) where
-  getField (STDIN config) = flip setByteString config
 
 instance HasField "useFile" (STDIN stdin stdout stderr) (FilePath -> Config () stdout stderr) where
   getField (STDIN config) file = useFile file config

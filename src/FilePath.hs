@@ -27,7 +27,7 @@ import Solid.Common hiding (IsString(..))
 import Solid.Common qualified as Solid
 import Solid.ToString qualified as Solid
 import Solid.Types hiding (asByteString)
-import Solid.Foreign.C
+import Solid.Foreign.C qualified as C
 import Data.Coerce (coerce)
 import Data.ByteString.Short (fromShort)
 import System.OsPath qualified as Haskell
@@ -74,10 +74,10 @@ absolute = coerce Haskell.makeAbsolute
 
 remove :: FilePath -> IO ()
 remove path =
-  withFilePath path $ throwErrnoPathIfMinus1Retry_ "remove" path . c_remove
+  C.withFilePath path $ C.throwErrnoPathIfMinus1Retry_ "remove" path . c_remove
 
 foreign import ccall unsafe "remove"
-  c_remove :: CString -> IO CInt
+  c_remove :: C.String -> IO C.Int
 
 remove! :: FilePath -> IO ()
 remove! = coerce Haskell.removePathForcibly

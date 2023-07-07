@@ -6,7 +6,23 @@ module Solid.Common (
 , with
 ) where
 
-import           HaskellPrelude as Imports hiding (FilePath, String, words, unwords, lines, unlines, print, readFile, writeFile, error, length, getContents)
+import           HaskellPrelude as Imports hiding (
+    String
+  , FilePath
+  , words
+  , unwords
+  , lines
+  , unlines
+  , length
+
+  , print
+  , putStrLn
+  , readFile
+  , writeFile
+  , getContents
+
+  , error
+  )
 import           Data.Functor as Imports ((<&>))
 import           Data.Bifunctor as Imports
 import           Data.String as Imports (IsString(..))
