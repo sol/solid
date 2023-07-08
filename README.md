@@ -5,7 +5,7 @@
 
 ...
 
-# Solid: A modern reimagination of Haskell
+# Solid: A modern re-imagination of Haskell
 
 ```
 git clone git@github.com:sol/solid.git

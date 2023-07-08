@@ -1,0 +1,3 @@
+cradle:
+  bios:
+    shell: "solid ghc-options -package bytestring -package text -pgmL markdown-unlit $HIE_BIOS_ARG > $HIE_BIOS_OUTPUT"
