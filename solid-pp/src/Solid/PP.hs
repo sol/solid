@@ -103,7 +103,7 @@ type Imports = Map Module BufferSpan
 
 addImplicitImports :: [Node] -> Maybe Edit
 addImplicitImports nodes = case parseModuleHeader nodes of
-  None -> Nothing
+  Empty -> Nothing
   ModuleHeader self offset file line -> do
     let
       importsWithoutSelf :: Imports
@@ -111,7 +111,11 @@ addImplicitImports nodes = case parseModuleHeader nodes of
     case Map.null importsWithoutSelf of
       True -> Nothing
       False -> Just $ insert offset $ "\n" <> formatImports importsWithoutSelf <> linePragma line file
-  GenerateModuleHeader offset file line -> Just $ insert offset $ "module Main where\n" <> formatImports imports <> linePragma line file
+  NoModuleHeader offset file line -> do
+    case Map.null imports of
+      True -> Nothing
+      False -> Just $ insert offset $ formatImports imports <> linePragma line file
+
   where
     imports :: Imports
     imports = Map.restrictKeys (usedModules nodes) wellKnownModules
@@ -146,7 +150,7 @@ usedModules = Map.fromList . reverse . (.build) . modules
       EndBegin _ _ expression -> fromExpression expression
       End _ _ -> mempty
 
-data ModuleHeader = None | ModuleHeader (Maybe Module) Int FilePath Int | GenerateModuleHeader Int FilePath Int
+data ModuleHeader = Empty | ModuleHeader (Maybe Module) Int FilePath Int | NoModuleHeader Int FilePath Int
   deriving (Eq, Show)
 
 parseModuleHeader :: [Node] -> ModuleHeader
@@ -163,13 +167,13 @@ parseModuleHeader nodes = afterExportList
               Token _ (ITqconid (qualified, name)) : _ -> Just (Module $ qualified <> "." <> name)
               _ -> Nothing
           ModuleHeader self loc.end loc.file loc.endLine
-        _ -> None
+        _ -> Empty
       _ -> afterLanguagePragmas
 
     afterLanguagePragmas :: ModuleHeader
     afterLanguagePragmas = case dropWhile (token isComment) nodes of
-      Token loc _ : _ -> GenerateModuleHeader loc.start loc.file loc.startLine
-      _ -> None
+      Token loc _ : _ -> NoModuleHeader loc.start loc.file loc.startLine
+      _ -> Empty
 
 isComment :: Token -> Bool
 isComment = \ case

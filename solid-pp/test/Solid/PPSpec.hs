@@ -23,7 +23,7 @@ shouldDesugarTo input expected = do
   let file = "main.hs"
   writeFile file input
   Success <- run file file file
-  readFile file `shouldReturn` ("{-# LINE 1 " <> pack (show file) <> " #-}\nmodule Main where\n{-# LINE 1 " <> pack (show file) <> " #-}\n" <> expected)
+  readFile file `shouldReturn` "{-# LINE 1 " <> pack (show file) <> " #-}\n" <> expected
 
 parseModuleHeader :: HasCallStack => Text -> (ModuleHeader -> IO a) -> IO a
 parseModuleHeader input action = case parse extensions "src.hs" input of
@@ -100,7 +100,6 @@ spec = do
         run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
         readFile "dst.hs" `shouldReturn` unlines [
             "{-# LINE 1 \"src.hs\" #-}"
-          , "module Main where"
           , "{-# LINE 2 \"src.hs\" #-}"
           , "{-# COLUMN 7 #-}import qualified {-# COLUMN 7 #-}String"
           , "{-# LINE 1 \"src.hs\" #-}"
@@ -119,7 +118,6 @@ spec = do
           run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
-            , "module Main where"
             , "{-# LINE 2 \"src.hs\" #-}"
             , "{-# COLUMN 7 #-}import qualified {-# COLUMN 7 #-}String"
             , "{-# LINE 1 \"src.hs\" #-}"
@@ -145,7 +143,6 @@ spec = do
             , "-- some comment"
             , "{-# LANGUAGE OverloadedStrings #-}"
             , "{-# OPTIONS_GHC -fno-warn-orphans #-}"
-            , "module Main where"
             , "{-# LINE 6 \"src.hs\" #-}"
             , "{-# COLUMN 7 #-}import qualified {-# COLUMN 7 #-}String"
             , "{-# LINE 4 \"src.hs\" #-}"
