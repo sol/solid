@@ -14,6 +14,7 @@ module IO.Handle (
 , print
 , write
 , writeLine
+, tty?
 , open?
 , open
 , close
@@ -53,6 +54,9 @@ writeLine :: Handle -> String -> IO ()
 writeLine self str = do
   self.write str
   self.write "\n"
+
+tty? :: Handle -> IO Bool
+tty? = Haskell.hIsTerminalDevice
 
 open? :: Handle -> IO Bool
 open? = Haskell.hIsOpen
@@ -94,6 +98,9 @@ instance HasField "write" Handle (String -> IO ()) where
 
 instance HasField "writeLine" Handle (String -> IO ()) where
   getField = writeLine
+
+instance HasField "tty\660" Handle (IO Bool) where
+  getField = tty?
 
 instance HasField "open\660" Handle (IO Bool) where
   getField = open?
