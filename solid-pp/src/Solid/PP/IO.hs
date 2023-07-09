@@ -8,7 +8,8 @@ module Solid.PP.IO (
 , decodeUtf8
 ) where
 
-import           Prelude as Exports hiding (readFile, writeFile, unlines)
+import           Prelude as Exports hiding (readFile, writeFile, unlines, foldl)
+import           Data.List as Exports (foldl')
 import           Control.Applicative as Exports
 import           Control.Arrow as Exports ((&&&))
 import           Control.Monad as Exports

@@ -27,6 +27,12 @@ spec = do
             , "main :: IO ()"
             , "main = do"
             , "  stdout.writeLine \"Hey {name} 👋\""
+            , "  stdout.writeLine \"length: {String.length name}\""
+            , "  stdout.writeLine \"length: {name.length}\""
             , "  exitWith (ExitFailure 23)"
             ]
-          capture_ (solid Run "solid" ["main.hs"] `shouldThrow` ExitFailure 23) `shouldReturn` "Hey Joe 👋\n"
+          capture_ (solid Run "solid" ["main.hs"] `shouldThrow` ExitFailure 23) `shouldReturn` unlines [
+              "Hey Joe 👋"
+            , "length: 3"
+            , "length: 3"
+            ]

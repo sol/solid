@@ -25,8 +25,6 @@ import           Data.Char
 import           Data.Word
 import qualified Data.Text as T
 import qualified Data.ByteString.Short as SB
-import           Data.Map (Map)
-import qualified Data.Map as Map
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import qualified GHC.Data.FastString as FastString
@@ -99,56 +97,51 @@ preProcesses src dst input = case parse extensions src input of
     edit h input $ maybe id (:) (addImplicitImports nodes) (pp nodes)
     return Success
 
-type Imports = Map Module BufferSpan
-
 addImplicitImports :: [Node] -> Maybe Edit
 addImplicitImports nodes = case parseModuleHeader nodes of
   Empty -> Nothing
   ModuleHeader self offset file line -> do
     let
-      importsWithoutSelf :: Imports
-      importsWithoutSelf = maybe id Map.delete self imports
-    case Map.null importsWithoutSelf of
+      importsWithoutSelf :: Set Module
+      importsWithoutSelf = maybe id Set.delete self imports
+    case Set.null importsWithoutSelf of
       True -> Nothing
       False -> Just $ insert offset $ "\n" <> formatImports importsWithoutSelf <> linePragma line file
   NoModuleHeader offset file line -> do
-    case Map.null imports of
+    case Set.null imports of
       True -> Nothing
       False -> Just $ insert offset $ formatImports imports <> linePragma line file
 
   where
-    imports :: Imports
-    imports = Map.restrictKeys (usedModules nodes) wellKnownModules
+    imports :: Set Module
+    imports = Set.intersection (usedModules nodes) wellKnownModules
 
-    formatImports :: Imports -> Text
-    formatImports = T.unlines . map formatImport . Map.toList
+    formatImports :: Set Module -> Text
+    formatImports = T.unlines . map formatImport . Set.toList
 
-    formatImport :: (Module, BufferSpan) -> Text
-    formatImport (Module m, loc) = linePragma loc.startLine loc.file <> columnPragma <> "import qualified " <> columnPragma <> m.toText
-      where
-        columnPragma :: Text
-        columnPragma = "{-# COLUMN " <> pack (show loc.startColumn) <> " #-}"
+    formatImport :: Module -> Text
+    formatImport (Module m) = "import qualified " <> m.toText
 
     insert :: Int -> Text -> Edit
     insert offset = Replace Nothing offset 0
 
-usedModules :: [Node] -> Imports
-usedModules = Map.fromList . reverse . (.build) . modules
+usedModules :: [Node] -> Set Module
+usedModules = flip modules Set.empty
   where
-    modules :: [Node] -> DList (Module, BufferSpan)
-    modules = concatMap fromNodes
+    modules :: [Node] -> Set Module -> Set Module
+    modules nodes ms = foldl' (flip fromNodes) ms nodes
 
-    fromNodes :: Node -> DList (Module, BufferSpan)
+    fromNodes :: Node -> Set Module -> Set Module
     fromNodes = \ case
-      Token loc (ITqvarid (m, _)) -> singleton (Module m, loc)
-      Token _ _ -> mempty
+      Token _ (ITqvarid (m, _)) -> Set.insert (Module m)
+      Token _ _ -> id
       LiteralString (Begin _ _ expression) -> fromExpression expression
-      LiteralString (Literal _ _) -> mempty
+      LiteralString (Literal _ _) -> id
 
-    fromExpression :: Expression -> DList (Module, BufferSpan)
-    fromExpression (Expression nodes end) = modules nodes <> case end of
+    fromExpression :: Expression -> Set Module -> Set Module
+    fromExpression (Expression nodes end) = modules nodes . case end of
       EndBegin _ _ expression -> fromExpression expression
-      End _ _ -> mempty
+      End _ _ -> id
 
 data ModuleHeader = Empty | ModuleHeader (Maybe Module) Int FilePath Int | NoModuleHeader Int FilePath Int
   deriving (Eq, Show)

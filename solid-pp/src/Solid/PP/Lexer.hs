@@ -25,7 +25,7 @@ module Solid.PP.Lexer (
 import           Prelude ()
 import           Solid.PP.IO
 
-import           Data.List (stripPrefix, foldl')
+import           Data.List (stripPrefix)
 import qualified Data.Text.Encoding as T
 
 import           Data.Map (Map)

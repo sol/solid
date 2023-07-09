@@ -8,10 +8,9 @@ import           Test.Hspec
 import           Test.HUnit (assertFailure)
 import           Test.Hspec.Expectations.Contrib (annotate)
 import           Test.Mockery.Directory
-import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 import           Solid.PP.Parser
-import           Solid.PP.Lexer
 
 import           Solid.PP hiding (parseModuleHeader)
 import qualified Solid.PP as PP
@@ -35,23 +34,16 @@ spec :: Spec
 spec = do
   describe "usedModules" $ do
     let
-      modulesWithLocation :: HasCallStack => Text -> [(Module, BufferSpan)]
-      modulesWithLocation = Map.toList . usedModules . either undefined id . parse extensions "src.hs"
-
       modules :: HasCallStack => Text -> [Module]
-      modules src = [name | (name, _) <- modulesWithLocation src]
+      modules = Set.toList . usedModules . either undefined id . parse extensions "src.hs"
 
     context "with a qualified identifier" $ do
       it "extracts module name" $ do
         modules "foo = String.length" `shouldBe` ["String"]
 
-    context "when the same module name occurs multiple times" $ do
-      it "uses the source location of the first occurrence" $ do
-        map (fmap (.startColumn)) (modulesWithLocation "foo = Foo.foo && Foo.bar") `shouldBe` [("Foo", 7)]
-
     context "within an interpolated string" $ do
       it "extracts module names" $ do
-        modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` ["Foo", "Bar"]
+        modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` ["Bar", "Foo"]
 
   describe "parseModuleHeader" $ do
     it "parses the module header" $ do
@@ -100,15 +92,14 @@ spec = do
         run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
         readFile "dst.hs" `shouldReturn` unlines [
             "{-# LINE 1 \"src.hs\" #-}"
-          , "{-# LINE 2 \"src.hs\" #-}"
-          , "{-# COLUMN 7 #-}import qualified {-# COLUMN 7 #-}String"
+          , "import qualified String"
           , "{-# LINE 1 \"src.hs\" #-}"
           , "foo :: String -> Int"
           , "foo = String.length"
           ]
 
       context "when the same module name occurs in multiple qualified identifiers" $ do
-        it "uses the first occurrence for LINE / COLUMN pragmas" $ do
+        it "adds a single import" $ do
           writeFile "cur.hs" $ unlines [
               "foo :: String -> Int"
             , "foo = String.length"
@@ -118,8 +109,7 @@ spec = do
           run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
-            , "{-# LINE 2 \"src.hs\" #-}"
-            , "{-# COLUMN 7 #-}import qualified {-# COLUMN 7 #-}String"
+            , "import qualified String"
             , "{-# LINE 1 \"src.hs\" #-}"
             , "foo :: String -> Int"
             , "foo = String.length"
@@ -143,8 +133,7 @@ spec = do
             , "-- some comment"
             , "{-# LANGUAGE OverloadedStrings #-}"
             , "{-# OPTIONS_GHC -fno-warn-orphans #-}"
-            , "{-# LINE 6 \"src.hs\" #-}"
-            , "{-# COLUMN 7 #-}import qualified {-# COLUMN 7 #-}String"
+            , "import qualified String"
             , "{-# LINE 4 \"src.hs\" #-}"
             , "foo :: String -> Int"
             , "{-# INLINE foo #-}"
@@ -179,8 +168,7 @@ spec = do
               "{-# LINE 1 \"src.hs\" #-}"
             , "{-# LANGUAGE OverloadedStrings #-}"
             , "module Foo where"
-            , "{-# LINE 4 \"src.hs\" #-}"
-            , "{-# COLUMN 7 #-}import qualified {-# COLUMN 7 #-}String"
+            , "import qualified String"
             , "{-# LINE 2 \"src.hs\" #-}"
             , ""
             , "foo :: String -> Int"
@@ -225,8 +213,7 @@ spec = do
             readFile "dst.hs" `shouldReturn` unlines [
                 "{-# LINE 1 \"src.hs\" #-}"
               , "module Foo (fooᴉ) where"
-              , "{-# LINE 3 \"src.hs\" #-}"
-              , "{-# COLUMN 8 #-}import qualified {-# COLUMN 8 #-}String"
+              , "import qualified String"
               , "{-# LINE 1 \"src.hs\" #-}"
               , ""
               , "fooᴉ :: String -> Int"
@@ -242,8 +229,7 @@ spec = do
               readFile "dst.hs" `shouldReturn` unlines [
                   "{-# LINE 1 \"src.hs\" #-}"
                 , "module Foo (String.length) where"
-                , "{-# LINE 1 \"src.hs\" #-}"
-                , "{-# COLUMN 13 #-}import qualified {-# COLUMN 13 #-}String"
+                , "import qualified String"
                 , "{-# LINE 1 \"src.hs\" #-}"
                 , ""
                 ]
