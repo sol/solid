@@ -26,7 +26,7 @@ import           HaskellPrelude as Imports hiding (
 import           Data.Functor as Imports ((<&>))
 import           Data.Bifunctor as Imports
 import           Data.String as Imports (IsString(..))
-import           Data.Word as Imports (Word8)
+import           Data.Word as Imports (Word8, Word16, Word32, Word64)
 import           System.IO as Imports (Handle)
 import           GHC.Stack as Imports (HasCallStack)
 import           GHC.Records as Imports (HasField(..))

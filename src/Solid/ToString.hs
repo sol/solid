@@ -11,7 +11,6 @@ import qualified Data.ByteString.Lazy as LB
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.Text (Text)
 import           Data.Int
-import           Data.Word
 import           Data.Typeable (TypeRep)
 import           GHC.Stack (CallStack, prettyCallStack)
 import           System.Exit (ExitCode(..))
