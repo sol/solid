@@ -90,8 +90,9 @@ contains = isInfixOf
 asFilePath :: String -> FilePath
 asFilePath = Types.asFilePath
 
--- |
--- Join a list of strings.
+-- | Join a list of strings.
+--
+-- Examples:
 --
 -- >>> String.join ", " ["foo", "bar", "baz"]
 -- "foo, bar, baz"

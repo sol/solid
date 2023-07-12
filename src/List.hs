@@ -5,6 +5,8 @@ module List (
   module Data.List
 , nub
 , nubOn
+
+, enumerate
 ) where
 
 import Solid.Common
@@ -30,6 +32,18 @@ nubOn f = go Set.empty
 
 nub!! :: Eq a => [a] -> [a]
 nub!! = Haskell.nub
+
+-- | Enumerate a list.
+--
+-- Examples:
+--
+-- >>> List.enumerate ["foo", "bar", "baz"]
+-- [(0,"foo"),(1,"bar"),(2,"baz")]
+--
+-- >>> ["foo", "bar", "baz"].enumerate
+-- [(0,"foo"),(1,"bar"),(2,"baz")]
+enumerate :: [a] -> [(Int, a)]
+enumerate = zip [0..]
 
 instance HasField "length" [a] Int where
   getField = length
@@ -73,3 +87,10 @@ instance Ord a => HasField "sort" [a] [a] where
 
 instance (Ord b, HasField "sortOn" [a] ((a -> b) -> [a])) => HasField "sortOn" [a] ((a -> b) -> [a]) where
   getField = flip sortOn
+
+instance HasField "zip" [b] ([a] -> [(a, b)])
+      => HasField "zip" [b] ([a] -> [(a, b)]) where
+  getField = flip zip
+
+instance HasField "enumerate" [a] [(Int, a)] where
+  getField = enumerate

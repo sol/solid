@@ -36,3 +36,19 @@ spec = do
   describe "nub!!" $ do
     it "removes duplicates from a list" $ do
       [1, 2, 3, 23, 1, 42, 1].nub!! `shouldBe` [1, 2, 3, 23, 42 :: Int]
+
+  describe "zip" $ do
+    it "takes two lists and returns a list of corresponding pairs" $ do
+      let
+        input = ["foo", "bar", "baz" :: String]
+        expected = [(1, "foo"), (2, "bar"), (3, "baz")]
+      List.zip [1 :: Int ..] input `shouldBe` expected
+      input.zip [1 :: Int ..] `shouldBe` expected
+
+  describe "enumerate" $ do
+    it "enumerates a list" $ do
+      let
+        input = ["foo", "bar", "baz" :: String]
+        expected = [(0, "foo"), (1, "bar"), (2, "baz")]
+      List.enumerate input `shouldBe` expected
+      input.enumerate `shouldBe` expected
