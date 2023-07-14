@@ -16,10 +16,10 @@ repository :: String
 repository = "git@github.com:sol/solid.git"
 
 revision :: String
-revision = "a956385aa8815827e0f621eb518cb02184234732"
+revision = "9711937864463f37cf9814576f8a19fc27137878"
 
 ghc :: String
-ghc = "9.6.1"
+ghc = "9.6.2"
 
 desugarCommand :: String
 desugarCommand = internalCommand "desugar"
