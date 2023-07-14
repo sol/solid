@@ -94,3 +94,6 @@ instance HasField "zip" [b] ([a] -> [(a, b)])
 
 instance HasField "enumerate" [a] [(Int, a)] where
   getField = enumerate
+
+instance HasField "filter" [a] ((a -> Bool) -> [a]) where
+  getField = flip filter
