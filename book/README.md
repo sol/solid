@@ -60,15 +60,14 @@ name :: String
 name = "Joe"
 ```
 
-```haskell
--- ^
--- Function syntax:
--- >>> String.length name
--- 3
---
--- Method syntax:
--- >>> name.length
--- 3
+```repl
+Function syntax:
+>>> String.length name
+3
+
+Method syntax:
+>>> name.length
+3
 ```
 
 > __Implementation note:__
@@ -82,11 +81,9 @@ A method can be used as a regular function by enclosing it in parentheses.
 
 **Example:**
 
-```haskell
-_ = ()
--- ^
--- >>> (.length) name
--- 3
+```repl
+>>> (.length) name
+3
 ```
 
 ### Argument order
@@ -98,29 +95,27 @@ currying.
 
 **Example:**
 
-```haskell
-_ = ()
--- ^
--- Method:
--- >>> name.startsWith "Jo"
--- True
---
--- Method as a function:
--- >>> (.startsWith) name "Jo"
--- True
---
--- Function:
--- >>> String.startsWith "Jo" name
--- True
---
--- Currying:
--- >>> let is_a_joe = String.startsWith "Jo"
---
--- >>> is_a_joe name
--- True
---
--- >>> is_a_joe "John Doe"
--- True
+```repl
+Method:
+>>> name.startsWith "Jo"
+True
+
+Method as a function:
+>>> (.startsWith) name "Jo"
+True
+
+Function:
+>>> String.startsWith "Jo" name
+True
+
+Currying:
+>>> let is_a_joe = String.startsWith "Jo"
+
+>>> is_a_joe name
+True
+
+>>> is_a_joe "John Doe"
+True
 ```
 
 ## Strings and binary data
@@ -132,9 +127,10 @@ _ = ()
 ```haskell
 say_hey :: String -> IO ()
 say_hey name = stdout.writeLine "Hey {name} 👋"
--- ^
--- >>> say_hey "Joe"
--- Hey Joe 👋
+```
+```repl
+>>> say_hey "Joe"
+Hey Joe 👋
 ```
 > __Implementation note:__
 >
@@ -154,24 +150,22 @@ wave :: IsString a => a
 wave = "👋"
 ```
 
-```haskell
-_ = ()
--- ^
--- The Unicode code point of the wave emoji is 0x1F44B:
--- >>> '👋'.ord.showHex
--- "1f44b"
---
--- The UTF-8 encoding of the wave emoji is 0xF0 0x9F 0x91 0x8B:
--- >>> (wave @String).asByteString.unpack.map showHex
--- ["f0","9f","91","8b"]
---
--- Solid encodes ByteString literals as UTF-8:
--- >>> (wave @ByteString).unpack.map showHex
--- ["f0","9f","91","8b"]
---
--- Haskell truncates ByteString literals to octets:
--- >>> map showHex $ Data.ByteString.unpack wave
--- ["4b"]
+```repl
+The Unicode code point of the wave emoji is 0x1F44B:
+>>> '👋'.ord.showHex
+"1f44b"
+
+The UTF-8 encoding of the wave emoji is 0xF0 0x9F 0x91 0x8B:
+>>> (wave @String).asByteString.unpack.map showHex
+["f0","9f","91","8b"]
+
+Solid encodes ByteString literals as UTF-8:
+>>> (wave @ByteString).unpack.map showHex
+["f0","9f","91","8b"]
+
+Haskell truncates ByteString literals to octets:
+>>> map showHex $ Data.ByteString.unpack wave
+["4b"]
 ```
 
 ## Extending Solid
@@ -194,12 +188,13 @@ toCaseFold = Haskell.fromText . Text.toCaseFold . Haskell.toText
 
 instance HasField "toCaseFold" String String where
   getField = toCaseFold
--- ^
--- >>> toCaseFold name
--- "joe"
---
--- >>> name.toCaseFold
--- "joe"
+```
+```repl
+>>> toCaseFold name
+"joe"
+
+>>> name.toCaseFold
+"joe"
 ```
 
 ### Extending Solid with C
@@ -220,9 +215,10 @@ foreign import ccall unsafe "wchar.h wcwidth" c_wcwidth :: C.WChar -> C.Int
 ```haskell
 wcwidth :: Char -> Int
 wcwidth = fromEnum . c_wcwidth . C.toWChar
--- ^
--- >>> wcwidth '👋'
--- 2
+```
+```repl
+>>> wcwidth '👋'
+2
 ```
 [string]: ../src/String.hs
 [byte-string]: ../src/ByteString.hs

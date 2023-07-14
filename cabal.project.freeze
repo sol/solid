@@ -37,7 +37,7 @@ constraints: any.Cabal ==3.10.1.0,
              any.directory ==1.3.8.1,
              any.distributive ==0.6.2.1,
              distributive +semigroups +tagged,
-             any.doctest ==0.21.1,
+             any.doctest ==0.22.0,
              any.echo ==0.1.4,
              echo -example,
              any.ed25519 ==0.0.5.0,
@@ -122,4 +122,4 @@ constraints: any.Cabal ==3.10.1.0,
              any.wl-pprint-annotated ==0.1.0.1,
              any.zlib ==0.6.3.0,
              zlib -bundled-c-zlib -non-blocking-ffi -pkg-config
-index-state: hackage.haskell.org 2023-07-12T02:52:32Z
+index-state: hackage.haskell.org 2023-07-15T21:58:50Z
