@@ -107,12 +107,12 @@ As of now, `solid` does not provide a mechanism to manage third-party
 dependencies.  This limitation will be lifted eventually.
 
 However, `solid` accepts arbitrary GHC options, including `-package`, and
-`-package` ca be used to specify arbitrary additional Haskell dependencies.
+`-package` can be used to specify arbitrary additional Haskell dependencies.
 
 Example:
 
 ```bash
-$ solid with ghci -package hspec -package QuickCheck test/FormatSpec.hs
+$ solid with ghci -package=hspec -package=QuickCheck test/FormatSpec.hs
 ```
 
 Note that for this to work, a version of the requested package has to be
@@ -123,7 +123,7 @@ you have to populate the cabal store manually, e.g. with `cabal repl
 Example:
 
 ```bash
-$ cabal repl --build-depends hspec,QuickCheck
+$ echo | cabal repl --build-depends hspec,QuickCheck
 ```
 
 # Limitations
