@@ -37,14 +37,14 @@ Hey Joe 👋
 
 # Tooling
 
-`solid` uses `stack` to install GHC `9.6.1` to a private location.  It does not
+`solid` uses `stack` to install GHC `9.6.2` to a private location.  It does not
 use any system provided GHC.
 
 As of now `solid` needs a recent version of `stack` to be available on the
 `PATH`.  This requirement will be lifted eventually.
 
 `solid` uses the global cabal store (e.g.
-`.local/state/cabal/store/ghc-9.6.1/`) for caching.  This reduces build times
+`.local/state/cabal/store/ghc-9.6.2/`) for caching.  This reduces build times
 and is usually safe.  However, in the unlikely case that you use a different
 build of GHC `9.6.1` that is not ABI compatible to what `stack` provides you
 may run into issues.
