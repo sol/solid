@@ -23,6 +23,7 @@ import           HaskellPrelude as Imports hiding (
 
   , error
   )
+import           Data.Function as Imports ((&))
 import           Data.Functor as Imports ((<&>))
 import           Data.Bifunctor as Imports
 import           Data.String as Imports (IsString(..))
