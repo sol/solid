@@ -229,5 +229,5 @@ wcwidth = fromEnum . c_wcwidth . C.toWChar
 [bytes]:../src/Solid/Bytes.hs
 [foreign-c]: ../src/Solid/Foreign/C.hs
 [foreign-haskell]: ../src/Solid/Foreign/Haskell.hs
-[overloaded_record_dot]: https://downloads.haskell.org/ghc/9.6.1/docs/users_guide/exts/overloaded_record_dot.html
-[haskell-pre-processor]: https://downloads.haskell.org/ghc/9.6.1/docs/users_guide/phases.html#options-affecting-a-haskell-pre-processor
+[overloaded_record_dot]: https://downloads.haskell.org/ghc/9.6.2/docs/users_guide/exts/overloaded_record_dot.html
+[haskell-pre-processor]: https://downloads.haskell.org/ghc/9.6.2/docs/users_guide/phases.html#options-affecting-a-haskell-pre-processor
