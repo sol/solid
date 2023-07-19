@@ -96,3 +96,26 @@ spec = do
       let xs = ["foo", "bar", "baz"]
       xs.join ", " `shouldBe` "foo, bar, baz"
       String.join ", " xs `shouldBe` "foo, bar, baz"
+
+  describe "read" $ do
+    it "parses a value" $ do
+      let input = "23" :: String
+      input.read `shouldBe` Just (23 :: Int)
+      String.read @Int input `shouldBe` Just 23
+
+    context "with invalid input" $ do
+      it "returns Nothing" $ do
+        let input = "foo" :: String
+        String.read @Int input `shouldBe` Nothing
+
+  describe "read!" $ do
+    it "parses a value" $ do
+      let input = "23" :: String
+      input.read! `shouldBe` (23 :: Int)
+      String.read! @Int input `shouldBe` 23
+
+    context "with invalid input" $ do
+      it "throws an exception" $ do
+        let input = "foo" :: String
+        evaluate (input.read! :: Int) `shouldThrow?` invalidValue [] "no parse"
+        evaluate (String.read! @Int input) `shouldThrow?` invalidValue ["read!"] "no parse"

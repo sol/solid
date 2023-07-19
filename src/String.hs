@@ -1,14 +1,18 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE UndecidableInstances #-}
 module String (
   String
 , module String
+, pack
+, unpack
 ) where
 
 import Solid.Common
 import Solid.Types hiding (asFilePath)
 import Solid.Types qualified as Types
 import Solid.Bytes qualified as Bytes
+import Solid.StackTrace qualified as StackTrace
 
 import Data.Bits ((.&.))
 import Data.Coerce (coerce)
@@ -17,6 +21,7 @@ import Data.ByteString.Char8 qualified as Char8
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import Text.Read (readMaybe)
 
 asByteString :: String -> ByteString
 asByteString = Types.asByteString
@@ -27,12 +32,6 @@ toText = Text.decodeUtf8 . unBytes
 fromText :: Text -> String
 fromText = Bytes . Text.encodeUtf8
 
-instance Show String where
-  showsPrec n = showsPrec n . unpack
-
-instance IsString String where
-  fromString = pack
-
 length :: String -> Int
 length = utf8length . unBytes
   where
@@ -41,12 +40,6 @@ length = utf8length . unBytes
       where
         f :: Word8 -> Int
         f c = if c .&. 0b11000000 == 0b10000000 then 0 else 1
-
-pack :: [Char] -> String
-pack = Bytes . Text.encodeUtf8 . Text.pack
-
-unpack :: String -> [Char]
-unpack = Text.unpack . Text.decodeUtf8 . unBytes
 
 words :: String -> [String]
 words = coerce Char8.words
@@ -89,6 +82,14 @@ contains = isInfixOf
 
 asFilePath :: String -> FilePath
 asFilePath = Types.asFilePath
+
+read :: Read a => String -> Maybe a
+read = readMaybe . unpack
+
+read! :: WithStackTrace => Read a => String -> a
+read! input = case String.read input of
+  Just a -> a
+  Nothing -> StackTrace.suppress Exception.invalidValue! "no parse"
 
 -- | Join a list of strings.
 --
@@ -137,6 +138,14 @@ instance HasField "stripSuffix" String (String -> Maybe String) where
 
 instance HasField "asFilePath" String FilePath where
   getField = asFilePath
+
+instance (HasField "read" String (Maybe a), Read a)
+       => HasField "read" String (Maybe a) where
+  getField = String.read
+
+instance (HasField "read\7433" String a, Read a)
+       => HasField "read\7433" String a where
+  getField = StackTrace.suppress String.read!
 
 instance HasField "join" [String] (String -> String) where
   getField = flip String.join

@@ -5,6 +5,7 @@ import Solid.Common
 
 import Data.ByteString qualified as Haskell
 import Data.ByteString.Short (toShort)
+import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Data.Text.Encoding.Error qualified as Text
 import System.OsPath (OsPath)
@@ -18,11 +19,6 @@ type ByteString = Bytes Word8
 deriving newtype instance Semigroup ByteString
 deriving newtype instance Monoid ByteString
 
-data Utf8
-type String = Bytes Utf8
-
-deriving newtype instance Semigroup String
-deriving newtype instance Monoid String
 
 asByteString :: Bytes a -> ByteString
 asByteString = Bytes . unBytes
@@ -43,3 +39,21 @@ newtype FilePath = FilePath { unFilePath :: OsPath }
 
 asFilePath :: Bytes a -> FilePath
 asFilePath = FilePath . OsString . PosixString . toShort . unBytes
+
+data Utf8
+type String = Bytes Utf8
+
+deriving newtype instance Semigroup String
+deriving newtype instance Monoid String
+
+instance Show String where
+  showsPrec n = showsPrec n . unpack
+
+instance IsString String where
+  fromString = pack
+
+pack :: [Char] -> String
+pack = Bytes . Text.encodeUtf8 . Text.pack
+
+unpack :: String -> [Char]
+unpack = Text.unpack . Text.decodeUtf8 . unBytes

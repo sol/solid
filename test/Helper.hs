@@ -6,10 +6,13 @@ module Helper (
 , hCapture_
 , shouldThrow
 , isADirectoryError
+, shouldThrow?
+, invalidValue
 ) where
 
 import           Solid as Imports
 import           Test.Hspec as Imports hiding (shouldThrow)
+import           Test.Hspec qualified as Hspec
 import           Test.Hspec.Hedgehog as Imports
 import           Test.Mockery.Directory as Imports (inTempDirectory)
 
@@ -41,6 +44,14 @@ action `shouldThrow` e = do
 
 isADirectoryError :: FilePath -> IOException
 isADirectoryError = if Platform.windows? then PermissionError else IsADirectoryError
+
+infix 1 `shouldThrow?`
+
+shouldThrow? :: (WithStackTrace, Exception e) => IO a -> Selector e -> Expectation
+shouldThrow? = Hspec.shouldThrow
+
+invalidValue :: [String] -> String -> Selector InvalidValue
+invalidValue callSites message (InvalidValue stack expected) = stack.callSites == callSites && message == expected
 
 data Foo
 

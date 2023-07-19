@@ -1,8 +1,10 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Exception (
   Exception
 , fromException
 , SomeException
+, StackTrace
 
 , IOException(..)
 , UnicodeDecodeError(..)
@@ -18,13 +20,17 @@ module Exception (
 , catch
 , handle
 , finally
+
+, InvalidValue(..)
+, invalidValue!
 ) where
 
 import Solid.Common
-import Solid.Types (FilePath)
-import String
+import Solid.Types
+import Solid.ToString
+import Solid.StackTrace (StackTrace)
+import Solid.StackTrace qualified as StackTrace
 
-import           GHC.Stack
 import           Control.Exception (Exception(toException), SomeException, evaluate, throwIO, bracket, bracket_, finally)
 
 import qualified HaskellPrelude as Haskell
@@ -46,7 +52,7 @@ throw! :: Exception e => e -> a
 throw! = Haskell.throw
 
 error! :: WithStackTrace => String -> a
-error! message = withFrozenCallStack $ Haskell.error (unpack message)
+error! message = StackTrace.suppress $ Haskell.error (unpack message)
 
 try :: Exception e => IO a -> IO (Either e a)
 try a = catch (a >>= \ v -> return (Right v)) (\e -> return (Left e))
@@ -66,7 +72,27 @@ transformException :: SomeException -> SomeException
 transformException e = case Haskell.fromException e of
   Nothing -> e
   Just err -> toException $ case (ioe_type err, ioe_description err, ioe_filename err) of
-    (NoSuchThing, "No such file or directory", Just name) -> FileNotFoundError name.pack.asFilePath
-    (InappropriateType, "is a directory", Just name) -> IsADirectoryError name.pack.asFilePath
-    (PermissionDenied, "Permission denied", Just name) -> PermissionError name.pack.asFilePath
+    (NoSuchThing, "No such file or directory", Just name) -> FileNotFoundError (toFilePath name)
+    (InappropriateType, "is a directory", Just name) -> IsADirectoryError (toFilePath name)
+    (PermissionDenied, "Permission denied", Just name) -> PermissionError (toFilePath name)
     _ -> ForeignIOError err
+    where
+      toFilePath :: [Char] -> FilePath
+      toFilePath = asFilePath . pack
+
+data InvalidValue = InvalidValue StackTrace String
+  deriving Eq
+
+instance Show InvalidValue where
+  show = unpack . toString
+
+instance Exception InvalidValue
+
+instance ToString InvalidValue where
+  toString (InvalidValue trace message) = "{if trace.empty? then "" else "{trace}\n"}InvalidValue: {message}"
+
+instance HasField "toString" InvalidValue String where
+  getField = toString
+
+invalidValue! :: WithStackTrace => String -> a
+invalidValue! = throw! . InvalidValue StackTrace.retrieve

@@ -59,11 +59,12 @@ wellKnownModules = Set.fromList [
   , "Prelude"
   , "Process"
   , "Process.Config"
+  , "Process.Config.STDERR"
   , "Process.Config.STDIN"
   , "Process.Config.STDOUT"
-  , "Process.Config.STDERR"
   , "String"
   , "Temp"
+  , "Word8"
   ]
 
 newtype Module = Module FastString

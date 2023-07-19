@@ -1,6 +1,6 @@
 module Solid.MD5Spec (spec) where
 
-import           Helper
+import Helper
 
 foo :: String
 foo = "foo"

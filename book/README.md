@@ -48,8 +48,7 @@ provides operations on values of that type.
 
 The [`String`][string] module provides operations on `String` values, the
 [`ByteString`][byte-string] module provides operations on `ByteString` values,
-the `Word8` module (not yet implemented) provides operations on `Word8` values,
-and so on.
+the `Word8` module provides operations on `Word8` values, and so on.
 
 All those operations are available both as functions and as methods.
 

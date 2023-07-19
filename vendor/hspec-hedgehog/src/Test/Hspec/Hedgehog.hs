@@ -148,8 +148,8 @@ instance m ~ IO => Example (PropertyT m ()) where
     type Arg (PropertyT m ()) = ()
     evaluateExample e = evaluateExample (\() -> e)
 
-propertyWithoutLocation :: PropertyT IO () -> Property
-propertyWithoutLocation prop = withFrozenCallStack $ property prop
+propertyWithoutCallStack :: PropertyT IO () -> Property
+propertyWithoutCallStack = withFrozenCallStack property
 
 -- | Warning: orphan instance! This instance is used to embed a "Hedgehog"
 -- property seamlessly into the @hspec@ framework.
@@ -163,7 +163,7 @@ propertyWithoutLocation prop = withFrozenCallStack $ property prop
 instance (m ~ IO) => Example (a -> PropertyT m ()) where
     type Arg (a -> PropertyT m ()) = a
 
-    evaluateExample (fmap propertyWithoutLocation -> aprop) params aroundAction progressCallback = do
+    evaluateExample (fmap propertyWithoutCallStack -> aprop) params aroundAction progressCallback = do
         ref <- newIORef (Result "" (Pending Nothing Nothing))
         aroundAction $ \a ->  do
             let size = 0

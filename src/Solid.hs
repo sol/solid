@@ -16,6 +16,7 @@ import String as Solid (String, pack, unpack, words, unwords, lines, unlines)
 import Solid.Ansi ()
 import Maybe ()
 import List ()
+import Word8 ()
 
 import Numeric qualified
 

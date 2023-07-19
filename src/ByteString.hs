@@ -6,7 +6,7 @@ module ByteString (
 ) where
 
 import Solid.Common
-import Solid.Types hiding (asString, decodeUtf8, asFilePath)
+import Solid.Types hiding (asString, decodeUtf8, asFilePath, pack, unpack)
 import Solid.Types qualified as Types
 import Exception
 import Solid.Bytes qualified as Bytes

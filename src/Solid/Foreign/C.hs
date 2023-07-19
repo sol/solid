@@ -31,7 +31,6 @@ module Solid.Foreign.C (
 import Solid.Common hiding (Int, Char)
 import Solid.Common qualified as Solid
 import Solid.Types hiding (String)
-import String hiding (String)
 import String qualified as Solid
 
 import Foreign.C hiding (

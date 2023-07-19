@@ -43,11 +43,13 @@ library
       Solid.Foreign.C
       Solid.Foreign.Haskell
       Solid.MD5
+      Solid.StackTrace
       Solid.ToString
       Solid.TypeLits
       Solid.Types
       String
       Temp
+      Word8
       Data.ByteString.Import
       Data.Text.Import
       System.Directory.Import
@@ -154,11 +156,13 @@ test-suite spec
       Solid.Foreign.C
       Solid.Foreign.Haskell
       Solid.MD5
+      Solid.StackTrace
       Solid.ToString
       Solid.TypeLits
       Solid.Types
       String
       Temp
+      Word8
       Data.ByteString.Import
       Data.Text.Import
       System.Directory.Import
@@ -166,6 +170,7 @@ test-suite spec
       System.FilePath.Import
       ByteStringSpec
       EnvSpec
+      ExceptionSpec
       FilePathSpec
       Gen
       Helper
@@ -186,11 +191,13 @@ test-suite spec
       Solid.DriverSpec
       Solid.Foreign.CSpec
       Solid.MD5Spec
+      Solid.StackTraceSpec
       Solid.ToStringSpec
       Solid.TypesSpec
       SolidSpec
       StringSpec
       TempSpec
+      Word8Spec
       Test.Hspec.Hedgehog
   hs-source-dirs:
       src

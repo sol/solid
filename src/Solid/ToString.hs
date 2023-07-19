@@ -11,10 +11,7 @@ import qualified Data.ByteString.Lazy as LB
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.Text (Text)
 import           Data.Typeable (TypeRep)
-import           GHC.Stack (CallStack, prettyCallStack)
 import           System.Exit (ExitCode(..))
-
-import           String
 
 class ToString a where
   toString :: a -> String
@@ -30,9 +27,6 @@ instance ToString Char where
 
 instance ToString Text where
   toString = Bytes . encodeUtf8
-
-instance ToString CallStack where
-  toString = pack . prettyCallStack
 
 instance ToString ()
 instance ToString Bool

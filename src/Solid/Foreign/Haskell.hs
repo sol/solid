@@ -21,10 +21,14 @@ module Solid.Foreign.Haskell (
 , toFilePath!
 , fromFilePath
 , fromFilePath!
+
+, toCallStack
+, fromCallStack
 ) where
 
 import Solid.Common
 import Solid.Types (String, ByteString, Bytes(..), FilePath(..))
+import Solid.StackTrace (toCallStack, fromCallStack)
 
 import System.IO.Unsafe (unsafePerformIO)
 import Data.ByteString qualified as Haskell
