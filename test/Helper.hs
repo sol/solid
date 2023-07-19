@@ -32,7 +32,7 @@ hCapture_ handles = fmap pack . Silently.hCapture_ handles
 
 infix 1 `shouldThrow`
 
-shouldThrow :: (HasCallStack, Eq e, Exception e) => IO a -> e -> Expectation
+shouldThrow :: (WithStackTrace, Eq e, Exception e) => IO a -> e -> Expectation
 action `shouldThrow` e = do
   r <- try action
   case r of

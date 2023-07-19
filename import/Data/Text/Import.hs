@@ -29,15 +29,15 @@ break :: (Char -> Bool) -> String -> (String, String)
 {-# INLINE break #-}
 break p = bimap fromText fromText . Text.break p . toText
 
-breakOn :: HasCallStack => String -> String -> (String, String)
+breakOn :: WithStackTrace => String -> String -> (String, String)
 {-# INLINE breakOn #-}
 breakOn xs = bimap fromText fromText . Text.breakOn (toText xs) . toText
 
-breakOnAll :: HasCallStack => String -> String -> [(String, String)]
+breakOnAll :: WithStackTrace => String -> String -> [(String, String)]
 {-# INLINE breakOnAll #-}
 breakOnAll xs = List.map (bimap fromText fromText) . Text.breakOnAll (toText xs) . toText
 
-breakOnEnd :: HasCallStack => String -> String -> (String, String)
+breakOnEnd :: WithStackTrace => String -> String -> (String, String)
 {-# INLINE breakOnEnd #-}
 breakOnEnd xs = bimap fromText fromText . Text.breakOnEnd (toText xs) . toText
 
@@ -75,7 +75,7 @@ copy :: String -> String
 {-# INLINE copy #-}
 copy = Bytes.copy
 
-count :: HasCallStack => String -> String -> Int
+count :: WithStackTrace => String -> String -> Int
 {-# INLINE count #-}
 count xs = Text.count (toText xs) . toText
 
@@ -123,11 +123,11 @@ foldl' :: (a -> Char -> a) -> a -> String -> a
 {-# INLINE foldl' #-}
 foldl' f a = Text.foldl' f a . toText
 
-foldl1 :: HasCallStack => (Char -> Char -> Char) -> String -> Char
+foldl1 :: WithStackTrace => (Char -> Char -> Char) -> String -> Char
 {-# INLINE foldl1 #-}
 foldl1 f = Text.foldl1 f . toText
 
-foldl1' :: HasCallStack => (Char -> Char -> Char) -> String -> Char
+foldl1' :: WithStackTrace => (Char -> Char -> Char) -> String -> Char
 {-# INLINE foldl1' #-}
 foldl1' f = Text.foldl1' f . toText
 
@@ -139,7 +139,7 @@ foldr' :: (Char -> a -> a) -> a -> String -> a
 {-# INLINE foldr' #-}
 foldr' f a = Text.foldr' f a . toText
 
-foldr1 :: HasCallStack => (Char -> Char -> Char) -> String -> Char
+foldr1 :: WithStackTrace => (Char -> Char -> Char) -> String -> Char
 {-# INLINE foldr1 #-}
 foldr1 f = Text.foldr1 f . toText
 
@@ -151,15 +151,15 @@ groupBy :: (Char -> Char -> Bool) -> String -> [String]
 {-# INLINE groupBy #-}
 groupBy p = List.map fromText . Text.groupBy p . toText
 
-head :: HasCallStack => String -> Char
+head :: WithStackTrace => String -> Char
 {-# INLINE head #-}
 head = Text.head . toText
 
-index :: HasCallStack => String -> Int -> Char
+index :: WithStackTrace => String -> Int -> Char
 {-# INLINE index #-}
 index = Text.index . toText
 
-init :: HasCallStack => String -> String
+init :: WithStackTrace => String -> String
 {-# INLINE init #-}
 init = fromText . Text.init . toText
 
@@ -199,7 +199,7 @@ justifyRight :: Int -> Char -> String -> String
 {-# INLINE justifyRight #-}
 justifyRight n c = fromText . Text.justifyRight n c . toText
 
-last :: HasCallStack => String -> Char
+last :: WithStackTrace => String -> Char
 {-# INLINE last #-}
 last = Text.last . toText
 
@@ -223,7 +223,7 @@ mapAccumR :: (a -> Char -> (a, Char)) -> a -> String -> (a, String)
 {-# INLINE mapAccumR #-}
 mapAccumR f a = fmap fromText . Text.mapAccumR f a . toText
 
-maximum :: HasCallStack => String -> Char
+maximum :: WithStackTrace => String -> Char
 {-# INLINE maximum #-}
 maximum = Text.maximum . toText
 
@@ -231,7 +231,7 @@ measureOff :: Int -> String -> Int
 {-# INLINE measureOff #-}
 measureOff n = Text.measureOff n . toText
 
-minimum :: HasCallStack => String -> Char
+minimum :: WithStackTrace => String -> Char
 {-# INLINE minimum #-}
 minimum = Text.minimum . toText
 
@@ -243,7 +243,7 @@ partition :: (Char -> Bool) -> String -> (String, String)
 {-# INLINE partition #-}
 partition p = bimap fromText fromText . Text.partition p . toText
 
-replace :: HasCallStack => String -> String -> String -> String
+replace :: WithStackTrace => String -> String -> String -> String
 {-# INLINE replace #-}
 replace xs ys = fromText . Text.replace (toText xs) (toText ys) . toText
 
@@ -295,7 +295,7 @@ splitAt :: Int -> String -> (String, String)
 {-# INLINE splitAt #-}
 splitAt n = bimap fromText fromText . Text.splitAt n . toText
 
-splitOn :: HasCallStack => String -> String -> [String]
+splitOn :: WithStackTrace => String -> String -> [String]
 {-# INLINE splitOn #-}
 splitOn xs = List.map fromText . Text.splitOn (toText xs) . toText
 
@@ -319,7 +319,7 @@ stripSuffix :: String -> String -> Maybe String
 {-# INLINE stripSuffix #-}
 stripSuffix = coerce ByteString.stripSuffix
 
-tail :: HasCallStack => String -> String
+tail :: WithStackTrace => String -> String
 {-# INLINE tail #-}
 tail = fromText . Text.tail . toText
 

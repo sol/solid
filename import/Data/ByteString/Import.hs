@@ -129,11 +129,11 @@ foldl' :: (a -> Word8 -> a) -> a -> Bytes enc -> a
 {-# INLINE foldl' #-}
 foldl' = coerce . ByteString.foldl'
 
-foldl1 :: HasCallStack => (Word8 -> Word8 -> Word8) -> Bytes enc -> Word8
+foldl1 :: WithStackTrace => (Word8 -> Word8 -> Word8) -> Bytes enc -> Word8
 {-# INLINE foldl1 #-}
 foldl1 = coerce ByteString.foldl1
 
-foldl1' :: HasCallStack => (Word8 -> Word8 -> Word8) -> Bytes enc -> Word8
+foldl1' :: WithStackTrace => (Word8 -> Word8 -> Word8) -> Bytes enc -> Word8
 {-# INLINE foldl1' #-}
 foldl1' = coerce ByteString.foldl1'
 
@@ -145,11 +145,11 @@ foldr' :: (Word8 -> a -> a) -> a -> Bytes enc -> a
 {-# INLINE foldr' #-}
 foldr' = coerce . ByteString.foldr'
 
-foldr1 :: HasCallStack => (Word8 -> Word8 -> Word8) -> Bytes enc -> Word8
+foldr1 :: WithStackTrace => (Word8 -> Word8 -> Word8) -> Bytes enc -> Word8
 {-# INLINE foldr1 #-}
 foldr1 = coerce ByteString.foldr1
 
-foldr1' :: HasCallStack => (Word8 -> Word8 -> Word8) -> Bytes enc -> Word8
+foldr1' :: WithStackTrace => (Word8 -> Word8 -> Word8) -> Bytes enc -> Word8
 {-# INLINE foldr1' #-}
 foldr1' = coerce ByteString.foldr1'
 
@@ -205,11 +205,11 @@ hPutStr :: Handle -> Bytes enc -> IO ()
 {-# INLINE hPutStr #-}
 hPutStr = coerce ByteString.hPutStr
 
-head :: HasCallStack => Bytes enc -> Word8
+head :: WithStackTrace => Bytes enc -> Word8
 {-# INLINE head #-}
 head = coerce ByteString.head
 
-index :: HasCallStack => Bytes enc -> Int -> Word8
+index :: WithStackTrace => Bytes enc -> Int -> Word8
 {-# INLINE index #-}
 index = coerce ByteString.index
 
@@ -217,7 +217,7 @@ indexMaybe :: Bytes enc -> Int -> Maybe Word8
 {-# INLINE indexMaybe #-}
 indexMaybe = coerce ByteString.indexMaybe
 
-init :: HasCallStack => ByteString -> ByteString
+init :: WithStackTrace => ByteString -> ByteString
 {-# INLINE init #-}
 init = coerce ByteString.init
 
@@ -257,7 +257,7 @@ isValidUtf8 :: Bytes enc -> Bool
 {-# INLINE isValidUtf8 #-}
 isValidUtf8 = coerce ByteString.isValidUtf8
 
-last :: HasCallStack => Bytes enc -> Word8
+last :: WithStackTrace => Bytes enc -> Word8
 {-# INLINE last #-}
 last = coerce ByteString.last
 
@@ -277,11 +277,11 @@ mapAccumR :: (acc -> Word8 -> (acc, Word8)) -> acc -> ByteString -> (acc, ByteSt
 {-# INLINE mapAccumR #-}
 mapAccumR = coerce . ByteString.mapAccumR
 
-maximum :: HasCallStack => Bytes enc -> Word8
+maximum :: WithStackTrace => Bytes enc -> Word8
 {-# INLINE maximum #-}
 maximum = coerce ByteString.maximum
 
-minimum :: HasCallStack => Bytes enc -> Word8
+minimum :: WithStackTrace => Bytes enc -> Word8
 {-# INLINE minimum #-}
 minimum = coerce ByteString.minimum
 
@@ -385,7 +385,7 @@ stripSuffix :: ByteString -> ByteString -> Maybe ByteString
 {-# INLINE stripSuffix #-}
 stripSuffix = coerce ByteString.stripSuffix
 
-tail :: HasCallStack => ByteString -> ByteString
+tail :: WithStackTrace => ByteString -> ByteString
 {-# INLINE tail #-}
 tail = coerce ByteString.tail
 

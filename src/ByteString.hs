@@ -24,7 +24,7 @@ instance IsString ByteString where
 asString :: ByteString -> Maybe String
 asString = Types.asString
 
-asString! :: HasCallStack => ByteString -> String
+asString! :: WithStackTrace => ByteString -> String
 asString! (Bytes string) = if Haskell.isValidUtf8 string then Bytes string else throw! UnicodeDecodeError
 
 decodeUtf8 :: ByteString -> String

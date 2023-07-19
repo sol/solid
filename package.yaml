@@ -35,11 +35,11 @@ dependencies:
 
 build-tools: solid-pp
 
-source-dirs:
-  - src
-  - import
 
 library:
+  source-dirs:
+    - src
+    - import
   when:
     condition: false
     other-modules: Paths_solid
@@ -64,10 +64,11 @@ tests:
       - solid
     main: Spec.hs
     source-dirs:
+      - src
+      - import
       - test
       - vendor/hspec-hedgehog/src
     dependencies:
-      - solid
       - hspec == 2.*
 
       - hedgehog

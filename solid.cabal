@@ -87,48 +87,8 @@ library
 executable solid
   main-is: Main.hs
   other-modules:
-      ByteString
-      Directory
-      Env
-      Env.Raw
-      Exception
-      FilePath
-      IO
-      IO.Handle
-      List
-      Maybe
-      Platform
-      Prelude
-      Process
-      Process.Config
-      Process.Config.FileStream
-      Process.Config.STDERR
-      Process.Config.STDIN
-      Process.Config.STDOUT
-      Process.Self
-      Solid
-      Solid.Ansi
-      Solid.Bytes
-      Solid.Char
-      Solid.Common
-      Solid.Driver
-      Solid.Foreign.C
-      Solid.Foreign.Haskell
-      Solid.MD5
-      Solid.ToString
-      Solid.TypeLits
-      Solid.Types
-      String
-      Temp
-      Data.ByteString.Import
-      Data.Text.Import
-      System.Directory.Import
-      System.Environment.Import
-      System.FilePath.Import
       Distribution.Client.Main
   hs-source-dirs:
-      src
-      import
       driver
       vendor/cabal-install
   default-extensions:
@@ -266,7 +226,6 @@ test-suite spec
     , mockery
     , process
     , silently
-    , solid
     , solid-pp
     , splitmix
     , stm

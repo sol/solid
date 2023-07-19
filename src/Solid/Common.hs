@@ -1,6 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE ImplicitParams #-}
 module Solid.Common (
-  module Imports
+  WithStackTrace
+, module Imports
 , (-<)
 , pass
 , with
@@ -30,7 +32,6 @@ import           Data.String as Imports (IsString(..))
 import           Data.Word as Imports (Word8, Word16, Word32, Word64)
 import           Data.Int as Imports (Int8, Int16, Int32, Int64)
 import           System.IO as Imports (Handle)
-import           GHC.Stack as Imports (HasCallStack)
 import           GHC.Records as Imports (HasField(..))
 import           GHC.Generics as Imports (Generic)
 import           Control.Exception (bracket)
@@ -40,6 +41,10 @@ import           Control.Arrow as Imports ((>>>))
 import           Control.Applicative as Imports
 
 import           Data.Tuple (swap)
+
+import qualified GHC.Stack as GHC
+
+type WithStackTrace = (?callStack :: GHC.CallStack)
 
 class Bind m r where
   bind :: (a -> r) -> m a -> r

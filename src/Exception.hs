@@ -45,7 +45,7 @@ data UnicodeDecodeError = UnicodeDecodeError
 throw! :: Exception e => e -> a
 throw! = Haskell.throw
 
-error! :: HasCallStack => String -> a
+error! :: WithStackTrace => String -> a
 error! message = withFrozenCallStack $ Haskell.error (unpack message)
 
 try :: Exception e => IO a -> IO (Either e a)
