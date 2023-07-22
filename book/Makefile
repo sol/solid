@@ -4,7 +4,7 @@ ghc_options = $(shell grep 'solid ghc-options' hie.yaml | sed 's/.*solid ghc-opt
 options = $(ghc_options) $(target)
 
 doctest:
-	solid with ./doctest.hs $(options)
+	solid with ./doctest.hs $(options) -Wno-overlapping-patterns
 	@echo "Expected: $$(grep '>>>' $(target) | wc -l)"
 toc:
 	@./gh-md-toc --insert --no-backup $(readme)

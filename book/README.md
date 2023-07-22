@@ -12,6 +12,12 @@ by Simon Hengel
    * [Strings and binary data](#strings-and-binary-data)
       * [String interpolation](#string-interpolation)
       * [ByteString literals](#bytestring-literals)
+* [Subprocess management](#subprocess-management)
+   * [Running processes](#running-processes)
+   * [Interacting with processes](#interacting-with-processes)
+      * [Spawning processes](#spawning-processes)
+      * [Standard streams, environment, working directory](#standard-streams-environment-working-directory)
+      * [Exit status](#exit-status)
 * [Extending Solid](#extending-solid)
    * [Extending Solid with Haskell](#extending-solid-with-haskell)
    * [Extending Solid with C](#extending-solid-with-c)
@@ -169,6 +175,195 @@ Haskell truncates ByteString literals to octets:
 ["4b"]
 ```
 
+# Subprocess management
+
+The [`Process`][process] module allows you to spawn new processes, connect to
+their input/output/error streams, and obtain their exit status.
+
+## Running processes
+
+`Process.run` can be used to run a process.
+
+**Example:**
+
+```repl
+>>> :type Process.run
+Process.run :: Process.Config stdin stdout stderr -> IO ()
+
+>>> :type Process.shell
+Process.shell :: String -> Process.Config () () ()
+
+>>> :type Process.command
+Process.command :: FilePath -> [String] -> Process.Config () () ()
+```
+
+```repl
+Run a shell command:
+>>> (Process.shell "echo Hey there 👋").run
+Hey there 👋
+
+Run an executable:
+>>> (Process.command "echo" ["Hey there 👋"]).run
+Hey there 👋
+```
+
+**Note:** You can use the `IsString` instance of `Process.Config` to run a
+shell command.
+
+**Example:**
+
+```repl
+Run a shell command:
+>>> Process.run "echo Hey there 👋"
+Hey there 👋
+```
+
+## Interacting with processes
+
+`Process.run` is a specialization that is suitable for simple cases.  It is
+defined in terms of `Process.with` and `Process.checkStatus` (both will be
+discussed in later sections):
+
+```haskell
+run :: Process.Config stdin stdout stderr -> IO ()
+run config = Process.with config Process.checkStatus
+```
+or
+```haskell
+run config = config.with $ \ process -> process.checkStatus
+```
+or
+```haskell
+run config = config.with (.checkStatus)
+```
+
+To use `Process.run`, you construct a process config and pass it in.  The
+previous section shows examples of this.
+
+In the general case, you are going to construct a process config, spawn a
+process, access properties of the process instance and wait for process
+completion.
+
+1. Construct a process config
+1. Spawn a process
+1. Access properties of the process instance and wait for process completion
+
+### Spawning processes
+
+`Process.spawn` can be used to spawn a process.
+
+**Example:**
+
+```repl
+>>> Process.spawn "echo Hey there 👋" >>= Process.wait
+Hey there 👋
+```
+
+`Process.with` is an exception-safe abstraction that combines `Process.spawn`,
+`Process.wait` and `Process.terminate`.
+
+```haskell
+with :: Process.Config stdin stdout stderr -> (Process.Process stdin stdout stderr -> IO a) -> IO a
+with config action = bracket config.spawn Process.terminate $ \ process -> do
+  action process <* process.wait
+```
+
+**Example:**
+
+```repl
+>>> Process.with "echo Hey there 👋" Process.wait
+Hey there 👋
+```
+
+### Standard streams, environment, working directory
+
+The [`Process.Config`][process-config] module provides operations that can be
+used to construct a process config.
+
+- `stdin`/`stdout`/`stderr` can be used to connect to the standard streams of a
+  spawned process
+- `environment` can be used to set the environment for a spawned process
+- `chdir` can be used to set the working directory of a spawned process
+
+**Example:**
+
+```repl
+Provide stdin as a string and capture stdout:
+>>> let config = Process.command "cat" []
+>>> (config.stdin.set "foo").stdout.capture.with Process.stdout
+"foo"
+```
+
+```repl
+Create a pipe for stdin, capture stdout, redirect stderr to stdout:
+>>> let config = Process.shell "tee /dev/stderr"
+>>> :{
+config.stdin.createPipe.stdout.capture.stderr.toStdout.with $ \ process -> do
+  process.stdin.write "foo-"
+  process.stdin.close
+  process.stdout
+:}
+"foo-foo-"
+```
+
+```repl
+Set the process environment:
+>>> let config = Process.command "env" []
+>>> (config.environment [("FOO", "23")]).run
+FOO=23
+```
+
+```repl
+Set the working directory:
+>>> let config = Process.command "pwd" []
+>>> (config.chdir "/tmp").run
+/tmp
+```
+
+### Exit status
+
+- `Process.status` waits for process completion and retrieves the exit status.
+- `Process.wait` waits for process completion and throws an exception on a
+  non-zero exit status.
+
+**Example:**
+
+```repl
+Retrieve the exit status:
+>>> Process.spawn "exit 23" >>= Process.status
+ExitFailure 23
+```
+```repl
+Throw an exception on a non-zero exit status:
+>>> Process.spawn "exit 23" >>= Process.wait
+*** Exception: ExitStatusException {status = 23, command = ShellCommand "exit 23"}
+```
+
+> __Note:__
+>
+>
+> `Process.wait` only throws if you haven't retrieved the exit status with
+> `Process.status` on that process instance already.  This allows for
+> `Process.with`, which uses `Process.wait`, to be used with `Process.status`.
+>
+> To make this more clear, consider:
+>
+> ```haskell repl ignore
+> -- If you retrieved the exit status with Process.status on the process instance
+> -- then Process.wait (and by extension Process.with) will not throw:
+> >>> Process.with "exit 23" Process.status
+> ExitFailure 23
+> ```
+> ```haskell repl ignore
+> -- On the other hand, if you didn't retrive the exit status already then
+> -- Process.wait (and by extension Process.with) will throw an exception on a
+> -- non-zero exit status:
+> >>> Process.with "exit 23" $ \ _ -> pass
+> *** Exception: ExitStatusException {status = 23, command = ShellCommand "exit 23"}
+> ```
+> If you want to unconditionally throw on a non-zero exit status then use
+> `Process.checkStatus` instead of `Process.wait`.
+
 # Extending Solid
 
 ## Extending Solid with Haskell
@@ -258,7 +453,10 @@ Process.shell("pwd").chdir("/tmp").stdout.capture.with Process.stdout
 [byte-string]: ../src/ByteString.hs
 [bytes]:../src/Solid/Bytes.hs
 [word8]: ../src/Word8.hs
+[process]: ../src/Process.hs
+[process-config]: ../src/Process/Config.hs
 [foreign-c]: ../src/Solid/Foreign/C.hs
 [foreign-haskell]: ../src/Solid/Foreign/Haskell.hs
+
 [overloaded_record_dot]: https://downloads.haskell.org/ghc/9.6.2/docs/users_guide/exts/overloaded_record_dot.html
 [haskell-pre-processor]: https://downloads.haskell.org/ghc/9.6.2/docs/users_guide/phases.html#options-affecting-a-haskell-pre-processor
