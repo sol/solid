@@ -16,7 +16,7 @@ repository :: String
 repository = "git@github.com:sol/solid.git"
 
 revision :: String
-revision = "15a06b5c5a7d7f5f29a9fb04c3e8e2d4e2327ea0"
+revision = "d4f162c38e6b4a9d3ab6546d171259f1381eb340"
 
 ghc :: String
 ghc = "9.6.2"

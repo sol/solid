@@ -4,25 +4,25 @@ by Simon Hengel
 
 <!--ts-->
 
-   * [How to read this book](#how-to-read-this-book)
-   * [Basic types and operations](#basic-types-and-operations)
-      * [Functions, methods, and associated modules](#functions-methods-and-associated-modules)
-      * [Using a method as a function](#using-a-method-as-a-function)
-      * [Argument order](#argument-order)
+* [How to read this book](#how-to-read-this-book)
+* [Basic types and operations](#basic-types-and-operations)
+   * [Functions, methods, and associated modules](#functions-methods-and-associated-modules)
+   * [Using a method as a function](#using-a-method-as-a-function)
+   * [Argument order](#argument-order)
    * [Strings and binary data](#strings-and-binary-data)
       * [String interpolation](#string-interpolation)
       * [ByteString literals](#bytestring-literals)
-   * [Extending Solid](#extending-solid)
-      * [Extending Solid with Haskell](#extending-solid-with-haskell)
-      * [Extending Solid with C](#extending-solid-with-c)
-   * [Proposals (not yet implemented, feedback welcome)](#proposals-not-yet-implemented-feedback-welcome)
-      * [Method chaining](#method-chaining)
+* [Extending Solid](#extending-solid)
+   * [Extending Solid with Haskell](#extending-solid-with-haskell)
+   * [Extending Solid with C](#extending-solid-with-c)
+* [Proposals (not yet implemented, feedback welcome)](#proposals-not-yet-implemented-feedback-welcome)
+   * [Method chaining](#method-chaining)
 
 
 
 <!--te-->
 
-## How to read this book
+# How to read this book
 
 This book is for the impatient Haskell programmer.  It gives a no-frills
 introduction to Solid and focuses on the "how" rather than the "why".  As a
@@ -41,9 +41,9 @@ $ cd solid/book
 $ make repl
 ```
 
-## Basic types and operations
+# Basic types and operations
 
-### Functions, methods, and associated modules
+## Functions, methods, and associated modules
 
 All basic Solid types have an associated module of the same name.  This module
 provides operations on values of that type.
@@ -76,7 +76,7 @@ Method syntax:
 > Solid uses the [`OverloadedRecordDot`][overloaded_record_dot] language
 > extension to provide method syntax.
 
-### Using a method as a function
+## Using a method as a function
 
 A method can be used as a regular function by enclosing it in parentheses.
 
@@ -87,7 +87,7 @@ A method can be used as a regular function by enclosing it in parentheses.
 3
 ```
 
-### Argument order
+## Argument order
 
 Functions and methods take their arguments in a different order.  The function
 variant of an operation takes the subject as the last argument, while the
@@ -169,9 +169,9 @@ Haskell truncates ByteString literals to octets:
 ["4b"]
 ```
 
-## Extending Solid
+# Extending Solid
 
-### Extending Solid with Haskell
+## Extending Solid with Haskell
 
 [`Solid.Foreign.Haskell`][foreign-haskell] provides functions that are useful
 when you want to use existing Haskell code from Solid.
@@ -198,7 +198,7 @@ instance HasField "toCaseFold" String String where
 "joe"
 ```
 
-### Extending Solid with C
+## Extending Solid with C
 
 [`Solid.Foreign.C`][foreign-c] provides functions that are useful when you want
 to use existing C code from Solid.
@@ -222,9 +222,9 @@ wcwidth = fromEnum . c_wcwidth . C.toWChar
 2
 ```
 
-## Proposals (not yet implemented, feedback welcome)
+# Proposals (not yet implemented, feedback welcome)
 
-### Method chaining
+## Method chaining
 
 When you want to chain multiple methods that take arguments then you have to
 use nested parentheses.
@@ -233,7 +233,7 @@ use nested parentheses.
 
 ```repl
 Set the process environment and capture stdout:
->>> Process.with ((Process.shell "pwd").chdir "/tmp").stdout.capture Process.stdout
+>>> ((Process.shell "pwd").chdir "/tmp").stdout.capture.with Process.stdout
 "/tmp\n"
 ```
 
@@ -251,7 +251,7 @@ We desugar:
 With this you can simplify the example from above to:
 
 ```haskell ignore
-Process.with Process.shell("pwd").chdir("/tmp").stdout.capture Process.stdout
+Process.shell("pwd").chdir("/tmp").stdout.capture.with Process.stdout
 ```
 
 [string]: ../src/String.hs
