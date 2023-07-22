@@ -15,6 +15,8 @@ by Simon Hengel
    * [Extending Solid](#extending-solid)
       * [Extending Solid with Haskell](#extending-solid-with-haskell)
       * [Extending Solid with C](#extending-solid-with-c)
+   * [Proposals (not yet implemented, feedback welcome)](#proposals-not-yet-implemented-feedback-welcome)
+      * [Method chaining](#method-chaining)
 
 
 
@@ -48,7 +50,7 @@ provides operations on values of that type.
 
 The [`String`][string] module provides operations on `String` values, the
 [`ByteString`][byte-string] module provides operations on `ByteString` values,
-the `Word8` module provides operations on `Word8` values, and so on.
+the [`Word8`][word8] module provides operations on `Word8` values, and so on.
 
 All those operations are available both as functions and as methods.
 
@@ -219,9 +221,43 @@ wcwidth = fromEnum . c_wcwidth . C.toWChar
 >>> wcwidth '👋'
 2
 ```
+
+## Proposals (not yet implemented, feedback welcome)
+
+### Method chaining
+
+When you want to chain multiple methods that take arguments then you have to
+use nested parentheses.
+
+**Example:**
+
+```repl
+Set the process environment and capture stdout:
+>>> Process.with ((Process.shell "pwd").chdir "/tmp").stdout.capture Process.stdout
+"/tmp\n"
+```
+
+This can quickly become unwieldy.
+
+To remedy this situation we steal some Haskell syntax that is not commonly
+used, _identifiers that are directly followed by an opening parenthesis without
+any separating whitespace_, and desugar it for our own needs:
+
+We desugar:
+
+1. `ident(exp)` to `(ident (exp))`
+1. `ident(exp_1, exp_2, ..., exp_n)` to `(ident (exp_1) (exp_2) ... (exp_n))`
+
+With this you can simplify the example from above to:
+
+```haskell ignore
+Process.with Process.shell("pwd").chdir("/tmp").stdout.capture Process.stdout
+```
+
 [string]: ../src/String.hs
 [byte-string]: ../src/ByteString.hs
 [bytes]:../src/Solid/Bytes.hs
+[word8]: ../src/Word8.hs
 [foreign-c]: ../src/Solid/Foreign/C.hs
 [foreign-haskell]: ../src/Solid/Foreign/Haskell.hs
 [overloaded_record_dot]: https://downloads.haskell.org/ghc/9.6.2/docs/users_guide/exts/overloaded_record_dot.html
