@@ -5,7 +5,7 @@ module Process.Config (
 , stdin
 , stdout
 , stderr
-, setEnv
+, environment
 , chdir
 ) where
 
@@ -29,8 +29,8 @@ stdout = STDOUT
 stderr :: Config stdin stdout stderr -> STDERR stdin stdout stderr
 stderr = STDERR
 
-setEnv :: [(String, String)] -> Config stdin stdout stderr -> Config stdin stdout stderr
-setEnv = Haskell.setEnv . map (bimap unpack unpack)
+environment :: [(String, String)] -> Config stdin stdout stderr -> Config stdin stdout stderr
+environment = Haskell.setEnv . map (bimap unpack unpack)
 
 chdir :: FilePath -> Config stdin stdout stderr -> Config stdin stdout stderr
 chdir = Haskell.setWorkingDir . Haskell.toFilePath!
@@ -44,8 +44,8 @@ instance HasField "stdout" (Config stdin stdout stderr) (STDOUT stdin stdout std
 instance HasField "stderr" (Config stdin stdout stderr) (STDERR stdin stdout stderr) where
   getField = stderr
 
-instance HasField "setEnv" (Config stdin stdout stderr) ([(String, String)] -> Config stdin stdout stderr) where
-  getField = flip setEnv
+instance HasField "environment" (Config stdin stdout stderr) ([(String, String)] -> Config stdin stdout stderr) where
+  getField = flip environment
 
 instance HasField "chdir" (Config stdin stdout stderr) (FilePath -> Config stdin stdout stderr) where
   getField = flip chdir

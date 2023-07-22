@@ -49,7 +49,8 @@ jobs:
       - run: cabal install
       - run: cabal install markdown-unlit
 
-      - run: (cd book && make)
+      - run: (cd book && make && make toc)
+      - run: git diff --quiet || (git diff && false)
 
       - run: |
           git tag v0.2 -f

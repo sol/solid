@@ -5,11 +5,11 @@ import Helper
 
 spec :: Spec
 spec = do
-  describe "setEnv" $ do
+  describe "environment" $ do
     it "sets the environment" $ do
       let
         config :: Process.Config () () ()
-        config = (Process.command "env" []).setEnv [("FOO", "23")]
+        config = (Process.command "env" []).environment [("FOO", "23")]
       config.read `shouldReturn` "FOO=23\n"
 
   describe "chdir" $ do
