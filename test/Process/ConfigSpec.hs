@@ -12,10 +12,10 @@ spec = do
         config = (Process.command "env" []).setEnv [("FOO", "23")]
       config.read `shouldReturn` "FOO=23\n"
 
-  describe "cwd" $ do
+  describe "chdir" $ do
     it "sets the current working directory" $ do
       Temp.withDirectory $ \ dir -> do
         let
           config :: Process.Config () () ()
-          config = (Process.command "pwd" []).cwd dir
+          config = (Process.command "pwd" []).chdir dir
         config.read `shouldReturn` dir.asByteString <> "\n"

@@ -6,7 +6,7 @@ module Process.Config (
 , stdout
 , stderr
 , setEnv
-, cwd
+, chdir
 ) where
 
 import Solid hiding (stdin, stdout, stderr)
@@ -32,8 +32,8 @@ stderr = STDERR
 setEnv :: [(String, String)] -> Config stdin stdout stderr -> Config stdin stdout stderr
 setEnv = Haskell.setEnv . map (bimap unpack unpack)
 
-cwd :: FilePath -> Config stdin stdout stderr -> Config stdin stdout stderr
-cwd = Haskell.setWorkingDir . Haskell.toFilePath!
+chdir :: FilePath -> Config stdin stdout stderr -> Config stdin stdout stderr
+chdir = Haskell.setWorkingDir . Haskell.toFilePath!
 
 instance HasField "stdin" (Config stdin stdout stderr) (STDIN stdin stdout stderr) where
   getField = stdin
@@ -47,5 +47,5 @@ instance HasField "stderr" (Config stdin stdout stderr) (STDERR stdin stdout std
 instance HasField "setEnv" (Config stdin stdout stderr) ([(String, String)] -> Config stdin stdout stderr) where
   getField = flip setEnv
 
-instance HasField "cwd" (Config stdin stdout stderr) (FilePath -> Config stdin stdout stderr) where
-  getField = flip cwd
+instance HasField "chdir" (Config stdin stdout stderr) (FilePath -> Config stdin stdout stderr) where
+  getField = flip chdir

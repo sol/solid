@@ -13,8 +13,8 @@ module Process (
 , command
 , shell
 
-, start
-, stop
+, spawn
+, terminate
 
 , wait
 , status
@@ -89,17 +89,17 @@ command cmd = Haskell.setDelegateCtlc True . Haskell.proc (Haskell.toFilePath! c
 shell :: String -> Config () () ()
 shell = Haskell.setDelegateCtlc True . Haskell.shell . unpack
 
-start :: Config stdin stdout stderr -> IO (Process stdin stdout stderr)
-start config = Process <$> Haskell.startProcess config <*> newMVar CheckStatusOnWait
+spawn :: Config stdin stdout stderr -> IO (Process stdin stdout stderr)
+spawn config = Process <$> Haskell.startProcess config <*> newMVar CheckStatusOnWait
 
-stop :: Process stdin stdout stderr -> IO ()
-stop = Haskell.stopProcess . (.handle)
+terminate :: Process stdin stdout stderr -> IO ()
+terminate = Haskell.stopProcess . (.handle)
 
-instance HasField "start" (Config stdin stdout stderr) (IO (Process stdin stdout stderr)) where
-  getField = start
+instance HasField "spawn" (Config stdin stdout stderr) (IO (Process stdin stdout stderr)) where
+  getField = spawn
 
-instance HasField "stop" (Process stdin stdout stderr) (IO ()) where
-  getField = stop
+instance HasField "terminate" (Process stdin stdout stderr) (IO ()) where
+  getField = terminate
 
 wait :: Process stdin stdout stderr -> IO ()
 wait process = withMVar process.checkStatusOnWait $ \ check -> do
@@ -147,7 +147,7 @@ instance HasField "stderr" (Process stdin stdout stderr) stderr where
   getField = stderr
 
 with :: Config stdin stdout stderr -> (Process stdin stdout stderr -> IO a) -> IO a
-with config action = bracket config.start stop $ \ process -> do
+with config action = bracket config.spawn terminate $ \ process -> do
   action process <* wait process
 
 run :: Config stdin stdout stderr -> IO ()

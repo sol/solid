@@ -33,7 +33,7 @@ spec = do
           command :: Process.Config () () ()
           command = Process.raw "touch" [file.asByteString]
 
-        command.start >>= Process.wait
+        command.spawn >>= Process.wait
         file.exists? `shouldReturn` True
 
     context "on non-zero exit status" $ do
@@ -45,32 +45,32 @@ spec = do
         }
 
       it "throws ExitStatusException" $ do
-        process <- command.start
+        process <- command.spawn
         process.wait `shouldThrow` exitStatusException
 
       context "when called multiple times" $ do
         it "is idempotent" $ do
-          process <- command.start
+          process <- command.spawn
           process.wait `shouldThrow` exitStatusException
           process.wait `shouldThrow` exitStatusException
 
       context "when status is called before wait" $ do
         it "does not throw any exception" $ do
-          process <- command.start
+          process <- command.spawn
           process.status `shouldReturn` Process.ExitFailure 23
           process.wait
 
   describe "status" $ do
     it "returns the process exit status" $ do
-      (Process.start "exit 23" >>= Process.status) `shouldReturn` Process.ExitFailure 23
+      (Process.spawn "exit 23" >>= Process.status) `shouldReturn` Process.ExitFailure 23
 
   describe "checkStatus" $ do
     it "waits for process completion" $ do
-      Process.start "exit 0" >>= Process.checkStatus
+      Process.spawn "exit 0" >>= Process.checkStatus
 
     context "on non-zero exit status" $ do
       it "throws ExitStatusException" $ do
-        (Process.start "exit 1" >>= Process.checkStatus) `shouldThrow` Process.ExitStatusException {
+        (Process.spawn "exit 1" >>= Process.checkStatus) `shouldThrow` Process.ExitStatusException {
           status = 1
         , command = Process.ShellCommand "exit 1"
         }

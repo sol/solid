@@ -55,8 +55,8 @@ determine_ghc_dir :: FilePath -> IO FilePath
 determine_ghc_dir cache = do
   unless -< cache.exists? $ do
     dir <- find_ghc
-    atomicWriteFile cache dir.toString
-  String.asFilePath <$> readFile cache
+    atomicWriteFile cache dir.asByteString
+  ByteString.asFilePath <$> readBinaryFile cache
 
 find_ghc :: IO FilePath
 find_ghc = Env.path.resolve "stack" >>= \ case
@@ -66,10 +66,10 @@ find_ghc = Env.path.resolve "stack" >>= \ case
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
     (Process.command stack ["--resolver={resolver}", "path", "--compiler-bin"]).read <&> (.strip.asFilePath)
 
-atomicWriteFile :: FilePath -> String -> IO ()
+atomicWriteFile :: FilePath -> ByteString -> IO ()
 atomicWriteFile dst str = do
   let tmp = dst <.> "tmp"
-  writeFile tmp str
+  writeBinaryFile tmp str
   tmp.rename dst
 
 ensurePackageEnv :: FilePath -> FilePath -> IO FilePath
