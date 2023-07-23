@@ -78,6 +78,7 @@ library
     , filepath
     , haskell-base
     , process
+    , random
     , solid-pp
     , stm
     , text
@@ -115,6 +116,7 @@ executable solid
     , filepath
     , haskell-base
     , process
+    , random
     , solid
     , solid-pp
     , stm
@@ -232,6 +234,7 @@ test-suite spec
     , hspec-core
     , mockery
     , process
+    , random
     , silently
     , solid-pp
     , splitmix

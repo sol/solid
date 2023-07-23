@@ -27,6 +27,7 @@ dependencies:
   - unix == 2.8.1.0 # remove CPP from src/Env/Raw.hs when >= 2.8.1.1
   - process
   - time
+  - random
   - stm
   - typed-process
 

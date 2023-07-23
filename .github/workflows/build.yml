@@ -49,6 +49,7 @@ jobs:
       - run: cabal install
       - run: cabal install markdown-unlit
 
+      - run: solid -pgmL=markdown-unlit README.lhs
       - run: (cd book && make && make toc)
       - run: git diff --quiet || (git diff && false)
 

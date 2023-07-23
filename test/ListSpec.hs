@@ -52,3 +52,11 @@ spec = do
         expected = [(0, "foo"), (1, "bar"), (2, "baz")]
       List.enumerate input `shouldBe` expected
       input.enumerate `shouldBe` expected
+
+  describe "randomChoice" $ do
+    it "returns a random list element" $ do
+      let
+        input = ["foo", "bar", "baz" :: String]
+        expected = input.sort
+      List.sort . List.nub <$> replicateM 100 (List.randomChoice input) `shouldReturn` expected
+      List.sort . List.nub <$> replicateM 100 input.randomChoice `shouldReturn` expected

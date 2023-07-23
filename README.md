@@ -134,7 +134,7 @@ $ echo | cabal repl --build-depends hspec,QuickCheck
 - The `where` in `module ... where` has to be followed by a newline, e.g. this
   is not supported:
 
-  ```haskell
+  ```haskell ignore
   module Foo where bar :: Int
                    bar = 23
   ```
@@ -143,7 +143,7 @@ $ echo | cabal repl --build-depends hspec,QuickCheck
 
   Example:
 
-  ```haskell
+  ```haskell ignore
   import Data.Text qualified as String
 
   foo = String.length
@@ -151,7 +151,7 @@ $ echo | cabal repl --build-depends hspec,QuickCheck
 
   will be desugared to
 
-  ```haskell
+  ```haskell ignore
   import String qualified
   import Data.Text qualified as String
 

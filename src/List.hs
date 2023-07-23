@@ -7,6 +7,7 @@ module List (
 , nubOn
 
 , enumerate
+, randomChoice
 ) where
 
 import Solid.Common
@@ -15,6 +16,7 @@ import GHC.OldList as Data.List (length)
 import Data.List qualified as Haskell
 
 import Data.Set qualified as Set
+import System.Random.Stateful qualified as Haskell
 
 nub :: Ord a => [a] -> [a]
 nub = nubOn id
@@ -44,6 +46,9 @@ nub!! = Haskell.nub
 -- [(0,"foo"),(1,"bar"),(2,"baz")]
 enumerate :: [a] -> [(Int, a)]
 enumerate = zip [0..]
+
+randomChoice :: [a] -> IO a
+randomChoice xs = (xs !!) <$> Haskell.uniformRM (0, pred xs.length) Haskell.globalStdGen
 
 instance HasField "length" [a] Int where
   getField = length
@@ -97,3 +102,6 @@ instance HasField "enumerate" [a] [(Int, a)] where
 
 instance HasField "filter" [a] ((a -> Bool) -> [a]) where
   getField = flip filter
+
+instance HasField "randomChoice" [a] (IO a) where
+  getField = randomChoice
