@@ -16,17 +16,23 @@ cabal install
 ```haskell
 #!/usr/bin/env solid
 
-name :: String
-name = "Joe"
+names :: [String]
+names = ["Jane", "Joe"]
 
 main :: IO ()
 main = do
+  name <- names.randomChoice
   stdout.writeLine "Hey {name} 👋"
+```
+```haskell ignore
+-- or point-free
+main :: IO ()
+main = stdout.writeLine . "Hey {} 👋" =<< names.randomChoice
 ```
 
 ```
 $ solid main.hs
-Hey Joe 👋
+Hey Jane 👋
 ```
 or
 ```
@@ -34,6 +40,10 @@ $ chmod +x main.hs
 $ ./main.hs
 Hey Joe 👋
 ```
+
+# An introduction to Solid for Haskell programmers
+
+Read: [`book/README.md`](book/README.md)
 
 # Tooling
 
@@ -46,7 +56,7 @@ As of now `solid` needs a recent version of `stack` to be available on the
 `solid` uses the global cabal store (e.g.
 `.local/state/cabal/store/ghc-9.6.2/`) for caching.  This reduces build times
 and is usually safe.  However, in the unlikely case that you use a different
-build of GHC `9.6.1` that is not ABI compatible to what `stack` provides you
+build of GHC `9.6.2` that is not ABI compatible to what `stack` provides you
 may run into issues.
 
 ## Haskell Language Server (LSP) support
@@ -65,9 +75,9 @@ cradle:
 
 ## Using third-party tools
 
-You can use `solid` with third-party tools that expect GHC options.
+You can use third-party tools that expect GHC options with `solid`.
 
-Examples:
+**Example:**
 
 ```bash
 # start a GHCi session
@@ -95,7 +105,7 @@ $ solid with sensei main.hs
 suitable version of `doctest` is available on the `PATH`.  `solid doctest`
 provides a more robust way to run `doctest`.
 
-Example:
+**Example:**
 
 ```bash
 $ solid doctest main.hs
@@ -106,13 +116,13 @@ $ solid doctest main.hs
 As of now, `solid` does not provide a mechanism to manage third-party
 dependencies.  This limitation will be lifted eventually.
 
-However, `solid` accepts arbitrary GHC options, including `-package`, and
-`-package` can be used to specify arbitrary additional Haskell dependencies.
+However, `solid` accepts arbitrary GHC options, including `-package`, which can
+be used to specify arbitrary additional Haskell dependencies.
 
-Example:
+**Example:**
 
 ```bash
-$ solid with ghci -package=hspec -package=QuickCheck test/FormatSpec.hs
+$ solid with ghci -package=hspec -package=QuickCheck test/Spec.hs
 ```
 
 Note that for this to work, a version of the requested package has to be
@@ -120,7 +130,7 @@ present in the cabal store.  If a package is not yet in the cabal store, then
 you have to populate the cabal store manually, e.g. with `cabal repl
 --build-depends`.
 
-Example:
+**Example:**
 
 ```bash
 $ echo | cabal repl --build-depends hspec,QuickCheck
@@ -141,7 +151,7 @@ $ echo | cabal repl --build-depends hspec,QuickCheck
 - Some modules are imported implicitly.  As of now, explicit imports do not
   prevent implicit imports of the same name.
 
-  Example:
+  **Example:**
 
   ```haskell ignore
   import Data.Text qualified as String
@@ -160,8 +170,3 @@ $ echo | cabal repl --build-depends hspec,QuickCheck
   resultin in `String.length` being ambiguous.
 
   This will be addressed eventually.
-
-# Differences from Haskell
-
-- The `IsString` instance of `ByteString` encodes the input string as UTF-8
-  (instead of truncating to octets)
