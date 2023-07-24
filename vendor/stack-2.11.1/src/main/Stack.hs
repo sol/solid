@@ -4,7 +4,7 @@
 
 -- | Main Stack tool entry point.
 
-module Main (main) where
+module Stack (main) where
 
 import           BuildInfo ( versionString' )
 import           GHC.IO.Encoding ( mkTextEncoding, textEncodingName )

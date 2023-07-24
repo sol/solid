@@ -94,9 +94,13 @@ executable solid
   main-is: Main.hs
   other-modules:
       Distribution.Client.Main
+      BuildInfo
+      Stack
+      Stack.CLI
   hs-source-dirs:
       driver
       vendor/cabal-install
+      vendor/stack-2.11.1/src/main
   default-extensions:
       NoImplicitPrelude
       DataKinds
@@ -119,10 +123,15 @@ executable solid
     , file-io
     , filepath
     , haskell-base
+    , hpack
+    , optparse-applicative ==0.17.0.0
+    , pantry >=0.8.2.2 && <0.9
     , process
     , random
+    , rio
     , solid
     , solid-pp
+    , stack ==2.11.1
     , stm
     , text
     , time

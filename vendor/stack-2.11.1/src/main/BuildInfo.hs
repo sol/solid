@@ -13,6 +13,8 @@ module BuildInfo
   , hpackVersion
   ) where
 
+#define HIDE_DEP_VERSIONS
+
 #ifndef HIDE_DEP_VERSIONS
 import qualified Build_stack
 #endif
@@ -31,6 +33,8 @@ import           Options.Applicative.Simple ( simpleVersion )
 #endif
 import           Stack.Prelude
 import qualified Paths_stack as Meta
+import           Stack.Types.Version
+import           Hpack
 
 versionString' :: String
 #ifdef USE_GIT_INFO
@@ -59,11 +63,7 @@ versionString' = showStackVersion ++ afterVersion
       (_:y:_) | even y -> " PRE-RELEASE"
       (_:_:z:_) | even z -> " RELEASE-CANDIDATE"
       _ -> ""
-#ifdef HIDE_DEP_VERSIONS
-  depsString = " hpack-" ++ VERSION_hpack
-#else
-  depsString = "\nCompiled with:\n" ++ unlines (map ("- " ++) Build_stack.deps)
-#endif
+  depsString = " hpack-" ++ showVersion Hpack.version
 #ifdef SUPPORTED_BUILD
   warningString = ""
 #else
