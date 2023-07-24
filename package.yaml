@@ -29,7 +29,8 @@ dependencies:
   - time
   - random
   - stm
-  - typed-process
+  - async
+  - unliftio-core
 
   - solid-pp
   - doctest
@@ -79,6 +80,8 @@ tests:
 
       - silently
       - mockery
+      - base64-bytestring
+      - temporary
     when:
       condition: false
       other-modules: Paths_solid

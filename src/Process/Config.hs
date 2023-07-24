@@ -11,8 +11,8 @@ module Process.Config (
 
 import Solid hiding (stdin, stdout, stderr)
 
-import System.Process.Typed (Config)
-import System.Process.Typed qualified as Haskell
+import Solid.Process.Typed (Config)
+import Solid.Process.Typed qualified as Haskell
 
 import Solid.Foreign.Haskell qualified as Haskell
 

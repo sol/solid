@@ -41,8 +41,8 @@ import System.Exit (ExitCode(..))
 
 import System.Process (CmdSpec(..))
 import System.Process.Internals (translate)
-import System.Process.Typed qualified as Haskell
-import System.Process.Typed.Internal qualified as Haskell
+import Solid.Process.Typed qualified as Haskell
+import Solid.Process.Typed.Internal qualified as Haskell
 
 import Solid.Foreign.Haskell qualified as Haskell
 import Process.Config (Config)

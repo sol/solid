@@ -1,4 +1,28 @@
+-- This wodule is devired from the typed-process package.
+--
+-- Copyright (c) 2016 FP Complete, https://www.fpcomplete.com/
+--
+-- Permission is hereby granted, free of charge, to any person obtaining
+-- a copy of this software and associated documentation files (the
+-- "Software"), to deal in the Software without restriction, including
+-- without limitation the rights to use, copy, modify, merge, publish,
+-- distribute, sublicense, and/or sell copies of the Software, and to
+-- permit persons to whom the Software is furnished to do so, subject to
+-- the following conditions:
+--
+-- The above copyright notice and this permission notice shall be
+-- included in all copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+-- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+-- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+-- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+-- LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+-- OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+-- WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoOverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -9,7 +33,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 -- | This module is __internal__ and its contents may change without a warning
 -- or announcement. It is not subject to the PVP.
-module System.Process.Typed.Internal where
+module Solid.Process.Typed.Internal where
+
+import HaskellPrelude
 
 import qualified Data.ByteString as S
 import Data.ByteString.Lazy.Internal (defaultChunkSize)
@@ -26,18 +52,7 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Lazy.Char8 as L8
 import Data.String (IsString (fromString))
 import Control.Monad.IO.Unlift
-
-#if MIN_VERSION_process(1, 4, 0) && !WINDOWS
 import System.Posix.Types (GroupID, UserID)
-#endif
-
-#if !MIN_VERSION_base(4, 8, 0)
-import Control.Applicative (Applicative (..), (<$>), (<$))
-#endif
-
-#if !MIN_VERSION_process(1, 3, 0)
-import qualified System.Process.Internals as P (createProcess_)
-#endif
 
 -- | An abstract configuration for a process, which can then be
 -- launched into an actual running 'Process'. Takes three type

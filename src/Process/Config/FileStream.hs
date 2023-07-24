@@ -4,8 +4,8 @@ module Process.Config.FileStream where
 import Solid
 
 import System.Process (StdStream(..))
-import System.Process.Typed qualified as Haskell
-import System.Process.Typed.Internal qualified as Haskell
+import Solid.Process.Typed qualified as Haskell
+import Solid.Process.Typed.Internal qualified as Haskell
 
 fileStream :: FilePath -> IO.Mode -> Haskell.StreamSpec anyStreamType ()
 fileStream name mode = Haskell.mkManagedStreamSpec acquire release

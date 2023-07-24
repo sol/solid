@@ -15,8 +15,8 @@ import Solid.Types
 
 import Control.Concurrent.STM qualified as STM
 import Data.ByteString.Lazy qualified as LB
-import System.Process.Typed (Config)
-import System.Process.Typed qualified as Haskell
+import Solid.Process.Typed (Config)
+import Solid.Process.Typed qualified as Haskell
 
 import Process.Config.FileStream
 

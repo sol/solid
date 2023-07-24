@@ -1,25 +1,41 @@
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE OverloadedStrings #-}
-module System.Process.TypedSpec (spec) where
+-- This wodule is devired from the typed-process package.
+--
+-- Copyright (c) 2016 FP Complete, https://www.fpcomplete.com/
+--
+-- Permission is hereby granted, free of charge, to any person obtaining
+-- a copy of this software and associated documentation files (the
+-- "Software"), to deal in the Software without restriction, including
+-- without limitation the rights to use, copy, modify, merge, publish,
+-- distribute, sublicense, and/or sell copies of the Software, and to
+-- permit persons to whom the Software is furnished to do so, subject to
+-- the following conditions:
+--
+-- The above copyright notice and this permission notice shall be
+-- included in all copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+-- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+-- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+-- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+-- LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+-- OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+-- WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+module Solid.Process.TypedSpec (spec) where
 
-import System.Process.Typed
-import System.Process.Typed.Internal
+import HaskellPrelude
+
+import Solid.Process.Typed
+import Solid.Process.Typed.Internal
 import System.IO
 import Control.Exception
 import Control.Concurrent.Async (Concurrently (..))
 import Control.Concurrent.STM (atomically)
 import Test.Hspec
-import System.Exit
 import System.IO.Temp
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as L
 import Data.String (IsString)
-import Data.Monoid ((<>))
 import qualified Data.ByteString.Base64 as B64
-
-#if !MIN_VERSION_base(4, 8, 0)
-import Control.Applicative ((*>))
-#endif
 
 spec :: Spec
 spec = do
@@ -115,18 +131,13 @@ spec = do
 
     describe "withProcessWait" $
         it "succeeds with sleep" $ do
-          p <- withProcessWait (proc "sleep" ["1"]) pure
+          p <- withProcessWait (proc "sleep" ["0.01"]) pure
           checkExitCode p :: IO ()
 
     describe "withProcessWait_" $
         it "succeeds with sleep"
-           ((withProcessWait_ (proc "sleep" ["1"]) $ const $ pure ()) :: IO ())
+           ((withProcessWait_ (proc "sleep" ["0.01"]) $ const $ pure ()) :: IO ())
 
-    -- These tests fail on older GHCs/process package versions
-    -- because, apparently, waitForProcess isn't interruptible. See
-    -- https://github.com/fpco/typed-process/pull/26#issuecomment-505702573.
-
-    {-
     describe "withProcessTerm" $ do
         it "fails with sleep" $ do
           p <- withProcessTerm (proc "sleep" ["1"]) pure
@@ -136,7 +147,6 @@ spec = do
         it "fails with sleep" $
           withProcessTerm_ (proc "sleep" ["1"]) (const $ pure ())
           `shouldThrow` anyException
-    -}
 
     it "interleaved output" $ withSystemTempFile "interleaved-output" $ \fp h -> do
         S.hPut h "\necho 'stdout'\n>&2 echo 'stderr'\necho 'stdout'"

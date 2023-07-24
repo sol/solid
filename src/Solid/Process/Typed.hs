@@ -1,4 +1,28 @@
+-- This wodule is devired from the typed-process package.
+--
+-- Copyright (c) 2016 FP Complete, https://www.fpcomplete.com/
+--
+-- Permission is hereby granted, free of charge, to any person obtaining
+-- a copy of this software and associated documentation files (the
+-- "Software"), to deal in the Software without restriction, including
+-- without limitation the rights to use, copy, modify, merge, publish,
+-- distribute, sublicense, and/or sell copies of the Software, and to
+-- permit persons to whom the Software is furnished to do so, subject to
+-- the following conditions:
+--
+-- The above copyright notice and this permission notice shall be
+-- included in all copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+-- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+-- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+-- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+-- LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+-- OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+-- WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoOverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -20,7 +44,7 @@
 --
 -- Please see the [README.md](https://github.com/fpco/typed-process#readme)
 -- file for more examples of using this API.
-module System.Process.Typed
+module Solid.Process.Typed
     ( -- * Types
       ProcessConfig
     , Config
@@ -131,6 +155,8 @@ module System.Process.Typed
     , withProcess_
     ) where
 
+import HaskellPrelude
+
 import Control.Exception hiding (bracket, finally)
 import Control.Monad.IO.Class
 import qualified System.Process as P
@@ -139,20 +165,12 @@ import System.IO.Error (isPermissionError)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (Async, asyncWithUnmask)
 import qualified Control.Concurrent.Async as Async
-import Control.Concurrent.STM (newEmptyTMVarIO, atomically, putTMVar, TMVar, readTMVar, tryReadTMVar, STM, throwSTM, catchSTM)
+import Control.Concurrent.STM
 import System.Exit (ExitCode (ExitSuccess, ExitFailure))
-import System.Process.Typed.Internal
+import Solid.Process.Typed.Internal
 import qualified Data.ByteString.Lazy as L
 import GHC.RTS.Flags (getConcFlags, ctxtSwitchTime)
 import Control.Monad.IO.Unlift
-
-#if !MIN_VERSION_base(4, 8, 0)
-import Control.Applicative (Applicative (..), (<$>), (<$))
-#endif
-
-#if !MIN_VERSION_process(1, 3, 0)
-import qualified System.Process.Internals as P (createProcess_)
-#endif
 
 type Config = ProcessConfig
 

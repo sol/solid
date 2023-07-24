@@ -43,6 +43,8 @@ library
       Solid.Foreign.C
       Solid.Foreign.Haskell
       Solid.MD5
+      Solid.Process.Typed
+      Solid.Process.Typed.Internal
       Solid.StackTrace
       Solid.ToString
       Solid.TypeLits
@@ -70,7 +72,8 @@ library
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
-      bytestring
+      async
+    , bytestring
     , containers
     , directory
     , doctest
@@ -83,8 +86,8 @@ library
     , stm
     , text
     , time
-    , typed-process
     , unix ==2.8.1.0
+    , unliftio-core
   default-language: GHC2021
 
 executable solid
@@ -107,6 +110,7 @@ executable solid
       solid-pp:solid-pp
   build-depends:
       Cabal
+    , async
     , bytestring
     , cabal-install ==3.10.1.0
     , containers
@@ -122,8 +126,8 @@ executable solid
     , stm
     , text
     , time
-    , typed-process
     , unix ==2.8.1.0
+    , unliftio-core
   default-language: GHC2021
 
 test-suite spec
@@ -158,6 +162,8 @@ test-suite spec
       Solid.Foreign.C
       Solid.Foreign.Haskell
       Solid.MD5
+      Solid.Process.Typed
+      Solid.Process.Typed.Internal
       Solid.StackTrace
       Solid.ToString
       Solid.TypeLits
@@ -193,6 +199,7 @@ test-suite spec
       Solid.DriverSpec
       Solid.Foreign.CSpec
       Solid.MD5Spec
+      Solid.Process.TypedSpec
       Solid.StackTraceSpec
       Solid.ToStringSpec
       Solid.TypesSpec
@@ -222,6 +229,8 @@ test-suite spec
     , solid-pp:solid-pp
   build-depends:
       QuickCheck
+    , async
+    , base64-bytestring
     , bytestring
     , containers
     , directory
@@ -239,8 +248,9 @@ test-suite spec
     , solid-pp
     , splitmix
     , stm
+    , temporary
     , text
     , time
-    , typed-process
     , unix ==2.8.1.0
+    , unliftio-core
   default-language: GHC2021
