@@ -47,17 +47,15 @@ Read: [`book/README.md`](book/README.md)
 
 # Tooling
 
-`solid` uses `stack` to install GHC `9.6.2` to a private location.  It does not
-use any system provided GHC.
+`solid` installs GHC `9.6.2` to a private location.  It does not use any system
+provided GHC.
 
-As of now `solid` needs a recent version of `stack` to be available on the
-`PATH`.  This requirement will be lifted eventually.
-
-`solid` uses the global cabal store (e.g.
-`.local/state/cabal/store/ghc-9.6.2/`) for caching.  This reduces build times
-and is usually safe.  However, in the unlikely case that you use a different
-build of GHC `9.6.2` that is not ABI compatible to what `stack` provides you
-may run into issues.
+`solid` uses the user-global cabal store (e.g.
+`~/.local/state/cabal/store/ghc-9.6.2/`) for package caching.  This reduces
+build times and is usually safe.  However, in the unlikely case that you,
+besides using `solid`, use a build of GHC `9.6.2` that is not ABI compatible
+with the official GHC releases from
+[`haskell.org`](https://www.haskell.org/ghc/), you may run into issues.
 
 ## Haskell Language Server (LSP) support
 

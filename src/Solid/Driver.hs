@@ -35,7 +35,7 @@ data Mode = GhcOptions | Doctest | With FilePath | Run
 solid :: Mode -> FilePath -> [String] -> IO ()
 solid mode self args = do
   cache <- getCacheDirectory
-  ghc_dir <- determine_ghc_dir (cache </> "ghc-{ghc}".asFilePath)
+  ghc_dir <- determine_ghc_dir self (cache </> "ghc-{ghc}".asFilePath)
   Env.path.extend ghc_dir do
     packageEnv <- ensurePackageEnv self cache
     let options = ghcOptions self packageEnv args
@@ -51,20 +51,32 @@ getCacheDirectory = do
   Directory.ensure cache
   return cache
 
-determine_ghc_dir :: FilePath -> IO FilePath
-determine_ghc_dir cache = do
-  unless -< cache.exists? $ do
-    dir <- find_ghc
-    atomicWriteFile cache dir.asByteString
-  ByteString.asFilePath <$> readBinaryFile cache
+determine_ghc_dir :: FilePath -> FilePath -> IO FilePath
+determine_ghc_dir self cache = do
+  unless -< valid? $ do
+    find_ghc self >>= write_cache
+  read_cache
+  where
+    read_cache :: IO FilePath
+    read_cache = readBinaryFile cache <&> ByteString.asFilePath
 
-find_ghc :: IO FilePath
-find_ghc = Env.path.resolve "stack" >>= \ case
-  Nothing -> Process.exit "{}: could not find stack"
-  Just stack -> Temp.withDirectory $ \ tmp -> do
+    write_cache :: FilePath -> IO ()
+    write_cache = FilePath.asByteString >>> atomicWriteFile cache
+
+    valid? :: IO Bool
+    valid? = cache.exists? >>= \ case
+      False -> return False
+      True -> read_cache >>= FilePath.exists?
+
+find_ghc :: FilePath -> IO FilePath
+find_ghc self = do
+  Temp.withDirectory $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
-    (Process.command stack ["--resolver={resolver}", "path", "--compiler-bin"]).read <&> (.strip.asFilePath)
+    (stack ["--resolver={resolver}", "path", "--compiler-bin"]).read <&> (.strip.asFilePath)
+  where
+    stack :: [String] -> Process.Config () () ()
+    stack args = Process.command self ("stack" : args)
 
 atomicWriteFile :: FilePath -> ByteString -> IO ()
 atomicWriteFile dst str = do
