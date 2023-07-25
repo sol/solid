@@ -111,14 +111,8 @@ spec = do
     context "with invalid input" $ do
       it "throws an exception" $ do
         let input = "foo" :: String
-        evaluate (input.read! :: Int) `shouldThrow?` invalidValue [] "no parse"
+        evaluate (input.read! :: Int) `shouldThrow?` invalidValue ["String.read!"] "no parse"
         evaluate (String.read! @Int input) `shouldThrow?` invalidValue ["read!"] "no parse"
-
-  describe "join" $ do
-    it "joins a list of strings" $ do
-      let xs = ["foo", "bar", "baz"]
-      xs.join ", " `shouldBe` "foo, bar, baz"
-      String.join ", " xs `shouldBe` "foo, bar, baz"
 
   describe "ansi" $ do
     it "styles a string with ANSI escape sequences" $ do

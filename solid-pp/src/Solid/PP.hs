@@ -49,6 +49,7 @@ wellKnownModules :: Set Module
 wellKnownModules = Set.fromList [
     "ByteString"
   , "Directory"
+  , "Either"
   , "Env"
   , "Exception"
   , "FilePath"

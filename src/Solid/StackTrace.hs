@@ -10,7 +10,9 @@ module Solid.StackTrace (
 
 , empty
 , retrieve
+
 , suppress
+, suppressForMethod
 
 -- * Operations
 , empty?
@@ -44,7 +46,7 @@ instance HasField "toString" StackTrace String where
   getField = toString
 
 toString :: StackTrace -> String
-toString = pack . GHC.prettyCallStack . toCallStack
+toString = prettyCallStack . toCallStack
 
 empty :: StackTrace
 empty = StackTrace GHC.EmptyCallStack
@@ -54,6 +56,23 @@ retrieve = (fromCallStack GHC.callStack).pop
 
 suppress :: WithStackTrace => (WithStackTrace => a) -> a
 suppress expression = let ?callStack = GHC.freezeCallStack (GHC.popCallStack GHC.callStack) in expression
+
+suppressForMethod :: String -> (WithStackTrace => a) -> a
+suppressForMethod name expression = let ?callStack = stack in expression
+  where
+    stack :: GHC.CallStack
+    stack = GHC.freezeCallStack $ GHC.fromCallSiteList [(unpack name, unknownLocation)]
+
+unknownLocation :: GHC.SrcLoc
+unknownLocation = GHC.SrcLoc {
+  srcLocPackage   = "solid"
+, srcLocModule    = "Solid.StackTrace"
+, srcLocFile      = "<unknown location>"
+, srcLocStartLine = 0
+, srcLocStartCol  = 0
+, srcLocEndLine   = 0
+, srcLocEndCol    = 0
+}
 
 empty? :: StackTrace -> Bool
 empty? = go . toCallStack
@@ -105,3 +124,16 @@ fromCallStack = StackTrace . go
       '\660' : xs -> '?' : rec xs
       '\7433' : xs -> '!' : rec xs
       x : xs -> x : rec xs
+
+prettyCallStack :: GHC.CallStack -> String
+prettyCallStack stack = List.join "\n" $ case GHC.getCallStack stack of
+  []  -> []
+  stk -> "StackTrace (from WithStackTrace):" : map prettyCallSite stk
+  where
+    prettyCallSite :: ([Char], GHC.SrcLoc) -> String
+    prettyCallSite (name, loc) = "  {pack name}, called at {prettySrcLoc loc}"
+
+    prettySrcLoc :: GHC.SrcLoc -> String
+    prettySrcLoc loc
+      | loc == unknownLocation = "<unknown location>"
+      | otherwise = "{pack loc.srcLocFile}:{loc.srcLocStartLine}:{loc.srcLocStartCol} in {pack loc.srcLocPackage}:{pack loc.srcLocModule}"

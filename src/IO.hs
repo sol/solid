@@ -6,12 +6,13 @@ module IO (
 , readBinaryFile
 , writeBinaryFile
 
+, IO.try
+
 , module IO.Handle
 ) where
 
 import Solid.Common
 import Solid.Types
-import Exception
 import Solid.Foreign.Haskell qualified as Haskell
 
 import qualified Data.ByteString as B
@@ -24,7 +25,7 @@ readFile file = do
   bytes <- readBinaryFile file
   case bytes.asString of
     Just string -> return string
-    Nothing -> throwIO UnicodeDecodeError
+    Nothing -> Exception.throwIO Exception.UnicodeDecodeError
 
 writeFile :: FilePath -> String -> IO ()
 writeFile = writeBinaryFile
@@ -34,3 +35,6 @@ readBinaryFile = Haskell.toFilePath >=> fmap Bytes . B.readFile
 
 writeBinaryFile :: FilePath -> Bytes a -> IO ()
 writeBinaryFile path (Bytes content) = Haskell.toFilePath path >>= (`B.writeFile` content)
+
+try :: IO a -> IO (Either Exception.IOException a)
+try = Exception.try

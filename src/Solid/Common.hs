@@ -79,3 +79,9 @@ instance HasField "flip" (a -> b -> c) (b -> a -> c) where
 
 instance HasField "swap" (a, b) (b, a) where
   getField = swap
+
+instance HasField "fst" (a, b) a where
+  getField = fst
+
+instance HasField "snd" (a, b) b where
+  getField = snd

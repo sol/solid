@@ -1,9 +1,9 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Solid.DriverSpec (spec) where
 
 import           Helper
 
 import           System.Exit
-import qualified Env
 
 import           Solid.Driver
 
@@ -26,9 +26,9 @@ spec = do
             , ""
             , "main :: IO ()"
             , "main = do"
-            , "  stdout.writeLine \"Hey {name} 👋\""
-            , "  stdout.writeLine \"length: {String.length name}\""
-            , "  stdout.writeLine \"length: {name.length}\""
+            , "  stdout.writeLine \"Hey \{name} 👋\""
+            , "  stdout.writeLine \"length: \{String.length name}\""
+            , "  stdout.writeLine \"length: \{name.length}\""
             , "  exitWith (ExitFailure 23)"
             ]
           capture_ (solid Run "solid" ["main.hs"] `shouldThrow` ExitFailure 23) `shouldReturn` unlines [

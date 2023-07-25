@@ -21,6 +21,37 @@ revision = "10ad38f69c92203776fbbb81462cbdd8f1528e5d"
 ghc :: String
 ghc = "9.6.2"
 
+tty :: FilePath
+tty = "/dev/tty"
+
+null_device :: FilePath
+null_device = "/dev/null"
+
+data Console = Console {
+  info :: Handle
+, error :: Handle
+, release :: IO ()
+}
+
+withConsole :: (Console -> IO a) -> IO a
+withConsole = with console
+  where
+    console :: IO Console
+    console = IO.try (tty.open IO.WriteMode) >>= \ case
+      Left _ -> do
+        handle <- IO.try (null_device.open IO.WriteMode)
+        return Console {
+          info = handle.right_or stderr
+        , error = stderr
+        , release = handle.fold (\ _ -> pass) (.release)
+        }
+      Right handle -> do
+        return Console {
+          info = handle
+        , error = handle
+        , release = handle.release
+        }
+
 desugarCommand :: String
 desugarCommand = internalCommand "desugar"
 
@@ -33,9 +64,9 @@ internalCommand name = "{name}-{marker}"
 data Mode = GhcOptions | Doctest | With FilePath | Run
 
 solid :: Mode -> FilePath -> [String] -> IO ()
-solid mode self args = do
+solid mode self args = withConsole $ \ console -> do
   cache <- getCacheDirectory
-  ghc_dir <- determine_ghc_dir self (cache </> "ghc-{ghc}".asFilePath)
+  ghc_dir <- determine_ghc_dir console self (cache </> "ghc-{ghc}".asFilePath)
   Env.path.extend ghc_dir do
     packageEnv <- ensurePackageEnv self cache
     let options = ghcOptions self packageEnv args
@@ -51,10 +82,10 @@ getCacheDirectory = do
   Directory.ensure cache
   return cache
 
-determine_ghc_dir :: FilePath -> FilePath -> IO FilePath
-determine_ghc_dir self cache = do
+determine_ghc_dir :: Console -> FilePath -> FilePath -> IO FilePath
+determine_ghc_dir console self cache = do
   unless -< valid? $ do
-    find_ghc self >>= write_cache
+    find_ghc console self >>= write_cache
   read_cache
   where
     read_cache :: IO FilePath
@@ -68,15 +99,18 @@ determine_ghc_dir self cache = do
       False -> return False
       True -> read_cache >>= FilePath.exists?
 
-find_ghc :: FilePath -> IO FilePath
-find_ghc self = do
+find_ghc :: Console -> FilePath -> IO FilePath
+find_ghc console self = do
+  console.info.write "Installing GHC {ghc}... "
   Temp.withDirectory $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
-    (stack ["--resolver={resolver}", "path", "--compiler-bin"]).read <&> (.strip.asFilePath)
+    ghc_dir <- (stack ["--resolver={resolver}", "path", "--compiler-bin"]).with Process.stdout
+      <* console.info.print (String.ansi "✔").green
+    return ghc_dir.strip.asFilePath
   where
-    stack :: [String] -> Process.Config () () ()
-    stack args = Process.command self ("stack" : args)
+    stack :: [String] -> Process.Config () (IO ByteString) ()
+    stack args = (Process.command self ("stack" : "--verbosity" : "error" : args)).stdout.capture.stderr.useHandle console.error
 
 atomicWriteFile :: FilePath -> ByteString -> IO ()
 atomicWriteFile dst str = do

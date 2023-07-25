@@ -93,18 +93,6 @@ read! input = case String.read input of
   Just a -> a
   Nothing -> StackTrace.suppress Exception.invalidValue! "no parse"
 
--- | Join a list of strings.
---
--- Examples:
---
--- >>> String.join ", " ["foo", "bar", "baz"]
--- "foo, bar, baz"
---
--- >>> ["foo", "bar", "baz" :: String].join ", "
--- "foo, bar, baz"
-join :: String -> [String] -> String
-join = coerce Haskell.intercalate
-
 ansi :: String -> Ansi String
 ansi = Ansi.ansi
 
@@ -150,10 +138,7 @@ instance (HasField "read" String (Maybe a), Read a)
 
 instance (HasField "read\7433" String a, Read a)
        => HasField "read\7433" String a where
-  getField = StackTrace.suppress String.read!
-
-instance HasField "join" [String] (String -> String) where
-  getField = flip String.join
+  getField = StackTrace.suppressForMethod "String.read!" String.read!
 
 instance HasField "ansi" String (Ansi String) where
   getField = ansi

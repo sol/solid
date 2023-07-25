@@ -17,6 +17,7 @@ library
   exposed-modules:
       ByteString
       Directory
+      Either
       Env
       Env.Raw
       Exception
@@ -146,6 +147,7 @@ test-suite spec
   other-modules:
       ByteString
       Directory
+      Either
       Env
       Env.Raw
       Exception
@@ -188,6 +190,7 @@ test-suite spec
       System.Environment.Import
       System.FilePath.Import
       ByteStringSpec
+      EitherSpec
       EnvSpec
       ExceptionSpec
       FilePathSpec

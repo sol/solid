@@ -28,10 +28,13 @@ spec = do
 
       context "with a StackTrace" $ do
         it "converts to a String" $ do
-          (Exception.InvalidValue trace "foo").toString `shouldBe` String.join "\n" [
-              "CallStack (from HasCallStack):"
+          (Exception.InvalidValue trace "foo").toString `shouldBe` List.join "\n" [
+              ""
+            , ""
+            , "StackTrace (from WithStackTrace):"
             , "  foo, called at test/ExceptionSpec.hs:19:11 in main:ExceptionSpec"
             , "  bar, called at test/ExceptionSpec.hs:22:11 in main:ExceptionSpec"
             , "  baz, called at test/ExceptionSpec.hs:25:13 in main:ExceptionSpec"
+            , ""
             , "InvalidValue: foo"
             ]

@@ -3,23 +3,32 @@
 {-# LANGUAGE UndecidableInstances #-}
 module List (
   module Data.List
+, empty
+, empty?
+
 , nub
 , nubOn
 
 , enumerate
+, List.join
 , randomChoice
-
-, empty
-, empty?
 ) where
 
 import Solid.Common hiding (empty, null)
+import Solid.Types
 import Data.List hiding (nub, nubBy, null, length)
 import GHC.OldList as Data.List (null, length)
 import Data.List qualified as Haskell
-
 import Data.Set qualified as Set
+import Data.ByteString qualified
+import Data.Coerce (coerce)
 import System.Random.Stateful qualified as Haskell
+
+empty :: [a]
+empty = []
+
+empty? :: [a] -> Bool
+empty? = null
 
 nub :: Ord a => [a] -> [a]
 nub = nubOn id
@@ -50,14 +59,20 @@ nub!! = Haskell.nub
 enumerate :: [a] -> [(Int, a)]
 enumerate = zip [0..]
 
+-- | Join a list of strings.
+--
+-- Examples:
+--
+-- >>> List.join ", " ["foo", "bar", "baz"]
+-- "foo, bar, baz"
+--
+-- >>> ["foo", "bar", "baz" :: String].join ", "
+-- "foo, bar, baz"
+join :: String -> [String] -> String
+join = coerce Data.ByteString.intercalate
+
 randomChoice :: [a] -> IO a
 randomChoice xs = (xs !!) <$> Haskell.uniformRM (0, pred xs.length) Haskell.globalStdGen
-
-empty :: [a]
-empty = []
-
-empty? :: [a] -> Bool
-empty? = null
 
 instance HasField "empty\660" [a] Bool where
   getField = empty?
@@ -114,6 +129,9 @@ instance HasField "enumerate" [a] [(Int, a)] where
 
 instance HasField "filter" [a] ((a -> Bool) -> [a]) where
   getField = flip filter
+
+instance HasField "join" [String] (String -> String) where
+  getField = flip List.join
 
 instance HasField "randomChoice" [a] (IO a) where
   getField = randomChoice

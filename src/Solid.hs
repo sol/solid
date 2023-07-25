@@ -15,6 +15,7 @@ import ByteString as Solid (ByteString)
 import String as Solid (String, pack, unpack, words, unwords, lines, unlines)
 import Solid.Ansi ()
 import Maybe ()
+import Either ()
 import List ()
 import Word8 ()
 
