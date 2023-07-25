@@ -36,6 +36,7 @@ library
       Process.Self
       Solid
       Solid.Ansi
+      Solid.Ansi.Types
       Solid.Bytes
       Solid.Char
       Solid.Common
@@ -164,6 +165,7 @@ test-suite spec
       Process.Self
       Solid
       Solid.Ansi
+      Solid.Ansi.Types
       Solid.Bytes
       Solid.Char
       Solid.Common

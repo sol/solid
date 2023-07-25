@@ -24,25 +24,7 @@ import List ()
 import String (String)
 import FilePath (FilePath)
 
--- https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
-data Ansi a = Ansi [Modifier] a
-
-data Modifier =
-    Bold
-  | Underline
-  | Inverse
-  | Foreground Color
-
-data Color =
-    Black
-  | Red
-  | Green
-  | Yellow
-  | Blue
-  | Magenta
-  | Cyan
-  | White
-  | RGB Word8 Word8 Word8
+import Solid.Ansi.Types
 
 modifier :: Modifier -> Ansi a -> Ansi a
 modifier m (Ansi ms a) = Ansi (m : ms) a
@@ -53,6 +35,7 @@ foreground = modifier . Foreground
 modifierSet :: Modifier -> String
 modifierSet = \ case
   Bold -> "1"
+  Faint -> "2"
   Underline -> "4"
   Inverse -> "7"
   Foreground Black -> "30"
@@ -68,6 +51,7 @@ modifierSet = \ case
 modifierUnset :: Modifier -> String
 modifierUnset = \ case
   Bold -> "22"
+  Faint -> "22"
   Underline -> "24"
   Inverse -> "27"
   Foreground _ -> "39"
@@ -76,25 +60,26 @@ instance ToString a => ToString (Ansi a) where
   toString (Ansi modifiers a) = set <> toString a <> unset
     where
       set :: String
-      set = "\ESC[{ (modifiers.map modifierSet).join ";"}m"
+      set
+        | modifiers.empty? = ""
+        | otherwise = "\ESC[{ (modifiers.map modifierSet).join ";"}m"
 
       unset :: String
-      unset = "\ESC[{ (modifiers.reverse.map modifierUnset).join ";" }m"
+      unset
+        | modifiers.empty? = ""
+        | otherwise = "\ESC[{ (modifiers.reverse.map modifierUnset).join ";" }m"
 
 instance ToString a => HasField "toString" (Ansi a) String where
   getField = toString
-
-ansi :: a -> Ansi a
-ansi = Ansi []
-
-instance HasField "ansi" String (Ansi String) where
-  getField = ansi
 
 instance HasField "ansi" FilePath (Ansi FilePath) where
   getField = ansi
 
 bold :: Ansi a -> Ansi a
 bold = modifier Bold
+
+faint :: Ansi a -> Ansi a
+faint = modifier Faint
 
 underline :: Ansi a -> Ansi a
 underline = modifier Underline
@@ -104,6 +89,9 @@ inverse = modifier Inverse
 
 instance HasField "bold" (Ansi a) (Ansi a) where
   getField = bold
+
+instance HasField "faint" (Ansi a) (Ansi a) where
+  getField = faint
 
 instance HasField "underline" (Ansi a) (Ansi a) where
   getField = underline

@@ -21,6 +21,8 @@ module FilePath (
 , rmdir
 
 , rename
+
+, open
 ) where
 
 import Solid.Common hiding (IsString(..))
@@ -91,6 +93,9 @@ rmdir = coerce Posix.removeDirectory
 rename :: FilePath -> FilePath -> IO ()
 rename = coerce Haskell.renamePath
 
+open :: IO.Mode -> FilePath -> IO Handle
+open = flip IO.open
+
 instance HasField "toString" FilePath String where
   getField = toString
 
@@ -120,3 +125,6 @@ instance HasField "rmdir" FilePath (IO ()) where
 
 instance HasField "rename" FilePath (FilePath -> IO ()) where
   getField = rename
+
+instance HasField "open" FilePath (IO.Mode -> IO Handle) where
+  getField = IO.open

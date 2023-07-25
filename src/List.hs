@@ -8,11 +8,14 @@ module List (
 
 , enumerate
 , randomChoice
+
+, empty
+, empty?
 ) where
 
-import Solid.Common
-import Data.List hiding (nub, nubBy, length)
-import GHC.OldList as Data.List (length)
+import Solid.Common hiding (empty, null)
+import Data.List hiding (nub, nubBy, null, length)
+import GHC.OldList as Data.List (null, length)
 import Data.List qualified as Haskell
 
 import Data.Set qualified as Set
@@ -49,6 +52,15 @@ enumerate = zip [0..]
 
 randomChoice :: [a] -> IO a
 randomChoice xs = (xs !!) <$> Haskell.uniformRM (0, pred xs.length) Haskell.globalStdGen
+
+empty :: [a]
+empty = []
+
+empty? :: [a] -> Bool
+empty? = null
+
+instance HasField "empty\660" [a] Bool where
+  getField = empty?
 
 instance HasField "length" [a] Int where
   getField = length

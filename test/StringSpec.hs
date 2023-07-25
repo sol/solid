@@ -91,12 +91,6 @@ spec = do
       path.asFilePath `shouldBe` "foo.txt"
       String.asFilePath path `shouldBe` "foo.txt"
 
-  describe "join" $ do
-    it "joins a list of strings" $ do
-      let xs = ["foo", "bar", "baz"]
-      xs.join ", " `shouldBe` "foo, bar, baz"
-      String.join ", " xs `shouldBe` "foo, bar, baz"
-
   describe "read" $ do
     it "parses a value" $ do
       let input = "23" :: String
@@ -119,3 +113,14 @@ spec = do
         let input = "foo" :: String
         evaluate (input.read! :: Int) `shouldThrow?` invalidValue [] "no parse"
         evaluate (String.read! @Int input) `shouldThrow?` invalidValue ["read!"] "no parse"
+
+  describe "join" $ do
+    it "joins a list of strings" $ do
+      let xs = ["foo", "bar", "baz"]
+      xs.join ", " `shouldBe` "foo, bar, baz"
+      String.join ", " xs `shouldBe` "foo, bar, baz"
+
+  describe "ansi" $ do
+    it "styles a string with ANSI escape sequences" $ do
+      ("foo" :: String).ansi.red.toString `shouldBe` "\ESC[31mfoo\ESC[39m"
+      (String.ansi "foo").red.toString `shouldBe` "\ESC[31mfoo\ESC[39m"

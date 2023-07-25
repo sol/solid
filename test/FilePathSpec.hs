@@ -7,6 +7,7 @@ import GHC.IO.Exception
 import System.IO.Error
 import Gen qualified
 import Range qualified
+import IO qualified
 
 import qualified System.Directory.Import as Haskell
 
@@ -154,3 +155,11 @@ spec = do
           src.rename dst
           src.exists? `shouldReturn` False
           dst.exists? `shouldReturn` True
+
+  describe "open" $ do
+    it "opens a file handle" $ do
+      withPath $ \ path -> do
+        with (path.open IO.WriteMode) $ \ handle -> do
+          handle.open? `shouldReturn` True
+        with (FilePath.open IO.WriteMode path) $ \ handle -> do
+          handle.open? `shouldReturn` True

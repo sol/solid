@@ -13,6 +13,8 @@ import Solid.Types hiding (asFilePath)
 import Solid.Types qualified as Types
 import Solid.Bytes qualified as Bytes
 import Solid.StackTrace qualified as StackTrace
+import Solid.Ansi.Types (Ansi(..))
+import Solid.Ansi.Types qualified as Ansi
 
 import Data.Bits ((.&.))
 import Data.Coerce (coerce)
@@ -103,6 +105,9 @@ read! input = case String.read input of
 join :: String -> [String] -> String
 join = coerce Haskell.intercalate
 
+ansi :: String -> Ansi String
+ansi = Ansi.ansi
+
 instance HasField "length" String Int where
   getField = length
 
@@ -149,3 +154,6 @@ instance (HasField "read\7433" String a, Read a)
 
 instance HasField "join" [String] (String -> String) where
   getField = flip String.join
+
+instance HasField "ansi" String (Ansi String) where
+  getField = ansi
