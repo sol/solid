@@ -65,7 +65,11 @@ wellKnownModules = Set.fromList [
   , "String"
   , "Temp"
   , "Word8"
+  , toStringModule
   ]
+
+toStringModule :: Module
+toStringModule = "Solid.ToString"
 
 newtype Module = Module FastString
   deriving newtype (Eq, Show, IsString)
@@ -136,7 +140,7 @@ usedModules = flip modules Set.empty
     fromNodes = \ case
       Token _ (ITqvarid (m, _)) -> Set.insert (Module m)
       Token _ _ -> id
-      LiteralString (Begin _ _ expression) -> fromExpression expression
+      LiteralString (Begin _ _ expression) -> (Set.singleton toStringModule <>) . fromExpression expression
       LiteralString (Literal _ _) -> id
 
     fromExpression :: Expression -> Set Module -> Set Module
@@ -260,7 +264,7 @@ pp = (.build) . onNodes
     unescape = fromString . unescapeString . init . tail
 
     beginInterpolation :: DString
-    beginInterpolation = "\" <> toString ("
+    beginInterpolation = "\" <> Solid.ToString.toString ("
 
     endInterpolation :: DString
     endInterpolation = ") <> \""

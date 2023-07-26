@@ -27,7 +27,7 @@ module Exception (
 
 import Solid.Common
 import Solid.Types
-import Solid.ToString
+import Solid.ToString as ToString
 import Solid.StackTrace (StackTrace)
 import Solid.StackTrace qualified as StackTrace
 

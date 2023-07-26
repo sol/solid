@@ -8,9 +8,6 @@ import           Test.Hspec
 import           GHC.Records
 import           Data.Char
 
-toString :: String -> String
-toString = id
-
 instance HasField "toLower" String String where
   getField = map toLower
 

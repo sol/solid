@@ -87,6 +87,7 @@ test-suite spec
       Solid.PP.LexerSpec
       Solid.PP.ParserSpec
       Solid.PPSpec
+      Solid.ToString
       Paths_solid_pp
   hs-source-dirs:
       src

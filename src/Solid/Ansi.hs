@@ -19,7 +19,7 @@ module Solid.Ansi (
 ) where
 
 import Solid.Common
-import Solid.ToString
+import Solid.ToString as ToString
 import List ()
 import String (String)
 import FilePath (FilePath)

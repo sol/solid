@@ -8,6 +8,7 @@ import           Test.Hspec
 import           Test.HUnit (assertFailure)
 import           Test.Hspec.Expectations.Contrib (annotate)
 import           Test.Mockery.Directory
+import           Data.Set (Set)
 import qualified Data.Set as Set
 
 import           Solid.PP.Parser
@@ -22,7 +23,20 @@ shouldDesugarTo input expected = do
   let file = "main.hs"
   writeFile file input
   Success <- run file file file
-  readFile file `shouldReturn` "{-# LINE 1 " <> pack (show file) <> " #-}\n" <> expected
+  readFile file `shouldReturn`
+       "{-# LINE 1 " <> pack (show file) <> " #-}\n"
+    <> expected
+
+interpolationShouldDesugarTo :: HasCallStack => Text -> Text -> Expectation
+interpolationShouldDesugarTo input expected = do
+  let file = "main.hs"
+  writeFile file input
+  Success <- run file file file
+  readFile file `shouldReturn`
+       "{-# LINE 1 " <> pack (show file) <> " #-}\n"
+    <> "import qualified Solid.ToString\n"
+    <> "{-# LINE 1 " <> pack (show file) <> " #-}\n"
+    <> expected
 
 parseModuleHeader :: HasCallStack => Text -> (ModuleHeader -> IO a) -> IO a
 parseModuleHeader input action = case parse extensions "src.hs" input of
@@ -34,16 +48,16 @@ spec :: Spec
 spec = do
   describe "usedModules" $ do
     let
-      modules :: HasCallStack => Text -> [Module]
-      modules = Set.toList . usedModules . either undefined id . parse extensions "src.hs"
+      modules :: HasCallStack => Text -> Set Module
+      modules = usedModules . either undefined id . parse extensions "src.hs"
 
     context "with a qualified identifier" $ do
       it "extracts module name" $ do
-        modules "foo = String.length" `shouldBe` ["String"]
+        modules "foo = String.length" `shouldBe` Set.fromList ["String"]
 
     context "within an interpolated string" $ do
       it "extracts module names" $ do
-        modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` ["Bar", "Foo"]
+        modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` Set.fromList ["Solid.ToString", "Bar", "Foo"]
 
   describe "parseModuleHeader" $ do
     it "parses the module header" $ do
@@ -281,23 +295,23 @@ spec = do
 
     context "when pre-processing string literals" $ do
       it "desugars string interpolation" $ do
-        "foo = \"foo {bar 23} baz\".toUpper" `shouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> toString ({-# COLUMN 13 #-}bar 23) <> \" baz\").toUpper"
+        "foo = \"foo {bar 23} baz\".toUpper" `interpolationShouldDesugarTo` mconcat [
+            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}bar 23) <> \" baz\").toUpper"
           ]
 
       it "desugars interpolation abstractions" $ do
-        "foo = \"foo {} bar {} baz\"" `shouldDesugarTo` mconcat [
-            "foo = (\\ _1 _2 -> \"foo \" <> toString ({-# COLUMN 13 #-}_1{-# COLUMN 13 #-}) <> \" bar \" <> toString ({-# COLUMN 20 #-}_2{-# COLUMN 20 #-}) <> \" baz\"){-# COLUMN 26 #-}"
+        "foo = \"foo {} bar {} baz\"" `interpolationShouldDesugarTo` mconcat [
+            "foo = (\\ _1 _2 -> \"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}_1{-# COLUMN 13 #-}) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 20 #-}_2{-# COLUMN 20 #-}) <> \" baz\"){-# COLUMN 26 #-}"
           ]
 
       it "accepts string literals with multiple interpolations" $ do
-        "foo = \"foo { 23 } bar { 42 } baz\"" `shouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> toString ({-# COLUMN 13 #-} 23 ) <> \" bar \" <> toString ({-# COLUMN 24 #-} 42 ) <> \" baz\"){-# COLUMN 34 #-}"
+        "foo = \"foo { 23 } bar { 42 } baz\"" `interpolationShouldDesugarTo` mconcat [
+            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} 23 ) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 24 #-} 42 ) <> \" baz\"){-# COLUMN 34 #-}"
           ]
 
       it "accepts nested interpolations" $ do
-        "foo = \"foo { \"x-{23}-x\" } baz\"" `shouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> toString ({-# COLUMN 13 #-} (\"x-\" <> toString ({-# COLUMN 18 #-}23) <> \"-x\"){-# COLUMN 24 #-} ) <> \" baz\"){-# COLUMN 31 #-}"
+        "foo = \"foo { \"x-{23}-x\" } baz\"" `interpolationShouldDesugarTo` mconcat [
+            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} (\"x-\" <> Solid.ToString.toString ({-# COLUMN 18 #-}23) <> \"-x\"){-# COLUMN 24 #-} ) <> \" baz\"){-# COLUMN 31 #-}"
           ]
 
       context "when an opening curly bracket is preceded by a backslash" $ do
