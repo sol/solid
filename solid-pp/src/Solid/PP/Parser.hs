@@ -39,7 +39,7 @@ renderError loc = (renderLoc loc <>) . \ case
 renderLoc :: RealSrcLoc -> String
 renderLoc loc = unpackFS (srcLocFile loc) <> ":" <> show (srcLocLine loc) <> ":" <> show (srcLocCol loc) <> ": "
 
-parse :: [Extension] -> FilePath -> Text -> Either String [Node]
+parse :: [LanguageFlag] -> FilePath -> Text -> Either String [Node]
 parse extensions src input = do
   result <- tokenize extensions src input
   case parseNodes result.tokens of

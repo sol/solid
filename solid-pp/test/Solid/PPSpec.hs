@@ -89,7 +89,7 @@ spec = do
           ]
         run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "foo.hs:24:1: error: [GHC-21231] unterminated `{-' at end of input"
 
-      it "does not reports failures for GHC2021 syntax" $ do
+      it "does not report failures for GHC2021 syntax" $ do
         writeFile "cur.hs" $ unlines [
             "foo :: Int"
           , "foo = 23_0"

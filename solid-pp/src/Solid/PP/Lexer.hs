@@ -5,7 +5,11 @@
 {-# LANGUAGE DisambiguateRecordFields #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Lexer (
-  Extension(..)
+  Language
+, language
+, LanguageFlag(..)
+, Extension(..)
+, showExtension
 , applyLanguagePragmas
 
 , LexerResult(..)
@@ -45,7 +49,7 @@ import           GHC.Utils.Error
 import           GHC.Utils.Outputable (defaultSDocContext)
 import           GHC.Driver.Errors.Types
 import           GHC.Types.SourceError
-import           GHC.Driver.Session
+import           GHC.Driver.Session hiding (language)
 import qualified GHC.Parser.Header as ModuleHeader
 
 instance HasField "toText" FastString Text where
@@ -86,19 +90,22 @@ readLanguageFlag input =
       Disable <$> (stripPrefix "-XNo" input >>= lookupExtension)
   <|> Enable  <$> (stripPrefix "-X"   input >>= lookupExtension)
 
-applyLanguagePragmas :: [Extension] -> FilePath -> StringBuffer -> EnumSet Extension
-applyLanguagePragmas (EnumSet.fromList -> extensions) src buffer = foldl' (flip applyLanguageFlag) extensions languageFlags
+applyLanguagePragmas :: EnumSet Extension -> FilePath -> StringBuffer -> EnumSet Extension
+applyLanguagePragmas extensions src buffer = applyLanguageFlags extensions languageFlags
   where
     opts = makeOpts extensions
     (_, map unLoc -> options) = ModuleHeader.getOptions opts buffer src
 
-    applyLanguageFlag :: LanguageFlag -> EnumSet Extension -> EnumSet Extension
-    applyLanguageFlag = \ case
-      Enable ext -> EnumSet.insert ext
-      Disable ext -> EnumSet.delete ext
-
     languageFlags :: [LanguageFlag]
     languageFlags = mapMaybe readLanguageFlag options
+
+applyLanguageFlags :: EnumSet Extension -> [LanguageFlag] -> EnumSet Extension
+applyLanguageFlags = foldl' (flip applyLanguageFlag)
+
+applyLanguageFlag :: LanguageFlag -> EnumSet Extension -> EnumSet Extension
+applyLanguageFlag = \ case
+  Enable ext -> EnumSet.insert ext
+  Disable ext -> EnumSet.delete ext
 
 data LexerResult = LexerResult {
   tokens :: [WithBufferSpan Token]
@@ -106,8 +113,14 @@ data LexerResult = LexerResult {
 , errors :: String
 }
 
-tokenize :: [Extension] -> FilePath -> Text -> Either String LexerResult
-tokenize extensions src input = do
+language :: Language
+language = GHC2021
+
+defaultExtensions :: EnumSet Extension
+defaultExtensions = EnumSet.fromList (languageExtensions (Just language))
+
+tokenize :: [LanguageFlag] -> FilePath -> Text -> Either String LexerResult
+tokenize languageFlags src input = do
   case lexTokenStream opts buffer loc of
     POk state a -> return LexerResult {
       tokens = a
@@ -120,7 +133,10 @@ tokenize extensions src input = do
     errors :: PState -> String
     errors = show . getErrors
 
-    opts = makeOpts (applyLanguagePragmas (languageExtensions (Just GHC2021) ++ extensions ) src buffer)
+    opts = makeOpts (applyLanguagePragmas extensions src buffer)
+
+    extensions :: EnumSet Extension
+    extensions = applyLanguageFlags defaultExtensions languageFlags
 
     loc :: RealSrcLoc
     loc = mkRealSrcLoc (mkFastString src) 1 1

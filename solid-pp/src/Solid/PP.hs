@@ -7,7 +7,13 @@ module Solid.PP (
 
 , Result(..)
 , run
-, Extension
+
+, Language
+, language
+
+, LanguageFlag(..)
+, Extension(..)
+, showExtension
 , extensions
 
 #ifdef TEST
@@ -35,14 +41,15 @@ import           Solid.PP.Edit (Edit(..), edit)
 import           Solid.PP.Lexer
 import           Solid.PP.Parser
 
-extensions :: [Extension]
+extensions :: [LanguageFlag]
 extensions = [
-    DataKinds
-  , DeriveAnyClass
-  , DuplicateRecordFields
-  , LambdaCase
-  , OverloadedRecordDot
-  , OverloadedStrings
+    Enable DataKinds
+  , Enable DeriveAnyClass
+  , Enable DuplicateRecordFields
+  , Enable LambdaCase
+  , Enable OverloadedRecordDot
+  , Enable OverloadedStrings
+  , Disable FieldSelectors
   ]
 
 wellKnownModules :: Set Module
