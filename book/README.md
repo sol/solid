@@ -12,6 +12,7 @@ by Simon Hengel
    * [Strings and binary data](#strings-and-binary-data)
       * [String interpolation](#string-interpolation)
       * [ByteString literals](#bytestring-literals)
+* [Terminal I/O](#terminal-io)
 * [Subprocess management](#subprocess-management)
    * [Running processes](#running-processes)
    * [Interacting with processes](#interacting-with-processes)
@@ -23,6 +24,7 @@ by Simon Hengel
    * [Extending Solid with C](#extending-solid-with-c)
 * [Proposals (not yet implemented, feedback welcome)](#proposals-not-yet-implemented-feedback-welcome)
    * [Method chaining](#method-chaining)
+   * [Revised import syntax](#revised-import-syntax)
 
 
 
@@ -56,9 +58,9 @@ provides operations on values of that type.
 
 The [`String`][string] module provides operations on `String` values, the
 [`ByteString`][byte-string] module provides operations on `ByteString` values,
-the [`Word8`][word8] module provides operations on `Word8` values, and so on.
+the [`Either`][either] module provides operations on `Either` values, and so on.
 
-All those operations are available both as functions and as methods.
+Every operation is available both as a function and as a method.
 
 **Example:**
 
@@ -174,6 +176,60 @@ Haskell truncates ByteString literals to octets:
 >>> map showHex $ Data.ByteString.unpack wave
 ["4b"]
 ```
+
+# Terminal I/O
+
+- `IO.Handle.tty?` can be used to detect if a file handle is connected to a
+  terminal.
+
+- The [`Solid.Ansi`][ansi] module provides operations that can be used to
+  produce color output.
+
+**Example:**
+
+```haskell
+retro :: String -> IO ()
+retro output = stdout.print output.ansi.bold.green.on_black
+```
+
+
+```haskell
+info :: String -> IO ()
+info message = do
+  when -< stderr.tty? $ do
+    stderr.writeLine message
+```
+
+```haskell
+reportError :: String -> IO ()
+reportError message = do
+  stderr.tty? >>= \ case
+    False -> do
+      stderr.writeLine "error: {message}"
+    True -> do
+      stderr.writeLine "error: {message.ansi.red}"
+```
+
+> __Note:__
+>
+> The `-<` operator is an overloaded version of `=<<` that can be used with
+> actions of arity greater one.
+>
+> **Example:**
+>
+> ```haskell
+> file :: IO FilePath
+> file = undefined
+>
+> mode :: IO IO.Mode
+> mode = undefined
+>
+> action :: FilePath -> IO.Mode -> IO ()
+> action = undefined
+>
+> main :: IO ()
+> main = action -< file -< mode
+> ```
 
 # Subprocess management
 
@@ -426,33 +482,42 @@ use nested parentheses.
 
 **Example:**
 
-```repl
-Set the process environment and capture stdout:
->>> ((Process.shell "pwd").chdir "/tmp").stdout.capture.with Process.stdout
-"/tmp\n"
+```haskell ignore
+((Process.shell "pwd").chdir "/tmp").read
 ```
 
 This can quickly become unwieldy.
 
-To remedy this situation we steal some Haskell syntax that is not commonly
-used, _identifiers that are directly followed by an opening parenthesis without
-any separating whitespace_, and desugar it for our own needs:
+To remedy this situation Solid intends to steal some Haskell syntax that is not
+commonly used, _identifiers that are directly followed by an opening
+parenthesis without any separating whitespace_, and desugar it as follows:
 
-We desugar:
-
-1. `ident(exp)` to `(ident (exp))`
-1. `ident(exp_1, exp_2, ..., exp_n)` to `(ident (exp_1) (exp_2) ... (exp_n))`
+1. `ident(exp)` ~> `(ident (exp))`
+1. `ident(exp_1, exp_2, ..., exp_n)` ~> `(ident (exp_1) (exp_2) ... (exp_n))`
 
 With this you can simplify the example from above to:
 
 ```haskell ignore
-Process.shell("pwd").chdir("/tmp").stdout.capture.with Process.stdout
+Process.shell("pwd").chdir("/tmp").read
 ```
 
+## Revised import syntax
+
+Solid encourages the use of qualified imports.  For that reason Solid
+eventually intends to desugar import statements as follows:
+
+1. `import Foo` ~> `import Foo qualified`
+1. `import Foo as Bar` ~> `import Foo qualified as Bar`
+1. `import Foo (Foo)` ~> `import qualified Foo (Foo)`
+1. `import (foo, bar) from Foo` ~> `import Foo (foo, bar)`
+1. `import (..) from Foo` ~> `import Foo (..)`
+
+
+[ansi]: ../src/Solid/Ansi.hs
 [string]: ../src/String.hs
 [byte-string]: ../src/ByteString.hs
 [bytes]:../src/Solid/Bytes.hs
-[word8]: ../src/Word8.hs
+[either]: ../src/Either.hs
 [process]: ../src/Process.hs
 [process-config]: ../src/Process/Config.hs
 [foreign-c]: ../src/Solid/Foreign/C.hs
