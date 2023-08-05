@@ -314,6 +314,24 @@ spec = do
             "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} (\"x-\" <> Solid.ToString.toString ({-# COLUMN 18 #-}23) <> \"-x\"){-# COLUMN 24 #-} ) <> \" baz\"){-# COLUMN 31 #-}"
           ]
 
+      context "with an interpolated expression at the beginning of a string" $ do
+        it "omits empty string segments" $ do
+          "foo = \"{bar 23} baz\".toUpper" `interpolationShouldDesugarTo` mconcat [
+              "foo = (Solid.ToString.toString ({-# COLUMN 9 #-}bar 23) <> \" baz\").toUpper"
+            ]
+
+      context "with an interpolated expression at the end of a string" $ do
+        it "omits empty string segments" $ do
+          "foo = \"foo {bar 23}\".toUpper" `interpolationShouldDesugarTo` mconcat [
+              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}bar 23)).toUpper"
+            ]
+
+      context "when two interpolated expressions are next to each other" $ do
+        it "omits empty string segments" $ do
+          "foo = \"foo { 23 }{ 42 } baz\"" `interpolationShouldDesugarTo` mconcat [
+              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} 23 ) <> Solid.ToString.toString ({-# COLUMN 19 #-} 42 ) <> \" baz\"){-# COLUMN 29 #-}"
+            ]
+
       context "when an opening curly bracket is preceded by a backslash" $ do
         it "treats the opening curly bracket as a literal '{'" $ do
           "foo = \"foo \\{bar} baz\"" `shouldDesugarTo` "foo = \"foo {bar} baz\"{-# COLUMN 23 #-}"

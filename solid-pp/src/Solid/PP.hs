@@ -256,7 +256,7 @@ pp = (.build) . onNodes
     onLiteralString :: LiteralString BufferSpan -> DList Edit
     onLiteralString = \ case
       Literal loc src -> unescapeStringLiteral loc src
-      Begin loc src expression -> replace loc (lambdaAbstract expression <> unescape src <> beginInterpolation) <> onExpression 1 expression
+      Begin loc src expression -> replace loc (lambdaAbstract expression <> beginInterpolation src) <> onExpression 1 expression
 
     onExpression :: Int -> Expression -> DList Edit
     onExpression n = \ case
@@ -265,17 +265,28 @@ pp = (.build) . onNodes
 
     onEnd :: Int -> End BufferSpan -> DList Edit
     onEnd n = \ case
-      End loc src -> replace loc (endInterpolation <> unescape src <> "\")")
-      EndBegin loc src expression -> replace loc (endInterpolation <> unescape src <> beginInterpolation) <> onExpression n expression
+      End loc src -> replace loc (endInterpolation src)
+      EndBegin loc src expression -> replace loc (endBeginInterpolation src) <> onExpression n expression
 
-    unescape :: String -> DString
-    unescape = fromString . unescapeString . init . tail
+    unescape :: String -> (Maybe DString)
+    unescape (init . tail -> string)
+      | null string = Nothing
+      | otherwise = Just (fromString $ unescapeString string)
 
-    beginInterpolation :: DString
-    beginInterpolation = "\" <> Solid.ToString.toString ("
+    beginInterpolation :: String -> DString
+    beginInterpolation src = literal <> "Solid.ToString.toString ("
+      where
+        literal = case unescape src of
+          Nothing -> ""
+          Just string -> "\"" <> string <> "\" <> "
 
-    endInterpolation :: DString
-    endInterpolation = ") <> \""
+    endInterpolation :: String -> DString
+    endInterpolation src = case unescape src of
+      Nothing -> "))"
+      Just string -> ") <> \"" <> string <> "\")"
+
+    endBeginInterpolation :: String -> DString
+    endBeginInterpolation src = ") <> " <> beginInterpolation src
 
     replace :: BufferSpan -> DString -> DList Edit
     replace loc = singleton . replaceBufferSpan loc . (.build)
@@ -288,8 +299,8 @@ lambdaAbstract = lambda . countAbstractions
   where
     lambda :: Int -> DString
     lambda n
-      | n == 0 = "(\""
-      | otherwise = "(\\" <> params <> " -> \""
+      | n == 0 = "("
+      | otherwise = "(\\" <> params <> " -> "
       where
         params :: DString
         params = concatMap formatParam [1..n]
