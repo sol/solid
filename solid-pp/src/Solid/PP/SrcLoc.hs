@@ -1,10 +1,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StrictData #-}
 module Solid.PP.SrcLoc (
-  WithBufferSpan
+  SrcLoc(..)
+, fromRealSrcLoc
+
+, WithBufferSpan
 , GenLocated(..)
 , unLoc
 , getLoc
@@ -18,12 +22,25 @@ import           Prelude ()
 import           Solid.PP.IO
 
 import           GHC.Data.FastString (unpackFS)
-import           GHC.Types.SrcLoc hiding (srcSpanStart, srcSpanEnd)
+import           GHC.Types.SrcLoc hiding (SrcLoc, srcSpanStart, srcSpanEnd)
+
+data SrcLoc = SrcLoc {
+  file :: ~FilePath
+, line :: Int
+, column :: Int
+} deriving (Eq, Show, Ord)
+
+fromRealSrcLoc :: RealSrcLoc -> SrcLoc
+fromRealSrcLoc loc = SrcLoc {
+  file = unpackFS (srcLocFile loc)
+, line = srcLocLine loc
+, column = srcLocCol loc
+}
 
 type WithBufferSpan = GenLocated BufferSpan
 
 newtype StartColumn = StartColumn Int
-  deriving newtype (Eq, Show, Num)
+  deriving newtype (Eq, Show, Num, Ord)
 
 data BufferSpan = BufferSpan {
   file :: ~FilePath
@@ -33,7 +50,7 @@ data BufferSpan = BufferSpan {
 , endLine :: Int
 , startColumn :: StartColumn
 , endColumn :: Int
-} deriving (Eq, Show)
+} deriving (Eq, Show, Ord)
 
 instance HasField "length" BufferSpan Int where
   getField loc = loc.end - loc.start

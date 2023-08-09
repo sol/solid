@@ -44,7 +44,7 @@ import           GHC.Data.FastString as FastString
 import           GHC.Types.SourceText
 import           GHC.Data.StringBuffer hiding (cur)
 import           GHC.LanguageExtensions
-import           GHC.Types.SrcLoc
+import           GHC.Types.SrcLoc hiding (SrcLoc)
 import           GHC.Utils.Error
 import           GHC.Utils.Outputable (defaultSDocContext)
 import           GHC.Driver.Errors.Types
@@ -109,7 +109,7 @@ applyLanguageFlag = \ case
 
 data LexerResult = LexerResult {
   tokens :: [WithBufferSpan Token]
-, end :: RealSrcLoc
+, end :: SrcLoc
 , errors :: String
 }
 
@@ -124,7 +124,7 @@ tokenize languageFlags src input = do
   case lexTokenStream opts buffer loc of
     POk state a -> return LexerResult {
       tokens = a
-    , end = psRealLoc state.loc
+    , end = fromRealSrcLoc $ psRealLoc state.loc
     , errors = errors state
     }
 

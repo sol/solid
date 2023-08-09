@@ -16,8 +16,6 @@ module Solid.PP.Parser (
 import           Prelude ()
 import           Solid.PP.IO hiding (error)
 
-import           GHC.Types.SrcLoc
-
 import           Solid.PP.Lexer hiding (Token)
 import qualified Solid.PP.Lexer as Lexer
 
@@ -32,12 +30,12 @@ data Error = UnterminatedStringInterpolation
 error :: Error -> Result a
 error = Left
 
-renderError :: RealSrcLoc -> Error -> String
+renderError :: SrcLoc -> Error -> String
 renderError loc = (renderLoc loc <>) . \ case
   UnterminatedStringInterpolation -> "unterminated string interpolation"
 
-renderLoc :: RealSrcLoc -> String
-renderLoc loc = unpackFS (srcLocFile loc) <> ":" <> show (srcLocLine loc) <> ":" <> show (srcLocCol loc) <> ": "
+renderLoc :: SrcLoc -> String
+renderLoc loc = loc.file <> ":" <> show loc.line <> ":" <> show loc.column <> ": "
 
 parse :: [LanguageFlag] -> FilePath -> Text -> Either String [Node]
 parse extensions src input = do
