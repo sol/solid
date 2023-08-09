@@ -32,6 +32,11 @@ spec = do
     token = Token ()
 
   describe "parse" $ do
+    it "accepts a literal string" $ do
+      parse "\"foo\"" `shouldBe` [
+          LiteralString (Literal () "\"foo\"")
+        ]
+
     it "accepts a string with interpolation" $ do
       parse "\"foo {bar} baz\"" `shouldBe` [
           begin "\"foo {" $ [token "bar"] $ end "} baz\""

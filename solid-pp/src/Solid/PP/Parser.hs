@@ -1,5 +1,7 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Parser (
   parse
@@ -14,21 +16,49 @@ module Solid.PP.Parser (
 ) where
 
 import           Prelude ()
-import           Solid.PP.IO hiding (error)
+import           Solid.PP.IO hiding (try, error, some, many)
+
+import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.Set as Set
+import qualified Text.Megaparsec as P (parse, token)
+import           Text.Megaparsec hiding (Token, token, parse, some)
 
 import           Solid.PP.Lexer hiding (Token)
 import qualified Solid.PP.Lexer as Lexer
 
+import qualified GHC.Types.Basic as GHC
+import qualified GHC.Hs.DocString as GHC
+import qualified GHC.Types.SrcLoc as GHC
+import qualified GHC.Data.FastString as GHC
+
 deriving instance Eq Lexer.Token
+
+instance Ord FastString where
+  compare = GHC.lexicalCompareFS
+
+instance Eq FastZString where
+  a == b = GHC.fastZStringToByteString a == GHC.fastZStringToByteString b
+
+instance Ord FastZString where
+  compare a b = compare (GHC.fastZStringToByteString a) (GHC.fastZStringToByteString b)
+
+deriving instance Ord Lexer.Token
+deriving instance Ord GHC.InlineSpec
+deriving instance Ord SourceText
+deriving instance Ord GHC.RuleMatchInfo
+deriving instance Ord GHC.HsDocString
+deriving instance Ord GHC.SrcSpan
+deriving instance Ord GHC.UnhelpfulSpanReason
+
+type Parser = Parsec Error [Token]
 
 type Token = WithBufferSpan Lexer.Token
 
-type Result = Either Error
-
 data Error = UnterminatedStringInterpolation
+  deriving (Eq, Show, Ord)
 
-error :: Error -> Result a
-error = Left
+error :: Error -> Parser a
+error = fancyFailure . Set.singleton . ErrorCustom
 
 renderError :: SrcLoc -> Error -> String
 renderError loc = (renderLoc loc <>) . \ case
@@ -40,43 +70,52 @@ renderLoc loc = loc.file <> ":" <> show loc.line <> ":" <> show loc.column <> ":
 parse :: [LanguageFlag] -> FilePath -> Text -> Either String [Node]
 parse extensions src input = do
   result <- tokenize extensions src input
-  case parseNodes result.tokens of
-    Left err -> Left $ renderError result.end err
+  case P.parse (many pNode) src result.tokens of
+    Left err -> Left $ case NonEmpty.head err.bundleErrors of
+      FancyError _ (Set.toList -> ErrorCustom e : _) -> renderError result.end e
+      _ -> show err
     Right r -> Right r
 
-parseNodes :: [Token] -> Result [Node]
-parseNodes = parseNodeThen onNode onEndOfInput
+token :: (Token -> Maybe a) -> Parser a
+token = (`P.token` mempty)
+
+pNode :: Parser Node
+pNode = pLiteralString <|> pInterpolatedString <|> pAnyToken
+
+pLiteralString :: Parser Node
+pLiteralString = token \ case
+  L loc (ITstring (SourceText src) _) -> Just $ LiteralString (Literal loc src)
+  _ -> Nothing
+
+pInterpolatedString :: Parser Node
+pInterpolatedString = pTokenBegin <*> pExpression
   where
-    onNode :: Node -> [Token] -> Result [Node]
-    onNode node tokens = (node :) <$> parseNodes tokens
+    pExpression :: Parser Expression
+    pExpression = Expression <$> many pNode <*> (pEnd <|> error UnterminatedStringInterpolation)
 
-    onEndOfInput :: Result [Node]
-    onEndOfInput = return []
+    pEnd :: Parser (End BufferSpan)
+    pEnd = pTokenEnd <|> pTokenEndBegin <*> pExpression
 
-parseNodeThen :: (Node -> [Token] -> Result r) -> Result r -> [Token] -> Result r
-parseNodeThen onNode onEndOfInput = \ case
-  TokenBegin loc src : tokens -> interpolatedStringBegin loc src onNode tokens
-  L loc (ITstring (SourceText src) _) : tokens -> onNode (LiteralString $ Literal loc src) tokens
-  L loc token : tokens -> onNode (Token loc token) tokens
-  [] -> onEndOfInput
+pAnyToken :: Parser Node
+pAnyToken = token \ case
+  TokenEndBegin {} -> Nothing
+  TokenEnd {} -> Nothing
+  L loc t -> Just $ Token loc t
 
-interpolatedStringBegin :: BufferSpan -> String -> (Node -> [Token] -> Result r) -> [Token] -> Result r
-interpolatedStringBegin loc src = beginInterpolation (LiteralString . Begin loc src)
+pTokenBegin :: Parser (Expression -> Node)
+pTokenBegin = token \ case
+  TokenBegin loc src -> Just $ LiteralString . Begin loc src
+  _ -> Nothing
 
-beginInterpolation :: forall inter r. (Expression -> inter) -> (inter -> [Token] -> Result r) -> [Token] -> Result r
-beginInterpolation cont = parseExpression $ \ nodes end -> cont (Expression nodes end)
+pTokenEnd :: Parser (End BufferSpan)
+pTokenEnd = token \ case
+  TokenEnd loc src -> Just (End loc src)
+  _ -> Nothing
 
-parseExpression :: forall inter r. ([Node] -> End BufferSpan -> inter) -> (inter -> [Token] -> Result r) -> [Token] -> Result r
-parseExpression onExpressionDone onStringDone = \ case
-  TokenEnd loc src : tokens -> onStringDone (onExpressionDone [] (End loc src)) tokens
-  TokenEndBegin loc src : tokens -> beginInterpolation (onExpressionDone [] . EndBegin loc src) onStringDone tokens
-  tokens -> parseNodeThen moreExpressionsNodes onEndOfInput tokens
-    where
-      moreExpressionsNodes :: Node -> [Token] -> Result r
-      moreExpressionsNodes node = parseExpression (onExpressionDone . (node :)) onStringDone
-
-      onEndOfInput :: Result r
-      onEndOfInput = error UnterminatedStringInterpolation
+pTokenEndBegin :: Parser (Expression -> End BufferSpan)
+pTokenEndBegin = token \ case
+  TokenEndBegin loc src -> Just (EndBegin loc src)
+  _ -> Nothing
 
 pattern TokenBegin :: BufferSpan -> String -> Token
 pattern TokenBegin loc src <- L loc (ITstring_interpolation_begin (SourceText src) _)

@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.35.4.
 --
 -- see: https://github.com/sol/hpack
 
@@ -42,6 +42,7 @@ library
     , containers
     , ghc ==9.6.2
     , ghc-boot
+    , megaparsec
     , text
     , transformers
   default-language: GHC2021
@@ -64,6 +65,7 @@ executable solid-pp
     , containers
     , ghc ==9.6.2
     , ghc-boot
+    , megaparsec
     , solid-pp
     , text
     , transformers
@@ -114,6 +116,7 @@ test-suite spec
     , ghc-boot
     , hspec ==2.*
     , hspec-expectations >=0.8.3
+    , megaparsec
     , mockery
     , text
     , transformers

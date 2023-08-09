@@ -22,6 +22,7 @@ dependencies:
   - ghc-boot
   - text
   - bytestring
+  - megaparsec
 
 build-tools: alex
 
