@@ -129,7 +129,9 @@ pattern TokenEndBegin loc src <- L loc (ITstring_interpolation_end_begin (Source
 type Node = NodeWith BufferSpan
 type Expression = ExpressionWith BufferSpan
 
-data NodeWith loc = Token loc Lexer.Token | LiteralString (LiteralString loc)
+data NodeWith loc =
+    Token loc Lexer.Token
+  | LiteralString (LiteralString loc)
   deriving (Eq, Show, Functor)
 
 data LiteralString loc = Literal loc String | Begin loc String (ExpressionWith loc)
