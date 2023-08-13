@@ -139,22 +139,22 @@ addImplicitImports nodes = case parseModuleHeader nodes of
     insert offset = Replace Nothing offset 0
 
 usedModules :: [Node] -> Set Module
-usedModules = flip modules Set.empty
+usedModules = Set.fromList . (.build) . fromNodes
   where
-    modules :: [Node] -> Set Module -> Set Module
-    modules nodes ms = foldl' (flip fromNodes) ms nodes
+    fromNodes :: [Node] -> DList Module
+    fromNodes = concatMap fromNode
 
-    fromNodes :: Node -> Set Module -> Set Module
-    fromNodes = \ case
-      Token _ (ITqvarid (m, _)) -> Set.insert (Module m)
-      Token _ _ -> id
-      LiteralString (Begin _ _ expression) -> (Set.singleton toStringModule <>) . fromExpression expression
-      LiteralString (Literal _ _) -> id
+    fromNode :: Node -> DList Module
+    fromNode = \ case
+      Token _ (ITqvarid (m, _)) -> singleton (Module m)
+      Token _ _ -> mempty
+      LiteralString (Begin _ _ expression) -> singleton toStringModule <> fromExpression expression
+      LiteralString (Literal _ _) -> mempty
 
-    fromExpression :: Expression -> Set Module -> Set Module
-    fromExpression (Expression nodes end) = modules nodes . case end of
+    fromExpression :: Expression -> DList Module
+    fromExpression (Expression nodes end) = fromNodes nodes <> case end of
       EndBegin _ _ expression -> fromExpression expression
-      End _ _ -> id
+      End _ _ -> mempty
 
 data ModuleHeader = Empty | ModuleHeader (Maybe Module) Int FilePath Int | NoModuleHeader Int FilePath Int
   deriving (Eq, Show)
@@ -163,33 +163,31 @@ parseModuleHeader :: [Node] -> ModuleHeader
 parseModuleHeader nodes = afterExportList
   where
     afterExportList :: ModuleHeader
-    afterExportList = case dropWhile (token (/= ITmodule)) nodes of
-      Token _ ITmodule : rest -> case dropWhile (token (/= ITwhere)) rest of
-        Token loc ITwhere : _ -> do
+    afterExportList = case seekTo ITmodule nodes of
+      Just (_, rest) -> case seekTo ITwhere rest of
+        Just (loc, _) -> do
           let
             self :: Maybe Module
-            self = case dropWhile (token isComment) rest of
+            self = case rest of
               Token _ (ITconid name) : _ -> Just (Module name)
               Token _ (ITqconid (qualified, name)) : _ -> Just (Module $ qualified <> "." <> name)
               _ -> Nothing
           ModuleHeader self loc.end loc.file loc.endLine
-        _ -> Empty
-      _ -> afterLanguagePragmas
+        Nothing -> Empty
+      Nothing -> case nodes of
+        Token loc _ : _ -> NoModuleHeader loc.start loc.file loc.startLine
+        LiteralString (Literal loc _) : _ -> NoModuleHeader loc.start loc.file loc.startLine
+        LiteralString (Begin loc _ _) : _ -> NoModuleHeader loc.start loc.file loc.startLine
+        [] -> Empty
 
-    afterLanguagePragmas :: ModuleHeader
-    afterLanguagePragmas = case dropWhile (token isComment) nodes of
-      Token loc _ : _ -> NoModuleHeader loc.start loc.file loc.startLine
-      _ -> Empty
+seekTo :: Token -> [Node] -> Maybe (BufferSpan, [Node])
+seekTo t nodes = case dropWhile (not . isToken t) nodes of
+  Token loc _ : rest -> Just (loc, rest)
+  _ -> Nothing
 
-isComment :: Token -> Bool
-isComment = \ case
-  ITlineComment {} -> True
-  ITblockComment {} -> True
-  _ -> False
-
-token :: (Token -> Bool) -> Node -> Bool
-token p = \ case
-  Token _ t -> p t
+isToken :: Token -> Node -> Bool
+isToken expected = \ case
+  Token _ actual -> actual == expected
   LiteralString {} -> False
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
@@ -237,36 +235,36 @@ unescapeStringLiteral loc old
     new = unescapeString old
 
 pp :: [Node] -> [Edit]
-pp = (.build) . onNodes
+pp = (.build) . ppNodes
   where
-    onNodes :: [Node] -> DList Edit
-    onNodes = concatMap onNode
+    ppNodes :: [Node] -> DList Edit
+    ppNodes = concatMap ppNode
 
-    onNode :: Node -> DList Edit
-    onNode = \ case
-      Token loc t -> onToken loc t
-      LiteralString string -> onLiteralString string
+    ppNode :: Node -> DList Edit
+    ppNode = \ case
+      Token loc t -> ppToken loc t
+      LiteralString string -> ppLiteralString string
 
-    onToken :: BufferSpan -> Token -> DList Edit
-    onToken loc = \ case
+    ppToken :: BufferSpan -> Token -> DList Edit
+    ppToken loc = \ case
       ITvarid identifier -> desugarIdentifier loc.start loc.end identifier
       ITqvarid (succ . lengthFS -> offset, identifier) -> desugarIdentifier (loc.start + offset) loc.end identifier
       _ -> mempty
 
-    onLiteralString :: LiteralString BufferSpan -> DList Edit
-    onLiteralString = \ case
+    ppLiteralString :: LiteralString BufferSpan -> DList Edit
+    ppLiteralString = \ case
       Literal loc src -> unescapeStringLiteral loc src
-      Begin loc src expression -> replace loc (lambdaAbstract expression <> beginInterpolation src) <> onExpression 1 expression
+      Begin loc src expression -> replace loc (lambdaAbstract expression <> beginInterpolation src) <> ppExpression 1 expression
 
-    onExpression :: Int -> Expression -> DList Edit
-    onExpression n = \ case
-      Expression [] end -> insert end.loc (abstractionParam n "") <> onEnd (succ n) end
-      Expression nodes end -> onNodes nodes <> onEnd n end
+    ppExpression :: Int -> Expression -> DList Edit
+    ppExpression n = \ case
+      Expression [] end -> insert end.loc (abstractionParam n "") <> ppEnd (succ n) end
+      Expression nodes end -> ppNodes nodes <> ppEnd n end
 
-    onEnd :: Int -> End BufferSpan -> DList Edit
-    onEnd n = \ case
+    ppEnd :: Int -> End BufferSpan -> DList Edit
+    ppEnd n = \ case
       End loc src -> replace loc (endInterpolation src)
-      EndBegin loc src expression -> replace loc (endBeginInterpolation src) <> onExpression n expression
+      EndBegin loc src expression -> replace loc (endBeginInterpolation src) <> ppExpression n expression
 
     unescape :: String -> (Maybe DString)
     unescape (init . tail -> string)

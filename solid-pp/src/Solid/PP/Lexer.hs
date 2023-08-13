@@ -70,7 +70,7 @@ lookupExtension :: String -> Maybe Extension
 lookupExtension = (`Map.lookup` allExtensions)
 
 makeOpts :: EnumSet Extension -> ParserOpts
-makeOpts extensions = mkParserOpts extensions diagOpts allowedExtensions False True True True
+makeOpts extensions = mkParserOpts extensions diagOpts allowedExtensions False False False True
   where
     allowedExtensions = Map.keys allExtensions ++ map ("No" <>) (Map.keys allExtensions)
 
