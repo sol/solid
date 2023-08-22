@@ -111,6 +111,7 @@ test-suite spec
     , array
     , base ==4.*
     , bytestring
+    , call-stack
     , containers
     , ghc ==9.6.2
     , ghc-boot

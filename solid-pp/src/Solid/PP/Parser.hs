@@ -1,6 +1,10 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Parser (
@@ -18,12 +22,14 @@ module Solid.PP.Parser (
 import           Prelude ()
 import           Solid.PP.IO hiding (try, error, some, many)
 
+import           Data.List hiding (lines)
+import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Set as Set
-import qualified Text.Megaparsec as P (parse, token)
-import           Text.Megaparsec hiding (Token, token, parse, some)
+import qualified Text.Megaparsec as P
+import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest, some)
 
-import           Solid.PP.Lexer hiding (Token)
+import           Solid.PP.Lexer hiding (Token, tokens)
 import qualified Solid.PP.Lexer as Lexer
 
 import qualified GHC.Types.Basic as GHC
@@ -50,9 +56,81 @@ deriving instance Ord GHC.HsDocString
 deriving instance Ord GHC.SrcSpan
 deriving instance Ord GHC.UnhelpfulSpanReason
 
-type Parser = Parsec Error [Token]
+type Parser = Parsec Error TokenStream
 
 type Token = WithBufferSpan Lexer.Token
+
+data TokenStream = TokenStream {
+  original :: Text
+, tokens :: [Token]
+}
+
+instance Stream TokenStream where
+  type Token TokenStream = Token
+  type Tokens TokenStream = [Token]
+
+  tokenToChunk Proxy = pure
+  tokensToChunk Proxy = id
+  chunkToTokens Proxy = id
+  chunkLength Proxy = length
+  chunkEmpty Proxy = null
+
+  take1_ (TokenStream original tokens) = case tokens of
+    [] -> Nothing
+    t : ts -> Just (t, TokenStream original ts)
+
+  takeN_ n stream@(TokenStream original tokens)
+    | n <= 0 = Just ([], stream)
+    | null tokens = Nothing
+    | otherwise = Just $ TokenStream original <$> splitAt n tokens
+
+  takeWhile_ p stream = TokenStream stream.original <$> span p stream.tokens
+
+instance VisualStream TokenStream where
+  showTokens :: Proxy TokenStream -> NonEmpty Token -> String
+  showTokens Proxy = intercalate " " . map (showToken . unLoc) . NonEmpty.toList
+
+instance TraversableStream TokenStream where
+  reachOffset offset (reachOffsetNoLine offset -> state) = (sourceLine, state)
+    where
+      sourceLine :: Maybe String
+      sourceLine = getSourceLine state.pstateSourcePos.sourceLine state.pstateInput.original
+
+      getSourceLine :: Pos -> Text -> Maybe String
+      getSourceLine (pred . unPos -> n) = fmap unpack . listToMaybe . drop n . lines
+
+  reachOffsetNoLine n PosState{..} = PosState {
+      pstateInput = pstateInput { tokens }
+    , pstateOffset = offset
+    , pstateSourcePos = sourcePos
+    , pstateTabWidth = pstateTabWidth
+    , pstateLinePrefix = pstateLinePrefix
+    }
+    where
+      offset :: Int
+      offset = max pstateOffset n
+
+      tokens :: [Token]
+      tokens = drop (offset - pstateOffset) pstateInput.tokens
+
+      sourcePos :: SourcePos
+      sourcePos = case tokens of
+        [] -> case reverse pstateInput.tokens of
+          L loc _ : _ -> loc.endLoc.toSourcePos
+          [] -> pstateSourcePos
+        (L loc _ : _) -> loc.startLoc.toSourcePos
+
+instance HasField "toSourcePos" SrcLoc SourcePos where
+  getField loc = SourcePos loc.file (mkPos loc.line) (mkPos loc.column)
+
+showToken :: Lexer.Token -> String
+showToken = \ case
+  ITcbrack -> "]"
+  t -> show t
+
+instance ShowErrorComponent Error where
+  showErrorComponent = \ case
+    UnterminatedStringInterpolation -> "unterminated string interpolation"
 
 data Error = UnterminatedStringInterpolation
   deriving (Eq, Show, Ord)
@@ -60,20 +138,14 @@ data Error = UnterminatedStringInterpolation
 error :: Error -> Parser a
 error = fancyFailure . Set.singleton . ErrorCustom
 
-renderError :: SrcLoc -> Error -> String
-renderError loc = (renderLoc loc <>) . \ case
-  UnterminatedStringInterpolation -> "unterminated string interpolation"
-
-renderLoc :: SrcLoc -> String
-renderLoc loc = loc.file <> ":" <> show loc.line <> ":" <> show loc.column <> ": "
-
 parse :: [LanguageFlag] -> FilePath -> Text -> Either String [Node]
 parse extensions src input = do
   result <- tokenize extensions src input
-  case P.parse (many pNode) src result.tokens of
-    Left err -> Left $ case NonEmpty.head err.bundleErrors of
-      FancyError _ (Set.toList -> ErrorCustom e : _) -> renderError result.end e
-      _ -> show err
+  let
+    stream :: TokenStream
+    stream = TokenStream input result.tokens
+  case P.parse (many pNode <* eof) src stream of
+    Left err -> Left $ errorBundlePretty err
     Right r -> Right r
 
 token :: (Token -> Maybe a) -> Parser a

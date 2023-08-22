@@ -124,7 +124,7 @@ tokenize languageFlags src input = do
   case lexTokenStream opts buffer loc of
     POk state a -> return LexerResult {
       tokens = a
-    , end = fromRealSrcLoc $ psRealLoc state.loc
+    , end = fromPsLoc state.loc
     , errors = errors state
     }
 
