@@ -33,7 +33,7 @@ data Console = Console {
 }
 
 instance HasField "command" Console (FilePath -> [String] -> Process.Config () () ()) where
-  getField console name args = ((Process.command name args).stdout.useHandle console.handle).stderr.useHandle console.handle
+  getField console name args = (Process.command name args).stdout.useHandle(console.handle).stderr.useHandle console.handle
 
 withConsole :: (Console -> IO a) -> IO a
 withConsole = with console
@@ -73,7 +73,7 @@ solid mode self args = withConsole $ \ console -> do
     let options = ghcOptions self packageEnv args
     case mode of
       GhcOptions -> stdout.print options.unlines
-      Doctest -> doctest (options.map unpack)
+      Doctest -> doctest options.map(unpack)
       With command -> (Process.command command options).with Process.status >>= throwIO
       Run -> (Process.command (ghc_dir </> "runghc") options).with Process.status >>= throwIO
 
@@ -107,7 +107,7 @@ find_ghc console self = do
     let resolver = tmp </> "stackage.yaml"
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
     ghc_dir <- (stack ["--resolver={resolver}", "path", "--compiler-bin"]).with Process.stdout
-      <* console.info "{(String.ansi "✔").green}\n"
+      <* console.info "{String.ansi("✔").green}\n"
     return ghc_dir.strip.asFilePath
   where
     stack :: [String] -> Process.Config () (IO ByteString) ()

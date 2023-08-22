@@ -13,7 +13,6 @@ module Solid.PP.SrcLoc (
 , unLoc
 , getLoc
 
-, StartColumn(..)
 , BufferSpan(..)
 , toBufferSpan
 ) where
@@ -21,7 +20,6 @@ module Solid.PP.SrcLoc (
 import           Prelude ()
 import           Solid.PP.IO
 
-import           Data.Coerce (coerce)
 import           GHC.Data.FastString (unpackFS)
 import           GHC.Types.SrcLoc hiding (SrcLoc, srcSpanStart, srcSpanEnd)
 
@@ -42,18 +40,25 @@ fromPsLoc loc = SrcLoc {
 
 type WithBufferSpan = GenLocated BufferSpan
 
-newtype StartColumn = StartColumn Int
-  deriving newtype (Eq, Show, Num, Ord)
-
 data BufferSpan = BufferSpan {
   file :: ~FilePath
 , start :: Int
 , end :: Int
 , startLine :: Int
 , endLine :: Int
-, startColumn :: StartColumn
+, startColumn :: Int
 , endColumn :: Int
 } deriving (Eq, Show, Ord)
+
+instance Semigroup BufferSpan where
+  a <> b = a.merge b
+
+instance HasField "merge" BufferSpan (BufferSpan -> BufferSpan) where
+  getField start end = start {
+      end = end.end
+    , endLine = end.endLine
+    , endColumn = end.endColumn
+    }
 
 instance HasField "length" BufferSpan Int where
   getField loc = loc.end - loc.start
@@ -63,7 +68,7 @@ instance HasField "startLoc" BufferSpan SrcLoc where
       file = loc.file
     , offset = loc.start
     , line = loc.startLine
-    , column = coerce loc.startColumn
+    , column = loc.startColumn
     }
 
 instance HasField "endLoc" BufferSpan SrcLoc where
@@ -74,13 +79,6 @@ instance HasField "endLoc" BufferSpan SrcLoc where
     , column = loc.endColumn
     }
 
-instance HasField "merge" BufferSpan (BufferSpan -> BufferSpan) where
-  getField start end = start {
-      end = end.end
-    , endLine = end.endLine
-    , endColumn = end.endColumn
-    }
-
 toBufferSpan :: PsSpan -> BufferSpan
 toBufferSpan PsSpan{..} = BufferSpan {
   file = unpackFS $ srcLocFile srcSpanStart
@@ -88,7 +86,7 @@ toBufferSpan PsSpan{..} = BufferSpan {
 , end = bufPos $ bufSpanEnd psBufSpan
 , startLine = srcLocLine srcSpanStart
 , endLine = srcLocLine srcSpanEnd
-, startColumn = StartColumn $ srcLocCol srcSpanStart
+, startColumn = srcLocCol srcSpanStart
 , endColumn = srcLocCol srcSpanEnd
 }
   where

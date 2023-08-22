@@ -3,8 +3,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE NoFieldSelectors #-}
 module Solid.PP.Edit (
-  StartColumn(..)
-, Edit(..)
+  Edit(..)
 , edit
 , columnPragma
 ) where
@@ -14,10 +13,11 @@ import           Solid.PP.IO
 import           Data.List
 import qualified Data.Text as T
 
-import           Solid.PP.SrcLoc (StartColumn(..))
+newtype StartColumn = StartColumn Int
+  deriving newtype (Eq, Show, Num, Ord)
 
 data Edit = Replace {
-  startColumn :: Maybe StartColumn
+  startColumn :: Maybe Int
 , start :: Int
 , old :: Int
 , new :: Text
@@ -40,14 +40,13 @@ edit h input = go 0 . sortOn (.start)
     put = hPutStr h
 
     putColumnPragma :: StartColumn -> IO ()
-    putColumnPragma (T.pack . show -> col) = do
-      put "{-# COLUMN " >> put col >> put " #-}"
+    putColumnPragma (T.pack . show -> col) = put "{-# COLUMN " >> put col >> put " #-}"
 
 columnPragma :: Text -> Edit -> Maybe StartColumn
 columnPragma input (Replace startColumn offset old (T.length -> new))
   | pragma == actual = Nothing
   | workaroundForGhcIssue23040 = Nothing
-  | otherwise = pragma
+  | otherwise = StartColumn <$> pragma
   where
     pragma = (fromIntegral old +) <$> startColumn
     actual = (fromIntegral new +) <$> startColumn

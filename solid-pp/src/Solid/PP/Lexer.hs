@@ -1,4 +1,5 @@
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE StrictData #-}
@@ -13,7 +14,7 @@ module Solid.PP.Lexer (
 , applyLanguagePragmas
 
 , LexerResult(..)
-, Token(..)
+, Token(.., InfixProjection, PrefixProjection)
 , SourceError
 , tokenize
 
@@ -29,6 +30,7 @@ module Solid.PP.Lexer (
 import           Prelude ()
 import           Solid.PP.IO
 
+import           Data.Function
 import           Data.List (stripPrefix)
 import qualified Data.Text.Encoding as T
 
@@ -119,11 +121,23 @@ language = GHC2021
 defaultExtensions :: EnumSet Extension
 defaultExtensions = EnumSet.fromList (languageExtensions (Just language))
 
+pattern InfixProjection :: Token
+pattern InfixProjection = ITproj False
+
+pattern PrefixProjection :: Token
+pattern PrefixProjection = ITproj True
+
+change_any_projections_after_a_trailing_bang_to_infix :: [WithBufferSpan Token] -> [WithBufferSpan Token]
+change_any_projections_after_a_trailing_bang_to_infix = fix $ \ rec -> \ case
+  identifier@(L identifier_loc ITvarid {}) : L loc PrefixProjection : tokens | identifier_loc.end == loc.start -> identifier : L loc InfixProjection : rec tokens
+  token : tokens -> token : rec tokens
+  [] -> []
+
 tokenize :: [LanguageFlag] -> FilePath -> Text -> Either String LexerResult
 tokenize languageFlags src input = do
   case lexTokenStream opts buffer loc of
-    POk state a -> return LexerResult {
-      tokens = a
+    POk state tokens -> return LexerResult {
+      tokens = change_any_projections_after_a_trailing_bang_to_infix tokens
     , end = fromPsLoc state.loc
     , errors = errors state
     }

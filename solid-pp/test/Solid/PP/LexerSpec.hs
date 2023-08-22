@@ -69,8 +69,15 @@ spec = do
     it "accepts question marks at the end of identifiers" $ do
       tokenize "foo?" `shouldBe` ["foo?"]
 
-    it "accepts bangs at the end of identifiers" $ do
-      tokenize "foo!" `shouldBe` ["foo!"]
+    context "when parsing identifiers that end with a bang" $ do
+      it "accepts bangs at the end of identifiers" $ do
+        tokenize "foo!" `shouldBe` ["foo!"]
+
+      it "accepts infix dot syntax" $ do
+        tokenize "foo!.bar!" `shouldBe` ["foo!", InfixProjection, "bar!"]
+
+      it "accepts prefix dot syntax" $ do
+        tokenize "foo! .bar!" `shouldBe` ["foo!", PrefixProjection, "bar!"]
 
     context "when parsing string literals" $ do
       let

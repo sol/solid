@@ -12,6 +12,10 @@ module Solid.PP.Parser (
 
 , Node
 , Expression
+, Subject(..)
+, BracketStyle(..)
+, Arguments(..)
+, MethodCall(..)
 
 , NodeWith(..)
 , LiteralString(..)
@@ -22,6 +26,7 @@ module Solid.PP.Parser (
 import           Prelude ()
 import           Solid.PP.IO hiding (try, error, some, many)
 
+import           Data.Foldable1 (fold1)
 import           Data.List hiding (lines)
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
@@ -90,6 +95,9 @@ instance VisualStream TokenStream where
   showTokens :: Proxy TokenStream -> NonEmpty Token -> String
   showTokens Proxy = intercalate " " . map (showToken . unLoc) . NonEmpty.toList
 
+  tokensLength :: Proxy TokenStream -> NonEmpty Token -> Int
+  tokensLength Proxy = (.length) . fold1 . fmap getLoc
+
 instance TraversableStream TokenStream where
   reachOffset offset (reachOffsetNoLine offset -> state) = (sourceLine, state)
     where
@@ -131,8 +139,11 @@ showToken = \ case
 instance ShowErrorComponent Error where
   showErrorComponent = \ case
     UnterminatedStringInterpolation -> "unterminated string interpolation"
+    UnterminatedMethodCall -> "unterminated method call"
 
-data Error = UnterminatedStringInterpolation
+data Error =
+    UnterminatedStringInterpolation
+  | UnterminatedMethodCall
   deriving (Eq, Show, Ord)
 
 error :: Error -> Parser a
@@ -151,15 +162,43 @@ parse extensions src input = do
 token :: (Token -> Maybe a) -> Parser a
 token = (`P.token` mempty)
 
-pNode :: Parser Node
-pNode = pLiteralString <|> pInterpolatedString <|> pAnyToken
+require :: Lexer.Token -> Parser BufferSpan
+require expected = token \ case
+  L loc t | t == expected -> Just loc
+  _ -> Nothing
 
-pLiteralString :: Parser Node
+pNode :: Parser Node
+pNode = pMethodChain <|> pAnyToken
+
+pMethodChain :: Parser Node
+pMethodChain = MethodChain <$> pSubject <*> many pMethodCall
+
+pMethodCall :: Parser (MethodCall BufferSpan)
+pMethodCall = require InfixProjection *> do
+  (loc, name) <- varid
+  MethodCall loc name <$> pArguments loc
+
+pArguments :: BufferSpan -> Parser (Arguments BufferSpan)
+pArguments loc = arguments <|> pure NoArguments
+  where
+    arguments :: Parser (Arguments BufferSpan)
+    arguments = do
+      start <- token $ \ case
+        L start IToparen | loc.end == start.start -> Just start
+        _ -> Nothing
+      nodes <- many pNode
+      end <- cparen
+      return $ Arguments (start.merge end) [nodes]
+
+pSubject :: Parser (Subject BufferSpan)
+pSubject = pLiteralString <|> pInterpolatedString <|> pBracketed <|> pName <|> pQualifiedName
+
+pLiteralString :: Parser (Subject BufferSpan)
 pLiteralString = token \ case
   L loc (ITstring (SourceText src) _) -> Just $ LiteralString (Literal loc src)
   _ -> Nothing
 
-pInterpolatedString :: Parser Node
+pInterpolatedString :: Parser (Subject BufferSpan)
 pInterpolatedString = pTokenBegin <*> pExpression
   where
     pExpression :: Parser Expression
@@ -168,13 +207,66 @@ pInterpolatedString = pTokenBegin <*> pExpression
     pEnd :: Parser (End BufferSpan)
     pEnd = pTokenEnd <|> pTokenEndBegin <*> pExpression
 
+pBracketed :: Parser (Subject BufferSpan)
+pBracketed =
+      bracketed Round <$> oparen <*> many pNode <*> cparen
+  <|> bracketed Square <$> obrack <*> many pNode <*> cbrack
+  <|> bracketed Curly <$> ocurly <*> many pNode <*> ccurly
+  where
+    bracketed :: BracketStyle -> BufferSpan -> [Node] -> BufferSpan -> Subject BufferSpan
+    bracketed style start nodes end = Bracketed style (start.merge end) nodes
+
+pName :: Parser (Subject BufferSpan)
+pName = do
+  (loc, name) <- varid
+  Name loc name <$> pArguments loc
+
+pQualifiedName :: Parser (Subject BufferSpan)
+pQualifiedName = do
+  (loc, (module_, name)) <- qvarid
+  QualifiedName loc module_ name <$> pArguments loc
+
+varid :: Parser (BufferSpan, FastString)
+varid = token \ case
+  L loc (ITvarid name) -> Just (loc, name)
+  _ -> Nothing
+
+qvarid :: Parser (BufferSpan, (FastString, FastString))
+qvarid = token \ case
+  L loc (ITqvarid name) -> Just (loc, name)
+  _ -> Nothing
+
 pAnyToken :: Parser Node
 pAnyToken = token \ case
   TokenEndBegin {} -> Nothing
   TokenEnd {} -> Nothing
+  L _ IToparen -> Nothing
+  L _ ITcparen -> Nothing
+  L _ ITobrack -> Nothing
+  L _ ITcbrack -> Nothing
+  L _ ITocurly -> Nothing
+  L _ ITccurly -> Nothing
   L loc t -> Just $ Token loc t
 
-pTokenBegin :: Parser (Expression -> Node)
+oparen :: Parser BufferSpan
+oparen = require IToparen
+
+cparen :: Parser BufferSpan
+cparen = require ITcparen
+
+obrack :: Parser BufferSpan
+obrack = require ITobrack
+
+cbrack :: Parser BufferSpan
+cbrack = require ITcbrack
+
+ocurly :: Parser BufferSpan
+ocurly = require ITocurly
+
+ccurly :: Parser BufferSpan
+ccurly = require ITccurly
+
+pTokenBegin :: Parser (Expression -> Subject BufferSpan)
 pTokenBegin = token \ case
   TokenBegin loc src -> Just $ LiteralString . Begin loc src
   _ -> Nothing
@@ -203,7 +295,26 @@ type Expression = ExpressionWith BufferSpan
 
 data NodeWith loc =
     Token loc Lexer.Token
-  | LiteralString (LiteralString loc)
+  | MethodChain (Subject loc) [MethodCall loc]
+  deriving (Eq, Show, Functor)
+
+data Subject loc =
+    LiteralString (LiteralString loc)
+  | Bracketed BracketStyle loc [NodeWith loc]
+  | Name loc FastString (Arguments loc)
+  | QualifiedName loc FastString FastString (Arguments loc)
+  deriving (Eq, Show, Functor)
+
+data BracketStyle =
+    Round
+  | Square
+  | Curly
+  deriving (Eq, Show)
+
+data Arguments loc = NoArguments | Arguments loc [[NodeWith loc]]
+  deriving (Eq, Show, Functor)
+
+data MethodCall loc = MethodCall loc FastString (Arguments loc)
   deriving (Eq, Show, Functor)
 
 data LiteralString loc = Literal loc String | Begin loc String (ExpressionWith loc)
@@ -219,3 +330,16 @@ instance HasField "loc" (End loc) loc where
   getField = \ case
     End loc _ -> loc
     EndBegin loc _ _ -> loc
+
+instance HasField "start" Node SrcLoc where
+  getField = \ case
+    Token loc _ -> loc.startLoc
+    MethodChain subject _ -> subject.start
+
+instance HasField "start" (Subject BufferSpan) SrcLoc where
+  getField = \ case
+    LiteralString (Literal loc _) -> loc.startLoc
+    LiteralString (Begin loc _ _) -> loc.startLoc
+    Bracketed _ loc _ -> loc.startLoc
+    Name loc _ _ -> loc.startLoc
+    QualifiedName loc _ _ _ -> loc.startLoc

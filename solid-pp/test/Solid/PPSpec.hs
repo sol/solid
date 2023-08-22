@@ -55,6 +55,10 @@ spec = do
       it "extracts module name" $ do
         modules "foo = String.length" `shouldBe` Set.fromList ["String"]
 
+    context "within a function argument" $ do
+      it "extracts module names" $ do
+        modules "foo(String.length bar)" `shouldBe` Set.fromList ["String"]
+
     context "within an interpolated string" $ do
       it "extracts module names" $ do
         modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` Set.fromList ["Solid.ToString", "Bar", "Foo"]
@@ -292,6 +296,50 @@ spec = do
       context "with a qualified name" $ do
         it "desugars postfix bangs" $ do
           "foo = Bar.baz!" `shouldDesugarTo` "foo = Bar.bazᴉ"
+
+      context "within a function argument" $ do
+        it "desugars postfix bangs" $ do
+          "foo(Bar.baz!)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(Bar.bazᴉ)){-# COLUMN 14 #-}"
+
+    context "when pre-processing function calls" $ do
+      it "desugars function calls" $ do
+        "foo(bar baz)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(bar baz)){-# COLUMN 13 #-}"
+
+      context "with a qualified name" $ do
+        it "desugars function calls" $ do
+          "String.foo(bar)\n" `shouldDesugarTo` unlines [
+              "import qualified String"
+            , "{-# LINE 1 \"main.hs\" #-}"
+            , "({-# COLUMN 1 #-}String.foo(bar)){-# COLUMN 16 #-}"
+            ]
+
+    context "when pre-processing method chains" $ do
+      it "desugars method chains" $ do
+        "foo.bar(23).baz" `shouldDesugarTo` "({-# COLUMN 1 #-}foo.bar(23)).baz"
+
+      context "with a function call as the subject" $ do
+        it "desugars method chains" $ do
+          "foo(x).bar(y).baz(z)" `shouldDesugarTo` "(({-# COLUMN 1 #-}({-# COLUMN 1 #-}foo(x)).bar(y)).baz(z)){-# COLUMN 21 #-}"
+
+        context "with a qualified name" $ do
+          it "desugars method chains" $ do
+            "String.foo(x).bar(y).baz(z)\n" `shouldDesugarTo` unlines [
+                "import qualified String"
+              , "{-# LINE 1 \"main.hs\" #-}"
+              , "(({-# COLUMN 1 #-}({-# COLUMN 1 #-}String.foo(x)).bar(y)).baz(z)){-# COLUMN 28 #-}"
+              ]
+
+      context "with a string as the subject" $ do
+        it "desugars method chains" $ do
+          "\"foo\".bar(23).baz(42)" `shouldDesugarTo` "(({-# COLUMN 1 #-}\"foo\".bar(23)).baz(42)){-# COLUMN 22 #-}"
+
+      context "with a list as the subject" $ do
+        it "desugars method chains" $ do
+          "[foo].bar(23).baz(42)" `shouldDesugarTo` "(({-# COLUMN 1 #-}[foo].bar(23)).baz(42)){-# COLUMN 22 #-}"
+
+      context "with an expression in parentheses as the subject" $ do
+        it "desugars method chains" $ do
+          "(foo, bar).baz(23)" `shouldDesugarTo` "({-# COLUMN 1 #-}(foo, bar).baz(23)){-# COLUMN 19 #-}"
 
     context "when pre-processing string literals" $ do
       it "desugars string interpolation" $ do

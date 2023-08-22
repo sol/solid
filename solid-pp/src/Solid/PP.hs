@@ -148,8 +148,23 @@ usedModules = Set.fromList . (.build) . fromNodes . map void
     fromNode = \ case
       Token () (ITqvarid (m, _)) -> singleton (Module m)
       Token () (_ :: Token) -> mempty
+      MethodChain subject methodCalls -> fromSubject subject <> concatMap fromMethodCall methodCalls
+
+    fromSubject :: Subject () -> DList Module
+    fromSubject = \ case
       LiteralString (Begin () (_ :: String) expression) -> singleton toStringModule <> fromExpression expression
       LiteralString (Literal () (_ :: String)) -> mempty
+      Bracketed (_ :: BracketStyle) () nodes -> fromNodes nodes
+      Name () (_ :: FastString) arguments -> fromArguments arguments
+      QualifiedName () m (_ :: FastString) arguments -> singleton (Module m) <> fromArguments arguments
+
+    fromMethodCall :: MethodCall () -> DList Module
+    fromMethodCall (MethodCall () (_ :: FastString) arguments) = fromArguments arguments
+
+    fromArguments :: Arguments () -> DList Module
+    fromArguments = \ case
+      NoArguments -> mempty
+      Arguments () nodes -> concatMap fromNodes nodes
 
     fromExpression :: ExpressionWith () -> DList Module
     fromExpression (Expression nodes end) = fromNodes nodes <> case end of
@@ -175,9 +190,7 @@ parseModuleHeader nodes = afterExportList
           ModuleHeader self loc.end loc.file loc.endLine
         Nothing -> Empty
       Nothing -> case nodes of
-        Token loc _ : _ -> NoModuleHeader loc.start loc.file loc.startLine
-        LiteralString (Literal loc _) : _ -> NoModuleHeader loc.start loc.file loc.startLine
-        LiteralString (Begin loc _ _) : _ -> NoModuleHeader loc.start loc.file loc.startLine
+        node : _ -> NoModuleHeader node.start.offset node.start.file node.start.line
         [] -> Empty
 
 seekTo :: Token -> [Node] -> Maybe (BufferSpan, [Node])
@@ -188,7 +201,7 @@ seekTo t nodes = case dropWhile (not . isToken t) nodes of
 isToken :: Token -> Node -> Bool
 isToken expected = \ case
   Token _ actual -> actual == expected
-  LiteralString {} -> False
+  MethodChain {} -> False
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
 desugarIdentifier start end identifier
@@ -246,7 +259,36 @@ pp = (.build) . ppNodes
     ppNode :: Node -> DList Edit
     ppNode = \ case
       Token loc t -> ppToken loc t
+      node@(MethodChain subject methodCalls) -> insert node.start (replicate n '(') <> ppSubject subject <> concatMap ppMethodCall methodCalls
+        where
+          n :: Int
+          n = length $ filter hasArguments methodCalls
+
+          hasArguments :: MethodCall loc -> Bool
+          hasArguments = \ case
+            MethodCall _ _ NoArguments -> False
+            MethodCall _ _ Arguments{} -> True
+
+    ppSubject :: Subject BufferSpan -> DList Edit
+    ppSubject = \ case
       LiteralString string -> ppLiteralString string
+      Bracketed (_ :: BracketStyle) (_ :: BufferSpan) nodes -> concatMap ppNode nodes
+      Name start identifier arguments -> ppArguments start.startLoc (desugarIdentifier start.start start.end identifier) arguments
+      QualifiedName start module_ identifier arguments -> ppArguments start.startLoc (desugarQualifiedName start module_ identifier) arguments
+
+    ppArguments :: SrcLoc -> DList Edit -> Arguments BufferSpan -> DList Edit
+    ppArguments start subject arguments = open <> subject <> ppCloseArguments arguments
+      where
+        open = case arguments of
+          NoArguments -> mempty
+          Arguments {} -> insert start "("
+
+    ppMethodCall :: MethodCall BufferSpan -> DList Edit
+    ppMethodCall (MethodCall loc name arguments) = desugarIdentifier loc.start loc.end name <> ppCloseArguments arguments
+
+    ppCloseArguments :: Arguments BufferSpan -> DList Edit
+    ppCloseArguments NoArguments = mempty
+    ppCloseArguments (Arguments end nodes) = concatMap ppNodes nodes <> insert end.endLoc ")"
 
     ppToken :: BufferSpan -> Token -> DList Edit
     ppToken loc = \ case
@@ -293,7 +335,7 @@ pp = (.build) . ppNodes
     replace loc = singleton . replaceBufferSpan loc . (.build)
 
     insert :: SrcLoc -> String -> DList Edit
-    insert loc = singleton . Replace (Just $ StartColumn loc.column) loc.offset 0 . pack
+    insert loc = singleton . Replace (Just loc.column) loc.offset 0 . pack
 
 lambdaAbstract :: Expression -> DString
 lambdaAbstract = lambda . countAbstractions
