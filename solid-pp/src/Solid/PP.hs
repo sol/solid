@@ -138,23 +138,23 @@ addImplicitImports nodes = case parseModuleHeader nodes of
     insert :: Int -> Text -> Edit
     insert offset = Replace Nothing offset 0
 
-usedModules :: [Node] -> Set Module
-usedModules = Set.fromList . (.build) . fromNodes
+usedModules :: [NodeWith loc] -> Set Module
+usedModules = Set.fromList . (.build) . fromNodes . map void
   where
-    fromNodes :: [Node] -> DList Module
+    fromNodes :: [NodeWith ()] -> DList Module
     fromNodes = concatMap fromNode
 
-    fromNode :: Node -> DList Module
+    fromNode :: NodeWith () -> DList Module
     fromNode = \ case
-      Token _ (ITqvarid (m, _)) -> singleton (Module m)
-      Token _ _ -> mempty
-      LiteralString (Begin _ _ expression) -> singleton toStringModule <> fromExpression expression
-      LiteralString (Literal _ _) -> mempty
+      Token () (ITqvarid (m, _)) -> singleton (Module m)
+      Token () (_ :: Token) -> mempty
+      LiteralString (Begin () (_ :: String) expression) -> singleton toStringModule <> fromExpression expression
+      LiteralString (Literal () (_ :: String)) -> mempty
 
-    fromExpression :: Expression -> DList Module
+    fromExpression :: ExpressionWith () -> DList Module
     fromExpression (Expression nodes end) = fromNodes nodes <> case end of
-      EndBegin _ _ expression -> fromExpression expression
-      End _ _ -> mempty
+      EndBegin () (_ :: String) expression -> fromExpression expression
+      End () (_ :: String) -> mempty
 
 data ModuleHeader = Empty | ModuleHeader (Maybe Module) Int FilePath Int | NoModuleHeader Int FilePath Int
   deriving (Eq, Show)
@@ -216,6 +216,9 @@ desugarIdentifier start end identifier
     replace :: Text -> DList Edit
     replace = singleton . Replace Nothing start (end - start)
 
+desugarQualifiedName :: BufferSpan -> FastString -> FastString -> DList Edit
+desugarQualifiedName loc (succ . lengthFS -> offset) identifier = desugarIdentifier (loc.start + offset) loc.end identifier
+
 replaceBufferSpan :: BufferSpan -> String -> Edit
 replaceBufferSpan loc = Replace (Just loc.startColumn) loc.start loc.length . pack
 
@@ -248,7 +251,7 @@ pp = (.build) . ppNodes
     ppToken :: BufferSpan -> Token -> DList Edit
     ppToken loc = \ case
       ITvarid identifier -> desugarIdentifier loc.start loc.end identifier
-      ITqvarid (succ . lengthFS -> offset, identifier) -> desugarIdentifier (loc.start + offset) loc.end identifier
+      ITqvarid (module_, name) -> desugarQualifiedName loc module_ name
       _ -> mempty
 
     ppLiteralString :: LiteralString BufferSpan -> DList Edit
@@ -258,7 +261,7 @@ pp = (.build) . ppNodes
 
     ppExpression :: Int -> Expression -> DList Edit
     ppExpression n = \ case
-      Expression [] end -> insert end.loc (abstractionParam n "") <> ppEnd (succ n) end
+      Expression [] end -> insert end.loc.startLoc (abstractionParam n "") <> ppEnd (succ n) end
       Expression nodes end -> ppNodes nodes <> ppEnd n end
 
     ppEnd :: Int -> End BufferSpan -> DList Edit
@@ -289,8 +292,8 @@ pp = (.build) . ppNodes
     replace :: BufferSpan -> DString -> DList Edit
     replace loc = singleton . replaceBufferSpan loc . (.build)
 
-    insert :: BufferSpan -> String -> DList Edit
-    insert loc = singleton . Replace (Just loc.startColumn) loc.start 0 . pack
+    insert :: SrcLoc -> String -> DList Edit
+    insert loc = singleton . Replace (Just $ StartColumn loc.column) loc.offset 0 . pack
 
 lambdaAbstract :: Expression -> DString
 lambdaAbstract = lambda . countAbstractions
