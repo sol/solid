@@ -33,7 +33,7 @@ data Console = Console {
 }
 
 instance HasField "command" Console (FilePath -> [String] -> Process.Config () () ()) where
-  getField console name args = (Process.command name args).stdout.useHandle(console.handle).stderr.useHandle console.handle
+  getField console name args = Process.command(name, args).stdout.useHandle(console.handle).stderr.useHandle console.handle
 
 withConsole :: (Console -> IO a) -> IO a
 withConsole = with console

@@ -43,6 +43,7 @@ library
     , ghc ==9.6.2
     , ghc-boot
     , megaparsec
+    , parser-combinators
     , text
     , transformers
   default-language: GHC2021
@@ -66,6 +67,7 @@ executable solid-pp
     , ghc ==9.6.2
     , ghc-boot
     , megaparsec
+    , parser-combinators
     , solid-pp
     , text
     , transformers
@@ -119,6 +121,7 @@ test-suite spec
     , hspec-expectations >=0.8.3
     , megaparsec
     , mockery
+    , parser-combinators
     , text
     , transformers
   default-language: GHC2021

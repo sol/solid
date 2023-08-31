@@ -10,6 +10,7 @@ module Solid.PP.IO (
 
 import           Prelude as Exports hiding (readFile, writeFile, lines, unlines, foldl)
 import           Data.List as Exports (foldl')
+import           Data.List.NonEmpty as Exports (NonEmpty(..))
 import           Control.Applicative as Exports
 import           Control.Arrow as Exports ((&&&))
 import           Control.Monad as Exports

@@ -23,6 +23,7 @@ dependencies:
   - text
   - bytestring
   - megaparsec
+  - parser-combinators
 
 build-tools: alex
 

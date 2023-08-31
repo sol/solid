@@ -154,7 +154,7 @@ usedModules = Set.fromList . (.build) . fromNodes . map void
     fromSubject = \ case
       LiteralString (Begin () (_ :: String) expression) -> singleton toStringModule <> fromExpression expression
       LiteralString (Literal () (_ :: String)) -> mempty
-      Bracketed (_ :: BracketStyle) () nodes -> fromNodes nodes
+      Bracketed (_ :: BracketStyle) () nodes -> concatMap fromNodes nodes
       Name () (_ :: FastString) arguments -> fromArguments arguments
       QualifiedName () m (_ :: FastString) arguments -> singleton (Module m) <> fromArguments arguments
 
@@ -164,7 +164,10 @@ usedModules = Set.fromList . (.build) . fromNodes . map void
     fromArguments :: Arguments () -> DList Module
     fromArguments = \ case
       NoArguments -> mempty
-      Arguments () nodes -> concatMap fromNodes nodes
+      Arguments () nodes -> concatMap fromArgument nodes
+
+    fromArgument :: Argument () -> DList Module
+    fromArgument (Argument () nodes) = concatMap fromNode nodes
 
     fromExpression :: ExpressionWith () -> DList Module
     fromExpression (Expression nodes end) = fromNodes nodes <> case end of
@@ -253,7 +256,7 @@ unescapeStringLiteral loc old
 pp :: [Node] -> [Edit]
 pp = (.build) . ppNodes
   where
-    ppNodes :: [Node] -> DList Edit
+    ppNodes :: Foldable sequence_of => sequence_of Node -> DList Edit
     ppNodes = concatMap ppNode
 
     ppNode :: Node -> DList Edit
@@ -272,7 +275,7 @@ pp = (.build) . ppNodes
     ppSubject :: Subject BufferSpan -> DList Edit
     ppSubject = \ case
       LiteralString string -> ppLiteralString string
-      Bracketed (_ :: BracketStyle) (_ :: BufferSpan) nodes -> concatMap ppNode nodes
+      Bracketed (_ :: BracketStyle) (_ :: BufferSpan) nodes -> concatMap ppNodes nodes
       Name start identifier arguments -> ppArguments start.startLoc (desugarIdentifier start.start start.end identifier) arguments
       QualifiedName start module_ identifier arguments -> ppArguments start.startLoc (desugarQualifiedName start module_ identifier) arguments
 
@@ -288,7 +291,14 @@ pp = (.build) . ppNodes
 
     ppCloseArguments :: Arguments BufferSpan -> DList Edit
     ppCloseArguments NoArguments = mempty
-    ppCloseArguments (Arguments end nodes) = concatMap ppNodes nodes <> insert end.endLoc ")"
+    ppCloseArguments (Arguments end nodes) = arguments <> insert end.endLoc ")"
+      where
+        arguments = case nodes of
+          [] -> mempty
+          Argument _ arg : args -> ppNodes arg <> concatMap ppArgument args
+
+    ppArgument :: Argument BufferSpan -> DList Edit
+    ppArgument (Argument loc nodes) = replace loc ")(" <> ppNodes nodes
 
     ppToken :: BufferSpan -> Token -> DList Edit
     ppToken loc = \ case
@@ -299,7 +309,7 @@ pp = (.build) . ppNodes
     ppLiteralString :: LiteralString BufferSpan -> DList Edit
     ppLiteralString = \ case
       Literal loc src -> unescapeStringLiteral loc src
-      Begin loc src expression -> replace loc (lambdaAbstract expression <> beginInterpolation src) <> ppExpression 1 expression
+      Begin loc src expression -> replace loc (lambdaAbstract expression <> beginInterpolation src).build <> ppExpression 1 expression
 
     ppExpression :: Int -> Expression -> DList Edit
     ppExpression n = \ case
@@ -308,8 +318,8 @@ pp = (.build) . ppNodes
 
     ppEnd :: Int -> End BufferSpan -> DList Edit
     ppEnd n = \ case
-      End loc src -> replace loc (endInterpolation src)
-      EndBegin loc src expression -> replace loc (endBeginInterpolation src) <> ppExpression n expression
+      End loc src -> replace loc (endInterpolation src).build
+      EndBegin loc src expression -> replace loc (endBeginInterpolation src).build <> ppExpression n expression
 
     unescape :: String -> (Maybe DString)
     unescape (init . tail -> string)
@@ -331,8 +341,8 @@ pp = (.build) . ppNodes
     endBeginInterpolation :: String -> DString
     endBeginInterpolation src = ") <> " <> beginInterpolation src
 
-    replace :: BufferSpan -> DString -> DList Edit
-    replace loc = singleton . replaceBufferSpan loc . (.build)
+    replace :: BufferSpan -> String -> DList Edit
+    replace loc = singleton . replaceBufferSpan loc
 
     insert :: SrcLoc -> String -> DList Edit
     insert loc = singleton . Replace (Just loc.column) loc.offset 0 . pack

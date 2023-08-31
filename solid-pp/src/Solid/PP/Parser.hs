@@ -15,6 +15,7 @@ module Solid.PP.Parser (
 , Subject(..)
 , BracketStyle(..)
 , Arguments(..)
+, Argument(..)
 , MethodCall(..)
 
 , NodeWith(..)
@@ -28,11 +29,11 @@ import           Solid.PP.IO hiding (try, error, some, many)
 
 import           Data.Foldable1 (fold1)
 import           Data.List hiding (lines)
-import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Set as Set
 import qualified Text.Megaparsec as P
 import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest, some)
+import           Control.Applicative.Combinators.NonEmpty
 
 import           Solid.PP.Lexer hiding (Token, tokens)
 import qualified Solid.PP.Lexer as Lexer
@@ -186,9 +187,12 @@ pArguments loc = arguments <|> pure NoArguments
       start <- token $ \ case
         L start IToparen | loc.end == start.start -> Just start
         _ -> Nothing
-      nodes <- many pNode
+      args <- (:) <$> pArgument start <*> many (comma >>= pArgument)
       end <- cparen
-      return $ Arguments (start.merge end) [nodes]
+      return $ Arguments (start.merge end) args
+
+pArgument :: BufferSpan -> Parser (Argument BufferSpan)
+pArgument start = Argument start <$> some pNode
 
 pSubject :: Parser (Subject BufferSpan)
 pSubject = pLiteralString <|> pInterpolatedString <|> pBracketed <|> pName <|> pQualifiedName
@@ -209,11 +213,14 @@ pInterpolatedString = pTokenBegin <*> pExpression
 
 pBracketed :: Parser (Subject BufferSpan)
 pBracketed =
-      bracketed Round <$> oparen <*> many pNode <*> cparen
-  <|> bracketed Square <$> obrack <*> many pNode <*> cbrack
-  <|> bracketed Curly <$> ocurly <*> many pNode <*> ccurly
+      bracketed Round <$> oparen <*> inner <*> cparen
+  <|> bracketed Square <$> obrack <*> inner <*> cbrack
+  <|> bracketed Curly <$> ocurly <*> inner <*> ccurly
   where
-    bracketed :: BracketStyle -> BufferSpan -> [Node] -> BufferSpan -> Subject BufferSpan
+    inner :: Parser [[Node]]
+    inner = many pNode `sepBy` comma
+
+    bracketed :: BracketStyle -> BufferSpan -> [[Node]] -> BufferSpan -> Subject BufferSpan
     bracketed style start nodes end = Bracketed style (start.merge end) nodes
 
 pName :: Parser (Subject BufferSpan)
@@ -240,6 +247,7 @@ pAnyToken :: Parser Node
 pAnyToken = token \ case
   TokenEndBegin {} -> Nothing
   TokenEnd {} -> Nothing
+  L _ ITcomma -> Nothing
   L _ IToparen -> Nothing
   L _ ITcparen -> Nothing
   L _ ITobrack -> Nothing
@@ -247,6 +255,9 @@ pAnyToken = token \ case
   L _ ITocurly -> Nothing
   L _ ITccurly -> Nothing
   L loc t -> Just $ Token loc t
+
+comma :: Parser BufferSpan
+comma = require ITcomma
 
 oparen :: Parser BufferSpan
 oparen = require IToparen
@@ -300,7 +311,7 @@ data NodeWith loc =
 
 data Subject loc =
     LiteralString (LiteralString loc)
-  | Bracketed BracketStyle loc [NodeWith loc]
+  | Bracketed BracketStyle loc [[NodeWith loc]]
   | Name loc FastString (Arguments loc)
   | QualifiedName loc FastString FastString (Arguments loc)
   deriving (Eq, Show, Functor)
@@ -311,7 +322,10 @@ data BracketStyle =
   | Curly
   deriving (Eq, Show)
 
-data Arguments loc = NoArguments | Arguments loc [[NodeWith loc]]
+data Arguments loc = NoArguments | Arguments loc [Argument loc]
+  deriving (Eq, Show, Functor)
+
+data Argument loc = Argument loc (NonEmpty (NodeWith loc))
   deriving (Eq, Show, Functor)
 
 data MethodCall loc = MethodCall loc FastString (Arguments loc)

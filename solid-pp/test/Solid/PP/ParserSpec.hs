@@ -26,8 +26,8 @@ instance IsList (End () -> ExpressionWith ()) where
   toList = undefined
 
 instance IsList (Arguments ()) where
-  type Item (Arguments ()) = [NodeWith ()]
-  fromList = Arguments ()
+  type Item (Arguments ()) = NonEmpty (NodeWith ())
+  fromList = Arguments () . map (Argument ())
   toList = undefined
 
 instance Num (NodeWith ()) where
@@ -74,7 +74,7 @@ spec = do
     literal :: String -> NodeWith ()
     literal string = MethodChain (LiteralString (Literal () string)) []
 
-    bracketed :: BracketStyle -> [NodeWith ()] -> NodeWith ()
+    bracketed :: BracketStyle -> [[NodeWith ()]] -> NodeWith ()
     bracketed style inner = MethodChain (Bracketed style () inner) []
 
   describe "parse" $ do
@@ -83,15 +83,16 @@ spec = do
         parse "String.foo(23)" `shouldBe` [MethodChain (QualifiedName () "String" "foo" [[23]]) []]
 
       context "when parsing arguments" $ do
-        it "accepts an empty list of arguments" $ do
-          parse "foo()" `shouldBe` [nameWith "foo" [[]]]
-
         it "accepts a single argument" $ do
-          parse "foo (23)" `shouldBe` ["foo", bracketed Round [23]]
+          parse "foo (23)" `shouldBe` ["foo", bracketed Round [[23]]]
           parse "foo(23)" `shouldBe` [nameWith "foo" [[23]]]
 
+        it "accepts multiple arguments" $ do
+          parse "foo (23, 42)" `shouldBe` ["foo", bracketed Round [[23], [42]]]
+          parse "foo(23, 42)" `shouldBe` [nameWith "foo" [[23], [42]]]
+
         it "accepts nested tuples" $ do
-          parse "foo((23, 42))" `shouldBe` [nameWith "foo" [[bracketed Round [23, token ITcomma, 42]]]]
+          parse "foo((23, 42))" `shouldBe` [nameWith "foo" [[bracketed Round [[23], [42]]]]]
 
         it "accepts nested method calls" $ do
           parse "foo(bar(23))" `shouldBe` [nameWith "foo" [[nameWith "bar" [[23]]]]]
@@ -116,20 +117,23 @@ spec = do
         parse "\"foo\".bar" `shouldBe` [MethodChain (LiteralString (Literal () "\"foo\"")) ["bar"]]
 
       it "accepts bracketed expressions as the subjects" $ do
-        parse "(foo bar).baz" `shouldBe` [MethodChain (Bracketed Round () ["foo", "bar"]) ["baz"]]
+        parse "(foo bar).baz" `shouldBe` [MethodChain (Bracketed Round () [["foo", "bar"]]) ["baz"]]
 
       it "properly handles bangs" $ do
         parse "foo!.bar!.baz!" `shouldBe` [MethodChain "foo!" ["bar!", "baz!"]]
 
     context "when parsing bracketed expressions" $ do
       it "accepts round brackets" $ do
-        parse "(foo)" `shouldBe` [bracketed Round ["foo"]]
+        parse "(foo)" `shouldBe` [bracketed Round [["foo"]]]
 
       it "accepts square brackets" $ do
-        parse "[foo]" `shouldBe` [bracketed Square ["foo"]]
+        parse "[foo]" `shouldBe` [bracketed Square [["foo"]]]
 
       it "accepts curly brackets" $ do
-        parse "{foo}" `shouldBe` [bracketed Curly ["foo"]]
+        parse "{foo}" `shouldBe` [bracketed Curly [["foo"]]]
+
+      it "accepts an unapplied tuple constructor" $ do
+        parse "(,,,)" `shouldBe` [bracketed Round [[],[],[],[]]]
 
     context "when parsing string literals" $ do
       it "accepts a literal string" $ do

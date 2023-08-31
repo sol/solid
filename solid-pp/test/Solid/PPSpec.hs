@@ -302,8 +302,11 @@ spec = do
           "foo(Bar.baz!)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(Bar.bazᴉ)){-# COLUMN 14 #-}"
 
     context "when pre-processing function calls" $ do
-      it "desugars function calls" $ do
+      it "desugars a function call with a single argument" $ do
         "foo(bar baz)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(bar baz)){-# COLUMN 13 #-}"
+
+      it "desugars a function call with multiple arguments" $ do
+        "foo(bar, baz, 23)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(bar)({-# COLUMN 9 #-} baz)({-# COLUMN 14 #-} 23)){-# COLUMN 18 #-}"
 
       context "with a qualified name" $ do
         it "desugars function calls" $ do
