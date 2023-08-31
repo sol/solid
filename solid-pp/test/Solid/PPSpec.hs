@@ -299,88 +299,88 @@ spec = do
 
       context "within a function argument" $ do
         it "desugars postfix bangs" $ do
-          "foo(Bar.baz!)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(Bar.bazᴉ)){-# COLUMN 14 #-}"
+          "foo(Bar.baz!)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(Bar.bazᴉ){-# COLUMN 13 #-})"
 
     context "when pre-processing function calls" $ do
       it "desugars a function call with a single argument" $ do
-        "foo(bar baz)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(bar baz)){-# COLUMN 13 #-}"
+        "foo(bar baz)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(bar baz){-# COLUMN 12 #-})"
 
       it "desugars a function call with multiple arguments" $ do
-        "foo(bar, baz, 23)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(bar)({-# COLUMN 9 #-} baz)({-# COLUMN 14 #-} 23)){-# COLUMN 18 #-}"
+        "foo(bar, baz, 23)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(bar)({-# COLUMN 9 #-} baz)({-# COLUMN 14 #-} 23){-# COLUMN 17 #-})"
 
       context "with a qualified name" $ do
         it "desugars function calls" $ do
           "String.foo(bar)\n" `shouldDesugarTo` unlines [
               "import qualified String"
             , "{-# LINE 1 \"main.hs\" #-}"
-            , "({-# COLUMN 1 #-}String.foo(bar)){-# COLUMN 16 #-}"
+            , "({-# COLUMN 1 #-}String.foo(bar){-# COLUMN 15 #-})"
             ]
 
     context "when pre-processing method chains" $ do
       it "desugars method chains" $ do
-        "foo.bar(23).baz" `shouldDesugarTo` "({-# COLUMN 1 #-}foo.bar(23)).baz"
+        "foo.bar(23).baz" `shouldDesugarTo` "({-# COLUMN 1 #-}foo.bar(23){-# COLUMN 11 #-}).baz"
 
       context "with a function call as the subject" $ do
         it "desugars method chains" $ do
-          "foo(x).bar(y).baz(z)" `shouldDesugarTo` "(({-# COLUMN 1 #-}({-# COLUMN 1 #-}foo(x)).bar(y)).baz(z)){-# COLUMN 21 #-}"
+          "foo(x).bar(y).baz(z)" `shouldDesugarTo` "(({-# COLUMN 1 #-}({-# COLUMN 1 #-}foo(x){-# COLUMN 6 #-}).bar(y){-# COLUMN 13 #-}).baz(z){-# COLUMN 20 #-})"
 
         context "with a qualified name" $ do
           it "desugars method chains" $ do
             "String.foo(x).bar(y).baz(z)\n" `shouldDesugarTo` unlines [
                 "import qualified String"
               , "{-# LINE 1 \"main.hs\" #-}"
-              , "(({-# COLUMN 1 #-}({-# COLUMN 1 #-}String.foo(x)).bar(y)).baz(z)){-# COLUMN 28 #-}"
+              , "(({-# COLUMN 1 #-}({-# COLUMN 1 #-}String.foo(x){-# COLUMN 13 #-}).bar(y){-# COLUMN 20 #-}).baz(z){-# COLUMN 27 #-})"
               ]
 
       context "with a string as the subject" $ do
         it "desugars method chains" $ do
-          "\"foo\".bar(23).baz(42)" `shouldDesugarTo` "(({-# COLUMN 1 #-}\"foo\".bar(23)).baz(42)){-# COLUMN 22 #-}"
+          "\"foo\".bar(23).baz(42)" `shouldDesugarTo` "(({-# COLUMN 1 #-}\"foo\".bar(23){-# COLUMN 13 #-}).baz(42){-# COLUMN 21 #-})"
 
       context "with a list as the subject" $ do
         it "desugars method chains" $ do
-          "[foo].bar(23).baz(42)" `shouldDesugarTo` "(({-# COLUMN 1 #-}[foo].bar(23)).baz(42)){-# COLUMN 22 #-}"
+          "[foo].bar(23).baz(42)" `shouldDesugarTo` "(({-# COLUMN 1 #-}[foo].bar(23){-# COLUMN 13 #-}).baz(42){-# COLUMN 21 #-})"
 
       context "with an expression in parentheses as the subject" $ do
         it "desugars method chains" $ do
-          "(foo, bar).baz(23)" `shouldDesugarTo` "({-# COLUMN 1 #-}(foo, bar).baz(23)){-# COLUMN 19 #-}"
+          "(foo, bar).baz(23)" `shouldDesugarTo` "({-# COLUMN 1 #-}(foo, bar).baz(23){-# COLUMN 18 #-})"
 
     context "when pre-processing string literals" $ do
       it "desugars string interpolation" $ do
         "foo = \"foo {bar 23} baz\".toUpper" `interpolationShouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}bar 23) <> \" baz\").toUpper"
+            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}bar 23) <> \" baz\"{-# COLUMN 24 #-}).toUpper"
           ]
 
       it "desugars interpolation abstractions" $ do
         "foo = \"foo {} bar {} baz\"" `interpolationShouldDesugarTo` mconcat [
-            "foo = (\\ _1 _2 -> \"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}_1{-# COLUMN 13 #-}) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 20 #-}_2{-# COLUMN 20 #-}) <> \" baz\"){-# COLUMN 26 #-}"
+            "foo = (\\ _1 _2 -> \"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}_1{-# COLUMN 13 #-}) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 20 #-}_2{-# COLUMN 20 #-}) <> \" baz\"{-# COLUMN 25 #-})"
           ]
 
       it "accepts string literals with multiple interpolations" $ do
         "foo = \"foo { 23 } bar { 42 } baz\"" `interpolationShouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} 23 ) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 24 #-} 42 ) <> \" baz\"){-# COLUMN 34 #-}"
+            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} 23 ) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 24 #-} 42 ) <> \" baz\"{-# COLUMN 33 #-})"
           ]
 
       it "accepts nested interpolations" $ do
         "foo = \"foo { \"x-{23}-x\" } baz\"" `interpolationShouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} (\"x-\" <> Solid.ToString.toString ({-# COLUMN 18 #-}23) <> \"-x\"){-# COLUMN 24 #-} ) <> \" baz\"){-# COLUMN 31 #-}"
+            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} (\"x-\" <> Solid.ToString.toString ({-# COLUMN 18 #-}23) <> \"-x\"{-# COLUMN 23 #-}) ) <> \" baz\"{-# COLUMN 30 #-})"
           ]
 
       context "with an interpolated expression at the beginning of a string" $ do
         it "omits empty string segments" $ do
           "foo = \"{bar 23} baz\".toUpper" `interpolationShouldDesugarTo` mconcat [
-              "foo = (Solid.ToString.toString ({-# COLUMN 9 #-}bar 23) <> \" baz\").toUpper"
+              "foo = (Solid.ToString.toString ({-# COLUMN 9 #-}bar 23) <> \" baz\"{-# COLUMN 20 #-}).toUpper"
             ]
 
       context "with an interpolated expression at the end of a string" $ do
         it "omits empty string segments" $ do
           "foo = \"foo {bar 23}\".toUpper" `interpolationShouldDesugarTo` mconcat [
-              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}bar 23)).toUpper"
+              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}bar 23){-# COLUMN 20 #-}).toUpper"
             ]
 
       context "when two interpolated expressions are next to each other" $ do
         it "omits empty string segments" $ do
           "foo = \"foo { 23 }{ 42 } baz\"" `interpolationShouldDesugarTo` mconcat [
-              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} 23 ) <> Solid.ToString.toString ({-# COLUMN 19 #-} 42 ) <> \" baz\"){-# COLUMN 29 #-}"
+              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} 23 ) <> Solid.ToString.toString ({-# COLUMN 19 #-} 42 ) <> \" baz\"{-# COLUMN 28 #-})"
             ]
 
       context "when an opening curly bracket is preceded by a backslash" $ do

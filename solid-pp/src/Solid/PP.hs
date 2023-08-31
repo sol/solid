@@ -38,6 +38,7 @@ import           Data.Coerce (coerce)
 
 import           Solid.PP.DList
 import           Solid.PP.Edit (Edit(..), edit)
+import qualified Solid.PP.Edit as Edit
 import           Solid.PP.Lexer
 import           Solid.PP.Parser
 
@@ -235,8 +236,15 @@ desugarIdentifier start end identifier
 desugarQualifiedName :: BufferSpan -> FastString -> FastString -> DList Edit
 desugarQualifiedName loc (succ . lengthFS -> offset) identifier = desugarIdentifier (loc.start + offset) loc.end identifier
 
-replaceBufferSpan :: BufferSpan -> String -> Edit
-replaceBufferSpan loc = Replace (Just loc.startColumn) loc.start loc.length . pack
+data WithColumnPragma = WithColumnPragma | WithoutColumnPragma
+
+replaceBufferSpan :: WithColumnPragma -> BufferSpan -> String -> Edit
+replaceBufferSpan with_pragma loc = Replace pragma loc.start loc.length . pack
+  where
+    pragma :: Maybe Int
+    pragma = case with_pragma of
+      WithColumnPragma -> Just loc.startColumn
+      WithoutColumnPragma -> Nothing
 
 unescapeString :: String -> String
 unescapeString = go
@@ -249,7 +257,7 @@ unescapeString = go
 unescapeStringLiteral :: BufferSpan -> String -> DList Edit
 unescapeStringLiteral loc old
   | new == old = mempty
-  | otherwise = singleton $ replaceBufferSpan loc new
+  | otherwise = singleton $ replaceBufferSpan WithColumnPragma loc new
   where
     new = unescapeString old
 
@@ -291,7 +299,7 @@ pp = (.build) . ppNodes
 
     ppCloseArguments :: Arguments BufferSpan -> DList Edit
     ppCloseArguments NoArguments = mempty
-    ppCloseArguments (Arguments end nodes) = arguments <> insert end.endLoc ")"
+    ppCloseArguments (Arguments end nodes) = arguments <> close_paren end.endLoc
       where
         arguments = case nodes of
           [] -> mempty
@@ -318,7 +326,7 @@ pp = (.build) . ppNodes
 
     ppEnd :: Int -> End BufferSpan -> DList Edit
     ppEnd n = \ case
-      End loc src -> replace loc (endInterpolation src).build
+      End loc src -> endInterpolation loc src
       EndBegin loc src expression -> replace loc (endBeginInterpolation src).build <> ppExpression n expression
 
     unescape :: String -> (Maybe DString)
@@ -333,19 +341,25 @@ pp = (.build) . ppNodes
           Nothing -> ""
           Just string -> "\"" <> string <> "\" <> "
 
-    endInterpolation :: String -> DString
-    endInterpolation src = case unescape src of
-      Nothing -> "))"
-      Just string -> ") <> \"" <> string <> "\")"
+    endInterpolation :: BufferSpan -> String -> DList Edit
+    endInterpolation loc src = singleton (replaceBufferSpan WithoutColumnPragma loc end) <> close_paren loc.endLoc
+      where
+        end :: String
+        end = case unescape src of
+          Nothing -> ")"
+          Just string -> (") <> \"" <> string <> "\"").build
 
     endBeginInterpolation :: String -> DString
     endBeginInterpolation src = ") <> " <> beginInterpolation src
 
     replace :: BufferSpan -> String -> DList Edit
-    replace loc = singleton . replaceBufferSpan loc
+    replace loc = singleton . replaceBufferSpan WithColumnPragma loc
 
     insert :: SrcLoc -> String -> DList Edit
     insert loc = singleton . Replace (Just loc.column) loc.offset 0 . pack
+
+    close_paren :: SrcLoc -> DList Edit
+    close_paren = singleton . Edit.insertClosingParen
 
 lambdaAbstract :: Expression -> DString
 lambdaAbstract = lambda . countAbstractions
