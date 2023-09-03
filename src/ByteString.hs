@@ -63,6 +63,9 @@ unlines = coerce Char8.unlines
 strip :: ByteString -> ByteString
 strip = coerce Char8.strip
 
+inits :: ByteString -> [ByteString]
+inits = coerce Haskell.inits
+
 isPrefixOf :: ByteString -> ByteString -> Bool
 isPrefixOf = Bytes.isPrefixOf
 
@@ -113,6 +116,9 @@ instance HasField "unlines" [ByteString] ByteString where
 
 instance HasField "strip" ByteString ByteString where
   getField = strip
+
+instance HasField "inits" ByteString [ByteString] where
+  getField = inits
 
 instance HasField "contains" ByteString (ByteString -> Bool) where
   getField = flip contains

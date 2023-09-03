@@ -27,10 +27,10 @@ insertClosingParen loc = Replace Nothing loc.offset 0 (pragma <> ")")
   where
     pragma = mkColumnPragma (pred loc.column)
 
-edit :: Handle -> Text -> [Edit] -> IO ()
-edit h input = go 0 . sortOn (.start)
+edit :: forall m. Monad m => (Text -> m ()) -> Text -> [Edit] -> m ()
+edit put input = go 0 . sortOn (.start)
   where
-    go :: Int -> [Edit] -> IO ()
+    go :: Int -> [Edit] -> m ()
     go cursor = \ case
       [] -> do
         put (T.drop cursor input)
@@ -40,10 +40,7 @@ edit h input = go 0 . sortOn (.start)
         forM_ (columnPragma step) putColumnPragma
         go (offset + n) xs
 
-    put :: Text -> IO ()
-    put = hPutStr h
-
-    putColumnPragma :: Int -> IO ()
+    putColumnPragma :: Int -> m ()
     putColumnPragma = put . mkColumnPragma
 
 mkColumnPragma :: Int -> Text

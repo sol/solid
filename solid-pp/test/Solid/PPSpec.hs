@@ -74,6 +74,13 @@ spec = do
       it "parses the module header" $ do
         parseModuleHeader "module Foo.Bar where" (`shouldBe` ModuleHeader (Just "Foo.Bar") 20 "src.hs" 1)
 
+  describe "desugarExpression" $ around_ inTempDirectory $ do
+    it "desugars identifiers" $ do
+      desugarExpression "src.hs" "foo!" `shouldBe` Right "fooᴉ"
+
+    it "desugars string literals" $ do
+      desugarExpression "src.hs" "\"foo {23} bar\"" `shouldBe` Right "(\"foo \" <> Solid.ToString.toString ({-# COLUMN 7 #-}23) <> \" bar\"{-# COLUMN 14 #-})"
+
   describe "run" $ around_ inTempDirectory $ do
     context "on error" $ do
       it "reports error locations" $ do

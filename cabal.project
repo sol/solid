@@ -2,12 +2,20 @@ packages:
   .
   solid-pp
   haskell-base
+  vendor/ghc-bin
 
 package solid
   ghc-options: -Werror
 
 package solid-pp
   ghc-options: -Werror
+
+package haskell-base
+  ghc-options: -Werror
+
+package ghc-bin
+  ghc-options: -Werror
+  executable-dynamic: true
 
 allow-newer: cabal-install:base
 allow-newer: cabal-install-solver:base

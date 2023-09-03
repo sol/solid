@@ -4,6 +4,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 module Solid.PP (
   main
+, desugarExpression
 
 , Result(..)
 , run
@@ -27,6 +28,7 @@ module Solid.PP (
 import           Prelude ()
 import           Solid.PP.IO hiding (concatMap)
 
+import           Control.Monad.Trans.Writer.CPS (execWriter, tell)
 import           Data.Char
 import           Data.Word
 import qualified Data.Text as T
@@ -89,6 +91,9 @@ instance Ord Module where
 data Result = Failure String | Success
   deriving (Eq, Show)
 
+desugarExpression :: FilePath -> Text -> Either String Text
+desugarExpression src input = execWriter . edit tell input . pp <$> parse extensions src input
+
 main :: String -> String -> String -> IO ()
 main src cur dst = run src cur dst >>= \ case
   Failure err -> die $ \ _ -> err
@@ -108,7 +113,7 @@ preProcesses :: FilePath -> FilePath -> Text -> IO Result
 preProcesses src dst input = case parse extensions src input of
   Left err -> return (Failure err)
   Right nodes -> withFile dst WriteMode $ \ h -> do
-    edit h input $ maybe id (:) (addImplicitImports nodes) (pp nodes)
+    edit (hPutStr h) input $ maybe id (:) (addImplicitImports nodes) (pp nodes)
     return Success
 
 addImplicitImports :: [Node] -> Maybe Edit

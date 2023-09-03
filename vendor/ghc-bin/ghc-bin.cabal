@@ -2,7 +2,7 @@
 -- ./configure.  Make sure you are editing ghc-bin.cabal.in, not ghc-bin.cabal.
 
 Name: ghc-bin
-Version: @ProjectVersion@
+Version: 9.6.2
 Copyright: XXX
 -- License: XXX
 -- License-File: XXX
@@ -19,7 +19,7 @@ Cabal-Version: >=1.10
 
 Flag internal-interpreter
     Description: Build with internal interpreter support.
-    Default: False
+    Default: True
     Manual: True
 
 Flag threaded
@@ -27,8 +27,10 @@ Flag threaded
     Default: True
     Manual: True
 
-Executable ghc
+Executable repl
     Default-Language: Haskell2010
+
+    Build-Depends: text, solid-pp
 
     Main-Is: Main.hs
     Build-Depends: base       >= 4   && < 5,
@@ -39,8 +41,8 @@ Executable ghc
                    filepath   >= 1   && < 1.5,
                    containers >= 0.5 && < 0.7,
                    transformers >= 0.5 && < 0.7,
-                   ghc-boot      == @ProjectVersionMunged@,
-                   ghc           == @ProjectVersionMunged@
+                   ghc-boot      == 9.6.2,
+                   ghc           == 9.6.2
 
     if os(windows)
         Build-Depends: Win32  >= 2.3 && < 2.14
@@ -58,7 +60,7 @@ Executable ghc
         Build-depends:
             deepseq        == 1.4.*,
             ghc-prim       >= 0.5.0 && < 0.11,
-            ghci           == @ProjectVersionMunged@,
+            ghci           == 9.6.2,
             haskeline      == 0.8.*,
             exceptions     == 0.10.*,
             time           >= 1.8 && < 1.13
