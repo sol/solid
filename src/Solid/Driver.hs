@@ -17,7 +17,7 @@ repository :: String
 repository = "git@github.com:sol/solid.git"
 
 revision :: String
-revision = "3dac48d682007fdf2fd06f4c54e1f5550055a00b"
+revision = "a5ac212f586389dbab73f49f4d6da6ca45cb973c"
 
 ghc :: String
 ghc = "9.6.2"
@@ -62,20 +62,23 @@ internalCommand name = "{name}-{marker}"
     marker :: String
     marker = "f817da5ee1a2164ad58986293141e5bf"
 
-data Mode = GhcOptions | Doctest | With FilePath | Run
+data Mode = GhcOptions | Repl | Doctest | With FilePath | Run
 
 solid :: Mode -> FilePath -> [String] -> IO ()
 solid mode self args = withConsole $ \ console -> do
   cache <- getCacheDirectory
   ghc_dir <- determine_ghc_dir console self (cache </> "ghc-{ghc}".asFilePath)
   Env.path.extend ghc_dir do
-    packageEnv <- ensurePackageEnv console self cache
+    (packageEnv, bindir) <- ensurePackageEnv console self cache
     let options = ghcOptions self packageEnv args
     case mode of
       GhcOptions -> stdout.print options.unlines
+      Repl -> do
+        libdir <- (.decodeUtf8.strip) <$> Process.command(ghc_dir </> "ghc", ["--print-libdir"]).read
+        Process.command(bindir </> "repl", "-B{libdir}" : "--interactive" : options).with Process.status >>= throwIO
       Doctest -> doctest options.map(unpack)
-      With command -> (Process.command command options).with Process.status >>= throwIO
-      Run -> (Process.command (ghc_dir </> "runghc") options).with Process.status >>= throwIO
+      With command -> Process.command(command, options).with Process.status >>= throwIO
+      Run -> Process.command(ghc_dir </> "runghc", options).with Process.status >>= throwIO
 
 getCacheDirectory :: IO FilePath
 getCacheDirectory = do
@@ -106,7 +109,7 @@ find_ghc console self = do
   Temp.withDirectory $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
     writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
-    ghc_dir <- (stack ["--resolver={resolver}", "path", "--compiler-bin"]).with Process.stdout
+    ghc_dir <- stack(["--resolver={resolver}", "path", "--compiler-bin"]).with Process.stdout
       <* console.info "{String.ansi("✔").green}\n"
     return ghc_dir.strip.asFilePath
   where
@@ -119,7 +122,7 @@ atomicWriteFile dst str = do
   writeBinaryFile tmp str
   tmp.rename dst
 
-ensurePackageEnv :: Console -> FilePath -> FilePath -> IO FilePath
+ensurePackageEnv :: Console -> FilePath -> FilePath -> IO (FilePath, FilePath)
 ensurePackageEnv console self cache = do
   unless -< packageEnv.exists? $ do
     console.info "Creating package environment...\n"
@@ -132,7 +135,8 @@ ensurePackageEnv console self cache = do
           git ["fetch", "--depth", "1", "origin", revision, "-q"]
           git ["checkout", "FETCH_HEAD", "-q"]
           cabal $ "install" : "--package-env={packageEnv}" : "--lib" : packages
-  return packageEnv
+          cabal ["install", "ghc-bin", "--installdir={bindir}"]
+  return (packageEnv, bindir)
   where
     git :: [String] -> IO ()
     git args = (console.command "git" args).run
@@ -148,6 +152,9 @@ ensurePackageEnv console self cache = do
 
     packageEnv :: FilePath
     packageEnv = cache </> "{revision}-{packages.sort.unlines.md5sum}.env".asFilePath
+
+    bindir :: FilePath
+    bindir = cache </> "bin" </> ghc.asFilePath
 
 ghcOptions :: FilePath -> FilePath -> [String] -> [String]
 ghcOptions self packageEnv args = opts ++ args
