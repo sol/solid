@@ -36,4 +36,4 @@ parseModules :: [Module (Located String)] -> [Module [Located DocTest]]
 parseModules = DocTest.parseModules . map (fmap (fmap unpack))
 
 runTests :: [String] -> [Module [Located DocTest]] -> IO Result
-runTests args = runDocTests defaultConfig { ghcOptions = args.map unpack }
+runTests args = runDocTests defaultConfig { ghcOptions = args.map unpack, repl = ("solid", ["repl"]) }

@@ -88,6 +88,10 @@ instance HasField "fst" (a, b) a where
 instance HasField "snd" (a, b) b where
   getField = snd
 
+instance HasField "bimap" (a, b) ((a -> c) -> (b -> d) -> (c, d))
+      => HasField "bimap" (a, b) ((a -> c) -> (b -> d) -> (c, d)) where
+  getField subject f g = bimap f g subject
+
 instance HasField "fold" Bool (a -> a -> a)
       => HasField "fold" Bool (a -> a -> a) where
   getField value t f = bool t f value

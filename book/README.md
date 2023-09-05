@@ -424,14 +424,14 @@ Throw an exception on a non-zero exit status:
 
 ## Extending Solid with Haskell
 
-[`Solid.Foreign.Haskell`][foreign-haskell] provides functions that are useful
+[`Haskell`][foreign-haskell] provides functions that are useful
 when you want to use existing Haskell code from Solid.
 
 **Example:**
 
 ```haskell top
 import Data.Text qualified as Text
-import Solid.Foreign.Haskell qualified as Haskell
+import Haskell qualified as Haskell
 ```
 
 ```haskell
@@ -521,7 +521,7 @@ eventually intends to desugar import statements as follows:
 [process]: ../src/Process.hs
 [process-config]: ../src/Process/Config.hs
 [foreign-c]: ../src/Solid/Foreign/C.hs
-[foreign-haskell]: ../src/Solid/Foreign/Haskell.hs
+[foreign-haskell]: ../src/Haskell.hs
 
 [overloaded_record_dot]: https://downloads.haskell.org/ghc/9.6.2/docs/users_guide/exts/overloaded_record_dot.html
 [haskell-pre-processor]: https://downloads.haskell.org/ghc/9.6.2/docs/users_guide/phases.html#options-affecting-a-haskell-pre-processor

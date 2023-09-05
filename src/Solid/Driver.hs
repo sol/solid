@@ -8,7 +8,7 @@ module Solid.Driver (
 
 import Solid
 import Solid.PP (LanguageFlag(..), language, extensions, showExtension)
-import Test.DocTest (doctest)
+import Test.DocTest.Internal.Run (doctestWithRepl)
 
 import System.Directory.Import
 import Solid.Ansi qualified as Ansi
@@ -17,7 +17,7 @@ repository :: String
 repository = "git@github.com:sol/solid.git"
 
 revision :: String
-revision = "a5ac212f586389dbab73f49f4d6da6ca45cb973c"
+revision = "416c1e79145feef0be4bd025d700e59a52794d71"
 
 ghc :: String
 ghc = "9.6.2"
@@ -74,11 +74,18 @@ solid mode self args = withConsole $ \ console -> do
     case mode of
       GhcOptions -> stdout.print options.unlines
       Repl -> do
-        libdir <- (.decodeUtf8.strip) <$> Process.command(ghc_dir </> "ghc", ["--print-libdir"]).read
-        Process.command(bindir </> "repl", "-B{libdir}" : "--interactive" : options).with Process.status >>= throwIO
-      Doctest -> doctest options.map(unpack)
+        repl <- get_repl ghc_dir bindir
+        Process.command.uncurry(repl <&> (<> options)).with Process.status >>= throwIO
+      Doctest -> do
+        repl <- get_repl ghc_dir bindir
+        doctestWithRepl repl.bimap((.toString.unpack), map unpack) options.map(unpack)
       With command -> Process.command(command, options).with Process.status >>= throwIO
       Run -> Process.command(ghc_dir </> "runghc", options).with Process.status >>= throwIO
+
+get_repl :: FilePath -> FilePath -> IO (FilePath, [String])
+get_repl ghc_dir bindir = do
+  libdir <- (.decodeUtf8.strip) <$> Process.command(ghc_dir </> "ghc", ["--print-libdir"]).read
+  return (bindir </> "repl", ["-B{libdir}", "--interactive"])
 
 getCacheDirectory :: IO FilePath
 getCacheDirectory = do

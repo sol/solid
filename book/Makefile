@@ -2,7 +2,7 @@ target = README.lhs
 readme = $(target:.lhs=.md)
 
 doctest: .ghci
-	solid with ./doctest.hs -ghci-script .ghci $(target)
+	./doctest.hs -ghci-script .ghci $(target)
 	@echo "Expected: $$(grep '>>>' $(target) | wc -l)"
 toc:
 	@./gh-md-toc --insert --no-backup $(readme)
