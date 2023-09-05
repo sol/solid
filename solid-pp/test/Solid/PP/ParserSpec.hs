@@ -57,7 +57,7 @@ nameWith :: FastString -> Arguments () -> NodeWith ()
 nameWith n args = MethodChain (Name () n args) []
 
 parse :: HasCallStack => String -> [NodeWith ()]
-parse = either expectationFailurePure (map void) . Parser.parse extensions "main.hs" . fromString
+parse = either expectationFailurePure (map void) . Parser.parse extensions "main.hs" 1 . fromString
 
 spec :: Spec
 spec = do
@@ -158,13 +158,13 @@ spec = do
 
       context "on unexpected end of line" $ do
         it "reports an error" $ do
-          Parser.parse extensions "main.hs" "\"foo    \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
-          Parser.parse extensions "main.hs" "\"foo {  \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
+          Parser.parse extensions "main.hs" 1 "\"foo    \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
+          Parser.parse extensions "main.hs" 1 "\"foo {  \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
 
       context "on unexpected end of input" $ do
         it "reports an error" $ do
-          Parser.parse extensions "main.hs" "\"foo    " `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
-          let Left err = Parser.parse extensions "main.hs" "\"foo {  "
+          Parser.parse extensions "main.hs" 1 "\"foo    " `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
+          let Left err = Parser.parse extensions "main.hs" 1 "\"foo {  "
           err `shouldBe` (unpack . unlines) [
               "main.hs:1:7:"
             , "  |"
@@ -175,7 +175,7 @@ spec = do
 
       context "unexpected token" $ do
         it "reports an error" $ do
-          let Left err = Parser.parse extensions "main.hs" $ unlines [
+          let Left err = Parser.parse extensions "main.hs" 1 $ unlines [
                   "some tokens"
                 , "bar ].foo"
                 , "some more tokens"

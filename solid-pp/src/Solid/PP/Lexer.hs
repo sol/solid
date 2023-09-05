@@ -133,8 +133,8 @@ change_any_projections_after_a_trailing_bang_to_infix = fix $ \ rec -> \ case
   token : tokens -> token : rec tokens
   [] -> []
 
-tokenize :: [LanguageFlag] -> FilePath -> Text -> Either String LexerResult
-tokenize languageFlags src input = do
+tokenize :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
+tokenize languageFlags src line input = do
   case lexTokenStream opts buffer loc of
     POk state tokens -> return LexerResult {
       tokens = change_any_projections_after_a_trailing_bang_to_infix tokens
@@ -153,7 +153,7 @@ tokenize languageFlags src input = do
     extensions = applyLanguageFlags defaultExtensions languageFlags
 
     loc :: RealSrcLoc
-    loc = mkRealSrcLoc (mkFastString src) 1 1
+    loc = mkRealSrcLoc (mkFastString src) line 1
 
     buffer :: StringBuffer
     buffer = stringBufferFromByteString $ encodeUtf8 input

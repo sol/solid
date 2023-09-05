@@ -39,7 +39,7 @@ interpolationShouldDesugarTo input expected = do
     <> expected
 
 parseModuleHeader :: HasCallStack => Text -> (ModuleHeader -> IO a) -> IO a
-parseModuleHeader input action = case parse extensions "src.hs" input of
+parseModuleHeader input action = case parse extensions "src.hs" 1 input of
   Left err -> assertFailure err
   Right nodes -> annotate (show [t | Token _ t <- nodes]) $ do
     action (PP.parseModuleHeader nodes)
@@ -49,7 +49,7 @@ spec = do
   describe "usedModules" $ do
     let
       modules :: HasCallStack => Text -> Set Module
-      modules = usedModules . either undefined id . parse extensions "src.hs"
+      modules = usedModules . either undefined id . parse extensions "src.hs" 1
 
     context "with a qualified identifier" $ do
       it "extracts module name" $ do
@@ -76,10 +76,10 @@ spec = do
 
   describe "desugarExpression" $ around_ inTempDirectory $ do
     it "desugars identifiers" $ do
-      desugarExpression "src.hs" "foo!" `shouldBe` Right "fooᴉ"
+      desugarExpression "src.hs" 1 "foo!" `shouldBe` Right "fooᴉ"
 
     it "desugars string literals" $ do
-      desugarExpression "src.hs" "\"foo {23} bar\"" `shouldBe` Right "(\"foo \" <> Solid.ToString.toString ({-# COLUMN 7 #-}23) <> \" bar\"{-# COLUMN 14 #-})"
+      desugarExpression "src.hs" 1 "\"foo {23} bar\"" `shouldBe` Right "(\"foo \" <> Solid.ToString.toString ({-# COLUMN 7 #-}23) <> \" bar\"{-# COLUMN 14 #-})"
 
   describe "run" $ around_ inTempDirectory $ do
     context "on error" $ do

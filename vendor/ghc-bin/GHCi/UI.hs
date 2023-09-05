@@ -173,9 +173,6 @@ import qualified GHC.Unit.Module.Graph as GHC
 import qualified Solid.PP
 import qualified Data.Text as Text
 
-desugarExpression :: String -> String
-desugarExpression input = either (const input) Text.unpack . Solid.PP.desugarExpression default_progname $ Text.pack input
-
 -----------------------------------------------------------------------------
 
 data GhciSettings = GhciSettings {
@@ -493,8 +490,8 @@ default_progname = "<interactive>"
 default_stop = ""
 
 default_prompt, default_prompt_cont :: PromptFunction
-default_prompt = generatePromptFunctionFromString "ghci> "
-default_prompt_cont = generatePromptFunctionFromString "ghci| "
+default_prompt = generatePromptFunctionFromString ">>> "
+default_prompt_cont = generatePromptFunctionFromString ">>| "
 
 default_args :: [String]
 default_args = []
@@ -777,7 +774,7 @@ runGHCi paths maybe_exprs = do
         Nothing ->
           do
             -- enter the interactive loop
-            runGHCiInput $ runCommands $ fmap desugarExpression <$> nextInputLine show_prompt is_tty
+            runGHCiInput $ runCommands $ nextInputLine show_prompt is_tty
 
         Just exprs -> do
             -- just evaluate the expression we were given
@@ -1263,6 +1260,17 @@ enqueueCommands cmds = do
 -- The return value True indicates success, as in `runOneCommand`.
 runStmt :: GhciMonad m => String -> SingleStep -> m (Maybe GHC.ExecResult)
 runStmt input step = do
+  st <- getGHCiState
+  let source = progname st
+  let line = line_number st
+  case Solid.PP.desugarExpression source line (Text.pack input) of
+    Left err -> liftIO $ do
+      hPutStrLn stderr err
+      return Nothing
+    Right expression -> runStmt_ (Text.unpack expression) step
+
+runStmt_ :: GhciMonad m => String -> SingleStep -> m (Maybe GHC.ExecResult)
+runStmt_ input step = do
   pflags <- initParserOpts <$> GHC.getInteractiveDynFlags
   -- In GHCi, we disable `-fdefer-type-errors`, as well as `-fdefer-type-holes`
   -- and `-fdefer-out-of-scope-variables` for **naked expressions**. The

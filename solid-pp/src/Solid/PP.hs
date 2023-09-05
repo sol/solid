@@ -91,8 +91,8 @@ instance Ord Module where
 data Result = Failure String | Success
   deriving (Eq, Show)
 
-desugarExpression :: FilePath -> Text -> Either String Text
-desugarExpression src input = execWriter . edit tell input . pp <$> parse extensions src input
+desugarExpression :: FilePath -> Int -> Text -> Either String Text
+desugarExpression src line input = execWriter . edit tell input . pp <$> parse extensions src line input
 
 main :: String -> String -> String -> IO ()
 main src cur dst = run src cur dst >>= \ case
@@ -110,7 +110,7 @@ linePragma :: Int -> FilePath -> Text
 linePragma line src = pack $ "{-# LINE " <> show line <> " " <> show src <> " #-}\n"
 
 preProcesses :: FilePath -> FilePath -> Text -> IO Result
-preProcesses src dst input = case parse extensions src input of
+preProcesses src dst input = case parse extensions src 1 input of
   Left err -> return (Failure err)
   Right nodes -> withFile dst WriteMode $ \ h -> do
     edit (hPutStr h) input $ maybe id (:) (addImplicitImports nodes) (pp nodes)

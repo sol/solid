@@ -150,9 +150,9 @@ data Error =
 error :: Error -> Parser a
 error = fancyFailure . Set.singleton . ErrorCustom
 
-parse :: [LanguageFlag] -> FilePath -> Text -> Either String [Node]
-parse extensions src input = do
-  result <- tokenize extensions src input
+parse :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String [Node]
+parse extensions src line input = do
+  result <- tokenize extensions src line input
   let
     stream :: TokenStream
     stream = TokenStream input result.tokens
