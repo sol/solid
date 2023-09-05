@@ -2,7 +2,7 @@ module System.Environment.Import where
 
 import Solid
 import System.Environment qualified as Haskell
-import Solid.Foreign.Haskell qualified as Haskell
+import qualified Haskell
 
 getArgs :: IO [String]
 getArgs = map pack <$> Haskell.getArgs

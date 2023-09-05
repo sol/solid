@@ -42,7 +42,7 @@ import Data.Coerce (coerce)
 import System.Posix.PosixPath.FilePath qualified as Posix
 import Data.ByteString qualified as B
 
-import Solid.Foreign.Haskell (asPlatformPath)
+import Haskell (asPlatformPath)
 
 type Int = CInt
 type Char = CChar

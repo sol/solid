@@ -43,7 +43,7 @@ import System.Process.Internals (translate)
 import Solid.Process.Typed qualified as Haskell
 import Solid.Process.Typed.Internal qualified as Haskell
 
-import Solid.Foreign.Haskell qualified as Haskell
+import Haskell qualified
 import Process.Config (Config)
 import Process.Self qualified as Self
 

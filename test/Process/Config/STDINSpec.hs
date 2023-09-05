@@ -2,7 +2,7 @@
 module Process.Config.STDINSpec (spec) where
 
 import Helper
-import Solid.Foreign.Haskell qualified as Haskell
+import Haskell qualified
 
 import System.Posix.Types
 import System.Posix.IO.PosixString

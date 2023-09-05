@@ -8,7 +8,7 @@ import Solid.Types
 import FilePath qualified
 
 import Data.Coerce (coerce)
-import Solid.Foreign.Haskell qualified as Haskell
+import Haskell qualified
 
 import Foreign.C (CString, CStringLen)
 import Data.List.NonEmpty (NonEmpty)

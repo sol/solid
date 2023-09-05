@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.35.4.
 --
 -- see: https://github.com/sol/hpack
 
@@ -22,6 +22,7 @@ library
       Env.Raw
       Exception
       FilePath
+      Haskell
       IO
       IO.Handle
       List
@@ -43,7 +44,6 @@ library
       Solid.Common
       Solid.Driver
       Solid.Foreign.C
-      Solid.Foreign.Haskell
       Solid.MD5
       Solid.Process.Typed
       Solid.Process.Typed.Internal
@@ -154,6 +154,7 @@ test-suite spec
       Env.Raw
       Exception
       FilePath
+      Haskell
       IO
       IO.Handle
       List
@@ -175,7 +176,6 @@ test-suite spec
       Solid.Common
       Solid.Driver
       Solid.Foreign.C
-      Solid.Foreign.Haskell
       Solid.MD5
       Solid.Process.Typed
       Solid.Process.Typed.Internal

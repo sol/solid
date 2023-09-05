@@ -14,7 +14,7 @@ import Solid hiding (stdin, stdout, stderr)
 import Solid.Process.Typed (Config)
 import Solid.Process.Typed qualified as Haskell
 
-import Solid.Foreign.Haskell qualified as Haskell
+import Haskell qualified
 
 import Process.Config.STDIN
 import Process.Config.STDOUT

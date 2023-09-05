@@ -4,7 +4,7 @@ module Solid.MD5 (Fingerprint) where
 
 import Solid.Common
 import Solid.Types
-import Solid.Foreign.Haskell qualified as Haskell
+import Haskell qualified
 import Solid.ToString
 
 import           GHC.Fingerprint

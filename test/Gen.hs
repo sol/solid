@@ -2,7 +2,7 @@
 module Gen (module Gen) where
 
 import Solid
-import Solid.Foreign.Haskell qualified as Haskell
+import Haskell qualified
 
 import Hedgehog
 import Hedgehog.Gen as Gen hiding (enum, ascii, unicodeAll, bytes, string)

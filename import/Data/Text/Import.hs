@@ -6,7 +6,7 @@ import Solid.Types
 import Data.List qualified as List
 
 import Data.Coerce (coerce)
-import Solid.Foreign.Haskell (fromText, toText)
+import Haskell (fromText, toText)
 
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text

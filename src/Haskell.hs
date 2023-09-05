@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-module Solid.Foreign.Haskell (
+module Haskell (
   Haskell.ByteString
 , asByteString
 , fromByteString

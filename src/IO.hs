@@ -13,7 +13,7 @@ module IO (
 
 import Solid.Common
 import Solid.Types
-import Solid.Foreign.Haskell qualified as Haskell
+import Haskell qualified
 
 import qualified Data.ByteString as B
 

@@ -22,7 +22,7 @@ import qualified Test.Mockery.Directory as Mockery
 import           Data.Typeable (typeOf)
 
 import Solid.TypeLits
-import Solid.Foreign.Haskell qualified as Haskell
+import Haskell qualified
 
 touch :: FilePath -> IO ()
 touch = Haskell.toFilePath >=> Mockery.touch
