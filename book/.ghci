@@ -1,0 +1,1 @@
+:set -Wno-overlapping-patterns -package=doctest -package=markdown-unlit -package=bytestring -package=text -pgmL=markdown-unlit

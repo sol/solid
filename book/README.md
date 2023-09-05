@@ -41,12 +41,12 @@ If you want to experiment with the examples given in this book in a REPL then:
 
 1. Clone the repository
 1. Change into the `book` directory
-1. Run `make repl`
+1. Run `solid repl README.lhs`
 
 ```
 $ git clone https://github.com/sol/solid
 $ cd solid/book
-$ make repl
+$ solid repl README.lhs
 ```
 
 # Basic types and operations
