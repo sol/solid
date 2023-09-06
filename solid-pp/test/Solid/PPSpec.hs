@@ -48,7 +48,7 @@ spec :: Spec
 spec = do
   describe "usedModules" $ do
     let
-      modules :: HasCallStack => Text -> Set Module
+      modules :: HasCallStack => Text -> Set ModuleName
       modules = usedModules . either undefined id . parse extensions "src.hs" 1
 
     context "with a qualified identifier" $ do

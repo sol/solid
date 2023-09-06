@@ -1,5 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -10,6 +11,7 @@
 module Solid.PP.Parser (
   parse
 
+, ModuleName(..)
 , Node
 , Expression
 , Subject(..)
@@ -27,6 +29,7 @@ module Solid.PP.Parser (
 import           Prelude ()
 import           Solid.PP.IO hiding (try, error, some, many)
 
+import           Data.Coerce (coerce)
 import           Data.Foldable1 (fold1)
 import           Data.List hiding (lines)
 import qualified Data.List.NonEmpty as NonEmpty
@@ -300,6 +303,12 @@ pattern TokenEnd loc src <- L loc (ITstring_interpolation_end (SourceText src) _
 
 pattern TokenEndBegin :: BufferSpan -> String -> Token
 pattern TokenEndBegin loc src <- L loc (ITstring_interpolation_end_begin (SourceText src) _)
+
+newtype ModuleName = ModuleName FastString
+  deriving newtype (Eq, Show, IsString)
+
+instance Ord ModuleName where
+  compare = coerce GHC.uniqCompareFS
 
 type Node = NodeWith BufferSpan
 type Expression = ExpressionWith BufferSpan

@@ -18,7 +18,6 @@ module Solid.PP (
 , extensions
 
 #ifdef TEST
-, Module
 , usedModules
 , ModuleHeader(..)
 , parseModuleHeader
@@ -35,8 +34,6 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Short as SB
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import qualified GHC.Data.FastString as FastString
-import           Data.Coerce (coerce)
 
 import           Solid.PP.DList
 import           Solid.PP.Edit (Edit(..), edit)
@@ -55,7 +52,7 @@ extensions = [
   , Disable FieldSelectors
   ]
 
-wellKnownModules :: Set Module
+wellKnownModules :: Set ModuleName
 wellKnownModules = Set.fromList [
     "ByteString"
   , "Directory"
@@ -79,14 +76,8 @@ wellKnownModules = Set.fromList [
   , toStringModule
   ]
 
-toStringModule :: Module
+toStringModule :: ModuleName
 toStringModule = "Solid.ToString"
-
-newtype Module = Module FastString
-  deriving newtype (Eq, Show, IsString)
-
-instance Ord Module where
-  compare = coerce FastString.uniqCompareFS
 
 data Result = Failure String | Success
   deriving (Eq, Show)
@@ -121,7 +112,7 @@ addImplicitImports nodes = case parseModuleHeader nodes of
   Empty -> Nothing
   ModuleHeader self offset file line -> do
     let
-      importsWithoutSelf :: Set Module
+      importsWithoutSelf :: Set ModuleName
       importsWithoutSelf = maybe id Set.delete self imports
     case Set.null importsWithoutSelf of
       True -> Nothing
@@ -132,55 +123,55 @@ addImplicitImports nodes = case parseModuleHeader nodes of
       False -> Just $ insert offset $ formatImports imports <> linePragma line file
 
   where
-    imports :: Set Module
+    imports :: Set ModuleName
     imports = Set.intersection (usedModules nodes) wellKnownModules
 
-    formatImports :: Set Module -> Text
+    formatImports :: Set ModuleName -> Text
     formatImports = T.unlines . map formatImport . Set.toList
 
-    formatImport :: Module -> Text
-    formatImport (Module m) = "import qualified " <> m.toText
+    formatImport :: ModuleName -> Text
+    formatImport (ModuleName m) = "import qualified " <> m.toText
 
     insert :: Int -> Text -> Edit
     insert offset = Replace Nothing offset 0
 
-usedModules :: [NodeWith loc] -> Set Module
+usedModules :: [NodeWith loc] -> Set ModuleName
 usedModules = Set.fromList . (.build) . fromNodes . map void
   where
-    fromNodes :: [NodeWith ()] -> DList Module
+    fromNodes :: [NodeWith ()] -> DList ModuleName
     fromNodes = concatMap fromNode
 
-    fromNode :: NodeWith () -> DList Module
+    fromNode :: NodeWith () -> DList ModuleName
     fromNode = \ case
-      Token () (ITqvarid (m, _)) -> singleton (Module m)
+      Token () (ITqvarid (m, _)) -> singleton (ModuleName m)
       Token () (_ :: Token) -> mempty
       MethodChain subject methodCalls -> fromSubject subject <> concatMap fromMethodCall methodCalls
 
-    fromSubject :: Subject () -> DList Module
+    fromSubject :: Subject () -> DList ModuleName
     fromSubject = \ case
       LiteralString (Begin () (_ :: String) expression) -> singleton toStringModule <> fromExpression expression
       LiteralString (Literal () (_ :: String)) -> mempty
       Bracketed (_ :: BracketStyle) () nodes -> concatMap fromNodes nodes
       Name () (_ :: FastString) arguments -> fromArguments arguments
-      QualifiedName () m (_ :: FastString) arguments -> singleton (Module m) <> fromArguments arguments
+      QualifiedName () m (_ :: FastString) arguments -> singleton (ModuleName m) <> fromArguments arguments
 
-    fromMethodCall :: MethodCall () -> DList Module
+    fromMethodCall :: MethodCall () -> DList ModuleName
     fromMethodCall (MethodCall () (_ :: FastString) arguments) = fromArguments arguments
 
-    fromArguments :: Arguments () -> DList Module
+    fromArguments :: Arguments () -> DList ModuleName
     fromArguments = \ case
       NoArguments -> mempty
       Arguments () nodes -> concatMap fromArgument nodes
 
-    fromArgument :: Argument () -> DList Module
+    fromArgument :: Argument () -> DList ModuleName
     fromArgument (Argument () nodes) = concatMap fromNode nodes
 
-    fromExpression :: ExpressionWith () -> DList Module
+    fromExpression :: ExpressionWith () -> DList ModuleName
     fromExpression (Expression nodes end) = fromNodes nodes <> case end of
       EndBegin () (_ :: String) expression -> fromExpression expression
       End () (_ :: String) -> mempty
 
-data ModuleHeader = Empty | ModuleHeader (Maybe Module) Int FilePath Int | NoModuleHeader Int FilePath Int
+data ModuleHeader = Empty | ModuleHeader (Maybe ModuleName) Int FilePath Int | NoModuleHeader Int FilePath Int
   deriving (Eq, Show)
 
 parseModuleHeader :: [Node] -> ModuleHeader
@@ -191,10 +182,10 @@ parseModuleHeader nodes = afterExportList
       Just (_, rest) -> case seekTo ITwhere rest of
         Just (loc, _) -> do
           let
-            self :: Maybe Module
+            self :: Maybe ModuleName
             self = case rest of
-              Token _ (ITconid name) : _ -> Just (Module name)
-              Token _ (ITqconid (qualified, name)) : _ -> Just (Module $ qualified <> "." <> name)
+              Token _ (ITconid name) : _ -> Just (ModuleName name)
+              Token _ (ITqconid (qualified, name)) : _ -> Just (ModuleName $ qualified <> "." <> name)
               _ -> Nothing
           ModuleHeader self loc.end loc.file loc.endLine
         Nothing -> Empty
