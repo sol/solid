@@ -147,10 +147,10 @@ usedModules = Set.fromList . (.build) . fromModule . void
       NoExportList -> mempty
       ExportList nodes -> concatMap fromNodes nodes
 
-    fromNodes :: [NodeWith ()] -> DList ModuleName
+    fromNodes :: [Node ()] -> DList ModuleName
     fromNodes = concatMap fromNode
 
-    fromNode :: NodeWith () -> DList ModuleName
+    fromNode :: Node () -> DList ModuleName
     fromNode = \ case
       Token () (ITqvarid (m, _)) -> singleton (ModuleName m)
       Token () (_ :: Token) -> mempty
@@ -175,7 +175,7 @@ usedModules = Set.fromList . (.build) . fromModule . void
     fromArgument :: Argument () -> DList ModuleName
     fromArgument (Argument () nodes) = concatMap fromNode nodes
 
-    fromExpression :: ExpressionWith () -> DList ModuleName
+    fromExpression :: Expression () -> DList ModuleName
     fromExpression (Expression nodes end) = fromNodes nodes <> case end of
       EndBegin () (_ :: String) expression -> fromExpression expression
       End () (_ :: String) -> mempty
@@ -247,13 +247,13 @@ ppExportList = \ case
   NoExportList -> mempty
   ExportList nodes -> concatMap pp nodes
 
-pp :: [Node] -> DList Edit
+pp :: [Node BufferSpan] -> DList Edit
 pp = ppNodes
   where
-    ppNodes :: Foldable sequence_of => sequence_of Node -> DList Edit
+    ppNodes :: Foldable sequence_of => sequence_of (Node BufferSpan) -> DList Edit
     ppNodes = concatMap ppNode
 
-    ppNode :: Node -> DList Edit
+    ppNode :: Node BufferSpan -> DList Edit
     ppNode = \ case
       Token loc t -> ppToken loc t
       node@(MethodChain subject methodCalls) -> insert node.start (replicate n '(') <> ppSubject subject <> concatMap ppMethodCall methodCalls
@@ -305,7 +305,7 @@ pp = ppNodes
       Literal loc src -> unescapeStringLiteral loc src
       Begin loc src expression -> replace loc (lambdaAbstract expression <> beginInterpolation src).build <> ppExpression 1 expression
 
-    ppExpression :: Int -> Expression -> DList Edit
+    ppExpression :: Int -> Expression BufferSpan -> DList Edit
     ppExpression n = \ case
       Expression [] end -> insert end.loc.startLoc (abstractionParam n "") <> ppEnd (succ n) end
       Expression nodes end -> ppNodes nodes <> ppEnd n end
@@ -347,7 +347,7 @@ pp = ppNodes
     close_paren :: SrcLoc -> DList Edit
     close_paren = singleton . Edit.insertClosingParen
 
-lambdaAbstract :: Expression -> DString
+lambdaAbstract :: Expression BufferSpan -> DString
 lambdaAbstract = lambda . countAbstractions
   where
     lambda :: Int -> DString
@@ -361,10 +361,10 @@ lambdaAbstract = lambda . countAbstractions
     formatParam :: Int -> DString
     formatParam n = DList $ (' ' :) . abstractionParam n
 
-    countAbstractions :: Expression -> Int
+    countAbstractions :: Expression BufferSpan -> Int
     countAbstractions = onExpression
       where
-        onExpression :: Expression -> Int
+        onExpression :: Expression BufferSpan -> Int
         onExpression = \ case
           Expression nodes end -> onEnd end + case nodes of
             [] -> 1

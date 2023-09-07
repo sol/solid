@@ -21,21 +21,21 @@ import           Solid.PP.Parser
 import qualified Solid.PP.Parser as Parser
 
 instance IsList (Module ()) where
-  type Item (Module ()) = NodeWith ()
+  type Item (Module ()) = Node ()
   fromList = Module NoModuleHeader
   toList = undefined
 
-instance IsList (End () -> ExpressionWith ()) where
-  type Item (End () -> ExpressionWith ()) = NodeWith ()
+instance IsList (End () -> Expression ()) where
+  type Item (End () -> Expression ()) = Node ()
   fromList = Expression
   toList = undefined
 
 instance IsList (Arguments ()) where
-  type Item (Arguments ()) = NonEmpty (NodeWith ())
+  type Item (Arguments ()) = NonEmpty (Node ())
   fromList = Arguments () . map (Argument ())
   toList = undefined
 
-instance Num (NodeWith ()) where
+instance Num (Node ()) where
   (+) = undefined
   (-) = undefined
   (*) = undefined
@@ -43,7 +43,7 @@ instance Num (NodeWith ()) where
   signum = undefined
   fromInteger = token . fromInteger
 
-instance IsString (NodeWith ()) where
+instance IsString (Node ()) where
   fromString name = nameWith (fromString name) NoArguments
 
 instance IsString (Subject ()) where
@@ -55,10 +55,10 @@ instance IsString (MethodCall ()) where
 expectationFailurePure :: HasCallStack => String -> a
 expectationFailurePure = throw . HUnitFailure (snd <$> callSite) . Reason
 
-token :: Token -> NodeWith ()
+token :: Token -> Node ()
 token = Token ()
 
-nameWith :: FastString -> Arguments () -> NodeWith ()
+nameWith :: FastString -> Arguments () -> Node ()
 nameWith n args = MethodChain (Name () n args) []
 
 parse :: HasCallStack => String -> Module ()
@@ -67,19 +67,19 @@ parse = either expectationFailurePure void . Parser.parseModule extensions "main
 spec :: Spec
 spec = do
   let
-    begin :: String -> ExpressionWith () -> NodeWith ()
+    begin :: String -> Expression () -> Node ()
     begin str expression = MethodChain (LiteralString $ Begin () str expression) []
 
     end :: String -> End ()
     end = End ()
 
-    end_begin :: String -> ExpressionWith () -> End ()
+    end_begin :: String -> Expression () -> End ()
     end_begin = EndBegin ()
 
-    literal :: String -> NodeWith ()
+    literal :: String -> Node ()
     literal string = MethodChain (LiteralString (Literal () string)) []
 
-    bracketed :: BracketStyle -> [[NodeWith ()]] -> NodeWith ()
+    bracketed :: BracketStyle -> [[Node ()]] -> Node ()
     bracketed style inner = MethodChain (Bracketed style () inner) []
 
   describe "parse" $ do

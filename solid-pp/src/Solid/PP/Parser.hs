@@ -17,17 +17,15 @@ module Solid.PP.Parser (
 , ModuleHeader(..)
 , ModuleName(..)
 , ExportList(..)
-, Node
-, Expression
 , Subject(..)
 , BracketStyle(..)
 , Arguments(..)
 , Argument(..)
 , MethodCall(..)
 
-, NodeWith(..)
+, Node(..)
 , LiteralString(..)
-, ExpressionWith(..)
+, Expression(..)
 , End(..)
 ) where
 
@@ -161,7 +159,7 @@ error = fancyFailure . Set.singleton . ErrorCustom
 parseModule :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String (Module BufferSpan)
 parseModule = parse pModule
 
-parseExpression :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String [Node]
+parseExpression :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String [Node BufferSpan]
 parseExpression = parse pModuleBody
 
 parse :: Parser a -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String a
@@ -204,13 +202,13 @@ pModuleName = fmap ModuleName . token $ \ case
 pExportList :: Parser (ExportList BufferSpan)
 pExportList = oparen *> (ExportList <$> pBracketedInner) <* cparen <|> pure NoExportList
 
-pModuleBody :: Parser [NodeWith BufferSpan]
+pModuleBody :: Parser [Node BufferSpan]
 pModuleBody = many pNode <* eof
 
-pNode :: Parser Node
+pNode :: Parser (Node BufferSpan)
 pNode = pMethodChain <|> pAnyToken
 
-pMethodChain :: Parser Node
+pMethodChain :: Parser (Node BufferSpan)
 pMethodChain = MethodChain <$> pSubject <*> many pMethodCall
 
 pMethodCall :: Parser (MethodCall BufferSpan)
@@ -244,7 +242,7 @@ pLiteralString = token \ case
 pInterpolatedString :: Parser (Subject BufferSpan)
 pInterpolatedString = pTokenBegin <*> pExpression
   where
-    pExpression :: Parser Expression
+    pExpression :: Parser (Expression BufferSpan)
     pExpression = Expression <$> many pNode <*> (pEnd <|> error UnterminatedStringInterpolation)
 
     pEnd :: Parser (End BufferSpan)
@@ -256,10 +254,10 @@ pBracketed =
   <|> bracketed Square <$> obrack <*> pBracketedInner <*> cbrack
   <|> bracketed Curly <$> ocurly <*> pBracketedInner <*> ccurly
   where
-    bracketed :: BracketStyle -> BufferSpan -> [[Node]] -> BufferSpan -> Subject BufferSpan
+    bracketed :: BracketStyle -> BufferSpan -> [[Node BufferSpan]] -> BufferSpan -> Subject BufferSpan
     bracketed style start nodes end = Bracketed style (start.merge end) nodes
 
-pBracketedInner :: Parser [[NodeWith BufferSpan]]
+pBracketedInner :: Parser [[Node BufferSpan]]
 pBracketedInner = many pNode `sepBy` comma
 
 pName :: Parser (Subject BufferSpan)
@@ -282,7 +280,7 @@ qvarid = token \ case
   L loc (ITqvarid name) -> Just (loc, name)
   _ -> Nothing
 
-pAnyToken :: Parser Node
+pAnyToken :: Parser (Node BufferSpan)
 pAnyToken = token \ case
   TokenEndBegin {} -> Nothing
   TokenEnd {} -> Nothing
@@ -316,7 +314,7 @@ ocurly = require ITocurly
 ccurly :: Parser BufferSpan
 ccurly = require ITccurly
 
-pTokenBegin :: Parser (Expression -> Subject BufferSpan)
+pTokenBegin :: Parser (Expression BufferSpan -> Subject BufferSpan)
 pTokenBegin = token \ case
   TokenBegin loc src -> Just $ LiteralString . Begin loc src
   _ -> Nothing
@@ -326,7 +324,7 @@ pTokenEnd = token \ case
   TokenEnd loc src -> Just (End loc src)
   _ -> Nothing
 
-pTokenEndBegin :: Parser (Expression -> End BufferSpan)
+pTokenEndBegin :: Parser (Expression BufferSpan -> End BufferSpan)
 pTokenEndBegin = token \ case
   TokenEndBegin loc src -> Just (EndBegin loc src)
   _ -> Nothing
@@ -340,7 +338,7 @@ pattern TokenEnd loc src <- L loc (ITstring_interpolation_end (SourceText src) _
 pattern TokenEndBegin :: BufferSpan -> String -> Token
 pattern TokenEndBegin loc src <- L loc (ITstring_interpolation_end_begin (SourceText src) _)
 
-data Module loc = Module (ModuleHeader loc) [NodeWith loc]
+data Module loc = Module (ModuleHeader loc) [Node loc]
   deriving (Eq, Show, Functor)
 
 data ModuleHeader loc = NoModuleHeader | ModuleHeader loc ModuleName (ExportList loc)
@@ -352,20 +350,17 @@ newtype ModuleName = ModuleName FastString
 instance Ord ModuleName where
   compare = coerce GHC.uniqCompareFS
 
-data ExportList loc = NoExportList | ExportList [[NodeWith loc]]
+data ExportList loc = NoExportList | ExportList [[Node loc]]
   deriving (Eq, Show, Functor)
 
-type Node = NodeWith BufferSpan
-type Expression = ExpressionWith BufferSpan
-
-data NodeWith loc =
+data Node loc =
     Token loc Lexer.Token
   | MethodChain (Subject loc) [MethodCall loc]
   deriving (Eq, Show, Functor)
 
 data Subject loc =
     LiteralString (LiteralString loc)
-  | Bracketed BracketStyle loc [[NodeWith loc]]
+  | Bracketed BracketStyle loc [[Node loc]]
   | Name loc FastString (Arguments loc)
   | QualifiedName loc FastString FastString (Arguments loc)
   deriving (Eq, Show, Functor)
@@ -379,19 +374,19 @@ data BracketStyle =
 data Arguments loc = NoArguments | Arguments loc [Argument loc]
   deriving (Eq, Show, Functor)
 
-data Argument loc = Argument loc (NonEmpty (NodeWith loc))
+data Argument loc = Argument loc (NonEmpty (Node loc))
   deriving (Eq, Show, Functor)
 
 data MethodCall loc = MethodCall loc FastString (Arguments loc)
   deriving (Eq, Show, Functor)
 
-data LiteralString loc = Literal loc String | Begin loc String (ExpressionWith loc)
+data LiteralString loc = Literal loc String | Begin loc String (Expression loc)
   deriving (Eq, Show, Functor)
 
-data ExpressionWith loc = Expression [NodeWith loc] (End loc)
+data Expression loc = Expression [Node loc] (End loc)
   deriving (Eq, Show, Functor)
 
-data End loc = End loc String | EndBegin loc String (ExpressionWith loc)
+data End loc = End loc String | EndBegin loc String (Expression loc)
   deriving (Eq, Show, Functor)
 
 instance HasField "loc" (End loc) loc where
@@ -399,7 +394,7 @@ instance HasField "loc" (End loc) loc where
     End loc _ -> loc
     EndBegin loc _ _ -> loc
 
-instance HasField "start" Node SrcLoc where
+instance HasField "start" (Node BufferSpan) SrcLoc where
   getField = \ case
     Token loc _ -> loc.startLoc
     MethodChain subject _ -> subject.start
