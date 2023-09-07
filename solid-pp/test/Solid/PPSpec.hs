@@ -54,6 +54,14 @@ spec = do
       it "extracts module names" $ do
         modules "module Foo (String.length) where" `shouldBe` Set.fromList ["String"]
 
+    context "with a qualified constructor" $ do
+      it "extracts module name" $ do
+        modules "foo = IO.ReadMode" `shouldBe` Set.fromList ["IO"]
+
+    context "with a qualified type" $ do
+      it "extracts module name" $ do
+        modules "foo :: IO.Mode" `shouldBe` Set.fromList ["IO"]
+
     context "within an interpolated string" $ do
       it "extracts module names" $ do
         modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` Set.fromList ["Solid.ToString", "Bar", "Foo"]

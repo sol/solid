@@ -7,7 +7,6 @@ import GHC.IO.Exception
 import System.IO.Error
 import Gen qualified
 import Range qualified
-import IO qualified
 
 import qualified System.Directory.Import as Haskell
 

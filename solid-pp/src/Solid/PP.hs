@@ -164,6 +164,7 @@ usedModules = ($ mempty) . fromModule . void
     fromNode :: Node () -> Set ModuleName -> Set ModuleName
     fromNode = \ case
       Token () (ITqvarid (m, _)) -> Set.insert (ModuleName m)
+      Token () (ITqconid (m, _)) -> Set.insert (ModuleName m)
       Token () (_ :: Token) -> id
       MethodChain subject methodCalls -> fromSubject subject . foreach fromMethodCall methodCalls
 

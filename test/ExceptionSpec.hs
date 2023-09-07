@@ -6,8 +6,6 @@ import Helper
 import GHC.Stack
 import Solid.StackTrace qualified as StackTrace
 
-import Exception qualified
-
 loc :: Int -> Int -> SrcLoc
 loc line column = SrcLoc "main" "ExceptionSpec" "test/ExceptionSpec.hs" line column line column
 
