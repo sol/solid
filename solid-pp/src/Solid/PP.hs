@@ -110,12 +110,12 @@ data Where = Before | After
 addImplicitImports :: Module BufferSpan -> [Edit] -> [Edit]
 addImplicitImports module_ = case module_ of
   Module NoModuleHeader [] -> id
-  Module NoModuleHeader (node : _) -> addImports Before node.start modules
-  Module (ModuleHeader loc name _) _ -> addImports After loc.endLoc (Set.delete name modules)
+  Module NoModuleHeader (node : _) -> addImports Before node.start
+  Module (ModuleHeader loc _ _) _ -> addImports After loc.endLoc
   where
-    addImports where_ loc imports = case Set.null imports of
+    addImports where_ loc = case Set.null modules of
       True -> id
-      False -> (:) $ insert loc.offset $ formatImports where_ imports <> linePragma loc.line loc.file
+      False -> (:) $ insert loc.offset $ formatImports where_ modules <> linePragma loc.line loc.file
 
     modules :: Set ModuleName
     modules = Set.intersection (usedModules module_) wellKnownModules
@@ -132,53 +132,56 @@ addImplicitImports module_ = case module_ of
     insert offset = Replace Nothing offset 0
 
 usedModules :: Module BufferSpan-> Set ModuleName
-usedModules = Set.fromList . (.build) . fromModule . void
+usedModules = ($ mempty) . fromModule . void
   where
-    fromModule :: Module () -> DList ModuleName
-    fromModule (Module header nodes) = fromModuleHeader header <> fromNodes nodes
+    foreach :: Foldable sequence_of => (a -> Set ModuleName -> Set ModuleName) -> sequence_of a -> Set ModuleName -> Set ModuleName
+    foreach f xs set = foldr f set xs
 
-    fromModuleHeader :: ModuleHeader () -> DList ModuleName
+    fromModule :: Module () -> Set ModuleName -> Set ModuleName
+    fromModule (Module header nodes) = fromModuleHeader header . fromNodes nodes
+
+    fromModuleHeader :: ModuleHeader () -> Set ModuleName -> Set ModuleName
     fromModuleHeader = \ case
-      NoModuleHeader -> mempty
-      ModuleHeader () (_ :: ModuleName) exports -> fromExportList exports
+      NoModuleHeader -> id
+      ModuleHeader () name exports -> Set.delete name . fromExportList exports
 
-    fromExportList :: ExportList () -> DList ModuleName
+    fromExportList :: ExportList () -> Set ModuleName -> Set ModuleName
     fromExportList = \ case
-      NoExportList -> mempty
-      ExportList nodes -> concatMap fromNodes nodes
+      NoExportList -> id
+      ExportList nodes -> foreach fromNodes nodes
 
-    fromNodes :: [Node ()] -> DList ModuleName
-    fromNodes = concatMap fromNode
+    fromNodes :: [Node ()] -> Set ModuleName -> Set ModuleName
+    fromNodes = foreach fromNode
 
-    fromNode :: Node () -> DList ModuleName
+    fromNode :: Node () -> Set ModuleName -> Set ModuleName
     fromNode = \ case
-      Token () (ITqvarid (m, _)) -> singleton (ModuleName m)
-      Token () (_ :: Token) -> mempty
-      MethodChain subject methodCalls -> fromSubject subject <> concatMap fromMethodCall methodCalls
+      Token () (ITqvarid (m, _)) -> Set.insert (ModuleName m)
+      Token () (_ :: Token) -> id
+      MethodChain subject methodCalls -> fromSubject subject . foreach fromMethodCall methodCalls
 
-    fromSubject :: Subject () -> DList ModuleName
+    fromSubject :: Subject () -> Set ModuleName -> Set ModuleName
     fromSubject = \ case
-      LiteralString (Begin () (_ :: String) expression) -> singleton toStringModule <> fromExpression expression
-      LiteralString (Literal () (_ :: String)) -> mempty
-      Bracketed (_ :: BracketStyle) () nodes -> concatMap fromNodes nodes
+      LiteralString (Begin () (_ :: String) expression) -> Set.insert toStringModule . fromExpression expression
+      LiteralString (Literal () (_ :: String)) -> id
+      Bracketed (_ :: BracketStyle) () nodes -> foreach fromNodes nodes
       Name () (_ :: FastString) arguments -> fromArguments arguments
-      QualifiedName () m (_ :: FastString) arguments -> singleton (ModuleName m) <> fromArguments arguments
+      QualifiedName () m (_ :: FastString) arguments -> Set.insert (ModuleName m) . fromArguments arguments
 
-    fromMethodCall :: MethodCall () -> DList ModuleName
+    fromMethodCall :: MethodCall () -> Set ModuleName -> Set ModuleName
     fromMethodCall (MethodCall () (_ :: FastString) arguments) = fromArguments arguments
 
-    fromArguments :: Arguments () -> DList ModuleName
+    fromArguments :: Arguments () -> Set ModuleName -> Set ModuleName
     fromArguments = \ case
-      NoArguments -> mempty
-      Arguments () nodes -> concatMap fromArgument nodes
+      NoArguments -> id
+      Arguments () nodes -> foreach fromArgument nodes
 
-    fromArgument :: Argument () -> DList ModuleName
-    fromArgument (Argument () nodes) = concatMap fromNode nodes
+    fromArgument :: Argument () -> Set ModuleName -> Set ModuleName
+    fromArgument (Argument () nodes) = foreach fromNode nodes
 
-    fromExpression :: Expression () -> DList ModuleName
-    fromExpression (Expression nodes end) = fromNodes nodes <> case end of
+    fromExpression :: Expression () -> Set ModuleName -> Set ModuleName
+    fromExpression (Expression nodes end) = fromNodes nodes . case end of
       EndBegin () (_ :: String) expression -> fromExpression expression
-      End () (_ :: String) -> mempty
+      End () (_ :: String) -> id
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
 desugarIdentifier start end identifier

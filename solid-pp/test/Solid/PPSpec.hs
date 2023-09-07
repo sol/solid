@@ -40,7 +40,7 @@ spec = do
   describe "usedModules" $ do
     let
       modules :: HasCallStack => Text -> Set ModuleName
-      modules = usedModules . either undefined id . parseModule extensions "src.hs" 1
+      modules = usedModules . either error id . parseModule extensions "src.hs" 1
 
     context "with a qualified identifier" $ do
       it "extracts module name" $ do
@@ -57,6 +57,13 @@ spec = do
     context "within an interpolated string" $ do
       it "extracts module names" $ do
         modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` Set.fromList ["Solid.ToString", "Bar", "Foo"]
+
+    context "when a qualified name references the current module" $ do
+      it "does not extract that module name" $ do
+        modules (unlines [
+            "module Foo where"
+          , "foo = Foo.bar"
+          ]) `shouldBe` Set.fromList []
 
   describe "desugarExpression" $ around_ inTempDirectory $ do
     it "desugars identifiers" $ do
