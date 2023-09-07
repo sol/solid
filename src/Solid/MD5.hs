@@ -3,7 +3,8 @@
 module Solid.MD5 (Fingerprint) where
 
 import Solid.Common
-import Solid.Types
+import Solid.String
+import Solid.Bytes.Unsafe
 import Haskell qualified
 import Solid.ToString
 

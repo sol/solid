@@ -2,8 +2,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module FilePath (
   FilePath(..)
-, (</>)
-, (<.>)
+, (Import.</>)
+, (Import.<.>)
 
 , toString
 , fromString
@@ -28,53 +28,32 @@ module FilePath (
 ) where
 
 import Solid.Common hiding (IsString(..))
-import Solid.Common qualified as Solid
+import Solid.FilePath
 import Solid.ToString qualified as Solid
-import Solid.Types hiding (asByteString)
+import Solid.Bytes.Unsafe
 import Solid.Foreign.C qualified as C
 import Data.Coerce (coerce)
-import Data.ByteString.Short (fromShort)
-import System.OsPath qualified as Haskell
 import System.OsString.Internal.Types (OsString(..), PosixString(..))
-import System.Directory.OsPath qualified as Haskell
 import System.Posix.Files.PosixString qualified as Posix
 import System.Posix.Directory.PosixPath qualified as Posix
 
-(</>) :: FilePath -> FilePath -> FilePath
-(</>) = coerce (Haskell.</>)
-
-(<.>) :: FilePath -> FilePath -> FilePath
-(<.>) = coerce (Haskell.<.>)
-
-toString :: FilePath -> String
-toString = decodeUtf8 . asByteString
-
-fromString :: String -> FilePath
-fromString = asFilePath
-
-asByteString :: FilePath -> ByteString
-asByteString = Bytes . fromShort . getPosixString . getOsString . unFilePath
+use System.FilePath.Import
+use System.Directory.Import
 
 instance Solid.ToString FilePath where
   toString = toString
 
-instance Solid.IsString FilePath where
-  fromString = fromString . String.pack
-
-instance HasField "asByteString" FilePath ByteString where
-  getField = asByteString
-
 exists? :: FilePath -> IO Bool
-exists? = coerce Haskell.doesPathExist
+exists? = Import.doesPathExist
 
 file? :: FilePath -> IO Bool
-file? = coerce Haskell.doesFileExist
+file? = Import.doesFileExist
 
 directory? :: FilePath -> IO Bool
-directory? = coerce Haskell.doesDirectoryExist
+directory? = Import.doesDirectoryExist
 
 absolute :: FilePath -> IO FilePath
-absolute = coerce Haskell.makeAbsolute
+absolute = Import.makeAbsolute
 
 remove :: FilePath -> IO ()
 remove path =
@@ -84,7 +63,7 @@ foreign import ccall unsafe "remove"
   c_remove :: C.String -> IO C.Int
 
 remove! :: FilePath -> IO ()
-remove! = coerce Haskell.removePathForcibly
+remove! = Import.removePathForcibly
 
 unlink :: FilePath -> IO ()
 unlink = coerce Posix.removeLink
@@ -93,16 +72,13 @@ rmdir :: FilePath -> IO ()
 rmdir = coerce Posix.removeDirectory
 
 rename :: FilePath -> FilePath -> IO ()
-rename = coerce Haskell.renamePath
+rename = Import.renamePath
 
 open :: IO.Mode -> FilePath -> IO Handle
 open = flip IO.open
 
 directory :: FilePath -> FilePath
-directory = coerce Haskell.takeDirectory
-
-instance HasField "toString" FilePath String where
-  getField = toString
+directory = Import.takeDirectory
 
 instance HasField "exists\660" FilePath (IO Bool) where
   getField = exists?

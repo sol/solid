@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Directory (
   create
 , ensure
@@ -8,22 +9,19 @@ module Directory (
 ) where
 
 import Solid
-import Solid.Types
-
-import Data.Coerce (coerce)
-import System.Directory.OsPath qualified as Haskell
+use System.Directory.Import
 
 create :: FilePath -> IO ()
-create = coerce Haskell.createDirectory
+create = Import.createDirectory
 
 ensure :: FilePath -> IO ()
-ensure = coerce $ Haskell.createDirectoryIfMissing True
+ensure = Import.createDirectoryIfMissing True
 
 getCurrent :: IO FilePath
-getCurrent = coerce Haskell.getCurrentDirectory
+getCurrent = Import.getCurrentDirectory
 
 setCurrent :: FilePath -> IO ()
-setCurrent = coerce Haskell.setCurrentDirectory
+setCurrent = Import.setCurrentDirectory
 
 withCurrent :: FilePath -> IO a -> IO a
 withCurrent dir action = bracket getCurrent setCurrent $ \ _ -> do

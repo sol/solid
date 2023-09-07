@@ -29,8 +29,9 @@ module Haskell (
 ) where
 
 import Solid.Common
-import Solid.Types (ByteString, Bytes(..), FilePath(..))
-import Solid.Types qualified as Solid
+import Solid.String (String)
+import Solid.ByteString (ByteString)
+import Solid.Bytes.Unsafe (Bytes(..), FilePath(..))
 import Solid.StackTrace (toCallStack, fromCallStack)
 
 import System.IO.Unsafe (unsafePerformIO)
@@ -50,10 +51,10 @@ asByteString = unBytes
 fromByteString :: Haskell.ByteString -> ByteString
 fromByteString = Bytes
 
-toText :: Solid.String -> Text
+toText :: String -> Text
 toText = Text.decodeUtf8 . unBytes
 
-fromText :: Text -> Solid.String
+fromText :: Text -> String
 fromText = Bytes . Text.encodeUtf8
 
 asOsPath :: FilePath -> Haskell.OsPath

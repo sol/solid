@@ -26,7 +26,7 @@ module Solid.StackTrace (
 ) where
 
 import Solid.Common hiding (empty)
-import Solid.Types
+import Solid.String
 import Solid.ToString qualified as Solid
 
 import Data.Function (fix)

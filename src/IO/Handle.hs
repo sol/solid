@@ -30,7 +30,9 @@ module IO.Handle (
 ) where
 
 import Solid.Common
-import Solid.Types
+import Solid.String
+import Solid.ByteString
+import Solid.Bytes.Unsafe
 
 import           System.IO (SeekMode(..), BufferMode(..), stdin, stdout, stderr)
 import qualified System.IO as Haskell

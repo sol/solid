@@ -1,10 +1,10 @@
-module Solid.TypesSpec (spec) where
+module Solid.Bytes.UnsafeSpec (spec) where
 
 import Helper
 import Gen qualified
 import Range qualified
 
-import Solid.Types
+import Solid.Bytes.Unsafe
 
 listOfUpTo :: MonadGen m => Int -> m a -> m [a]
 listOfUpTo n = Gen.list (Range.linear 0 n)

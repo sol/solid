@@ -12,7 +12,7 @@ module Process.Config.STDERR (
 ) where
 
 import Solid hiding (null)
-import Solid.Types
+import Solid.Bytes.Unsafe
 
 import Control.Concurrent.STM qualified as STM
 import Data.ByteString.Lazy qualified as LB

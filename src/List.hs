@@ -25,7 +25,9 @@ module List (
 ) where
 
 import Solid.Common hiding (empty, null, traverse)
-import Solid.Types
+import Solid.Bytes.Unsafe
+import Solid.String
+
 import Data.List hiding (nub, nubBy, null, length)
 import GHC.OldList as Data.List (null, length)
 import Data.List qualified as Haskell

@@ -1,7 +1,8 @@
 module Data.Text.Import where
 
 import Solid.Common
-import Solid.Types
+import Solid.Bytes.Unsafe
+import Solid.String (String)
 
 import Data.List qualified as List
 

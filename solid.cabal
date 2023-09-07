@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.5.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -41,16 +41,19 @@ library
       Solid.Ansi
       Solid.Ansi.Types
       Solid.Bytes
+      Solid.Bytes.Unsafe
+      Solid.ByteString
       Solid.Common
       Solid.Driver
+      Solid.FilePath
       Solid.Foreign.C
       Solid.MD5
       Solid.Process.Typed
       Solid.Process.Typed.Internal
       Solid.StackTrace
+      Solid.String
       Solid.ToString
       Solid.TypeLits
-      Solid.Types
       String
       Temp
       Word8
@@ -173,16 +176,19 @@ test-suite spec
       Solid.Ansi
       Solid.Ansi.Types
       Solid.Bytes
+      Solid.Bytes.Unsafe
+      Solid.ByteString
       Solid.Common
       Solid.Driver
+      Solid.FilePath
       Solid.Foreign.C
       Solid.MD5
       Solid.Process.Typed
       Solid.Process.Typed.Internal
       Solid.StackTrace
+      Solid.String
       Solid.ToString
       Solid.TypeLits
-      Solid.Types
       String
       Temp
       Word8
@@ -211,6 +217,7 @@ test-suite spec
       ProcessSpec
       Range
       Solid.AnsiSpec
+      Solid.Bytes.UnsafeSpec
       Solid.CommonSpec
       Solid.DriverSpec
       Solid.Foreign.CSpec
@@ -218,7 +225,6 @@ test-suite spec
       Solid.Process.TypedSpec
       Solid.StackTraceSpec
       Solid.ToStringSpec
-      Solid.TypesSpec
       SolidSpec
       StringSpec
       TempSpec

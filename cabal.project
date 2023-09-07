@@ -22,4 +22,3 @@ allow-newer: cabal-install-solver:base
 allow-newer: stack:Cabal
 
 tests: True
-write-ghc-environment-files: always
