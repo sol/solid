@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 module Solid.PP.ParserSpec (spec) where
@@ -8,17 +9,20 @@ module Solid.PP.ParserSpec (spec) where
 import           Prelude ()
 import           Solid.PP.IO
 
-import           Test.Hspec
+import           Test.Hspec hiding (shouldBe)
+import qualified Test.Hspec as Hspec
+import           Test.Hspec.Expectations.Contrib (annotate)
 import           Test.HUnit.Lang
 import           Solid.PP.LexerSpec ()
 import           GHC.IsList
-import           Data.CallStack (callSite)
 import           GHC.Data.FastString (FastString)
 
 import           Solid.PP (extensions)
 import           Solid.PP.Lexer (Token(..))
+import qualified Solid.PP.Lexer as Lexer
 import           Solid.PP.Parser
 import qualified Solid.PP.Parser as Parser
+import           Solid.PP.SrcLoc
 
 instance IsList (Module ()) where
   type Item (Module ()) = Node ()
@@ -52,17 +56,24 @@ instance IsString (Subject ()) where
 instance IsString (MethodCall ()) where
   fromString name = MethodCall () (fromString name) NoArguments
 
-expectationFailurePure :: HasCallStack => String -> a
-expectationFailurePure = throw . HUnitFailure (snd <$> callSite) . Reason
-
 token :: Token -> Node ()
 token = Token ()
 
 nameWith :: FastString -> Arguments () -> Node ()
 nameWith n args = MethodChain (Name () n args) []
 
-parse :: HasCallStack => String -> Module ()
-parse = either expectationFailurePure void . Parser.parseModule extensions "main.hs" 1 . fromString
+parse :: HasCallStack => Text -> (Module () -> Expectation) -> Expectation
+parse input action = annotated $ do
+  either assertFailure (return . void) (Parser.parseModule extensions "main.hs" 1 input) >>= action
+  where
+    annotated :: IO a -> IO a
+    annotated = either (const id) (annotate . formatTokens) $ Lexer.tokenize extensions "main.hs" 1 input
+
+    formatTokens :: Lexer.LexerResult -> String
+    formatTokens result = "\ESC[31mtokens: \ESC[36m" <> show (map unLoc result.tokens) <> "\ESC[39m"
+
+shouldBe :: HasCallStack => (Eq a, Show a) => ((a -> Expectation) -> Expectation) -> a -> Expectation
+shouldBe action a = action (`Hspec.shouldBe` a)
 
 spec :: Spec
 spec = do
@@ -173,14 +184,14 @@ spec = do
 
       context "on unexpected end of line" $ do
         it "reports an error" $ do
-          Parser.parseModule extensions "main.hs" 1 "\"foo    \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
-          Parser.parseModule extensions "main.hs" 1 "\"foo {  \n" `shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
+          Parser.parseModule extensions "main.hs" 1 "\"foo    \n" `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
+          Parser.parseModule extensions "main.hs" 1 "\"foo {  \n" `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
 
       context "on unexpected end of input" $ do
         it "reports an error" $ do
-          Parser.parseModule extensions "main.hs" 1 "\"foo    " `shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
+          Parser.parseModule extensions "main.hs" 1 "\"foo    " `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
           let Left err = Parser.parseModule extensions "main.hs" 1 "\"foo {  "
-          err `shouldBe` (unpack . unlines) [
+          err `Hspec.shouldBe` (unpack . unlines) [
               "main.hs:1:7:"
             , "  |"
             , "1 | \"foo {  "
@@ -196,7 +207,7 @@ spec = do
                 , "some more tokens"
                 ]
 
-          err `shouldBe` (unpack . unlines) [
+          err `Hspec.shouldBe` (unpack . unlines) [
               "main.hs:2:5:"
             , "  |"
             , "2 | bar ].foo"
