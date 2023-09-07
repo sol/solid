@@ -10,7 +10,7 @@ import Solid.MD5 as Solid
 import FilePath as Solid (FilePath, (</>), (<.>))
 import Solid.ToString as Solid
 
-import Solid.Types as Solid (Bytes)
+import Solid.Bytes as Solid (Bytes)
 import ByteString as Solid (ByteString)
 import String as Solid (String, pack, unpack, words, unwords, lines, unlines)
 import Solid.Ansi ()

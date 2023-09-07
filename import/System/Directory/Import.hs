@@ -5,8 +5,8 @@ module System.Directory.Import (
 , module System.Directory.Import
 ) where
 
-import Solid
-import Solid.Types
+import Solid.Common
+import Solid.Bytes.Unsafe
 import Data.Coerce (coerce)
 
 import System.Directory.OsPath (Permissions(..), XdgDirectory(..), XdgDirectoryList(..))

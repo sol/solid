@@ -26,7 +26,9 @@ module Exception (
 ) where
 
 import Solid.Common
-import Solid.Types
+import Solid.String
+import Solid.Bytes.Unsafe (FilePath)
+import Solid.Bytes (asFilePath)
 import Solid.ToString as ToString
 import Solid.StackTrace (StackTrace)
 import Solid.StackTrace qualified as StackTrace

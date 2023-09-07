@@ -6,10 +6,12 @@ module ByteString (
 ) where
 
 import Solid.Common
-import Solid.Types hiding (asString, decodeUtf8, asFilePath, pack, unpack)
-import Solid.Types qualified as Types
+import Solid.String (String)
+import Solid.ByteString
+import Solid.Bytes.Unsafe
 import Exception
-import Solid.Bytes qualified as Bytes
+use Solid.Bytes
+use Solid.String
 
 import Data.Coerce (coerce)
 import Data.ByteString qualified as Haskell
@@ -19,16 +21,16 @@ instance Show ByteString where
   showsPrec n = showsPrec n . unBytes
 
 instance IsString ByteString where
-  fromString = asByteString . String.pack
+  fromString = Bytes.asByteString . String.pack
 
 asString :: ByteString -> Maybe String
-asString = Types.asString
+asString = String.asString
 
 asString! :: WithStackTrace => ByteString -> String
 asString! (Bytes string) = if Haskell.isValidUtf8 string then Bytes string else throw! UnicodeDecodeError
 
 decodeUtf8 :: ByteString -> String
-decodeUtf8 = Types.decodeUtf8
+decodeUtf8 = String.decodeUtf8
 
 instance HasField "asString" ByteString (Maybe String) where
   getField = asString
@@ -91,7 +93,7 @@ contains :: ByteString -> ByteString -> Bool
 contains = isInfixOf
 
 asFilePath :: ByteString -> FilePath
-asFilePath = Types.asFilePath
+asFilePath = Bytes.asFilePath
 
 instance HasField "length" ByteString Int where
   getField = length

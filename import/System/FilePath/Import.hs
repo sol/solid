@@ -1,10 +1,12 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module System.FilePath.Import (
   FilePath
 , module System.FilePath.Import
 ) where
 
-import Solid
-import Solid.Types
+import Solid.Common
+import Solid.Bytes.Unsafe
+import Solid.FilePath ()
 
 import Data.Coerce (coerce)
 import GHC.IO.Exception

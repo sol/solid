@@ -4,7 +4,9 @@ module Data.ByteString.Import (
 ) where
 
 import Solid.Common
-import Solid.Types
+import Solid.Bytes
+import Solid.Bytes.Unsafe
+import Solid.ByteString (ByteString)
 import FilePath qualified
 
 import Data.Coerce (coerce)

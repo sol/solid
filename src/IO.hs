@@ -12,8 +12,10 @@ module IO (
 ) where
 
 import Solid.Common
-import Solid.Types
-import Haskell qualified
+import Solid.Bytes.Unsafe
+import Solid.String
+import Solid.ByteString
+use Haskell
 
 import qualified Data.ByteString as B
 

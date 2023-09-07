@@ -5,8 +5,9 @@ module Solid.ToString (
   ToString(..)
 ) where
 
-import           Solid.Common
-import           Solid.Types
+import Solid.Common
+import Solid.String
+import Solid.Bytes.Unsafe
 
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as LB

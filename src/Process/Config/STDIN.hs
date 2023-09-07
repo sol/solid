@@ -12,7 +12,7 @@ module Process.Config.STDIN (
 ) where
 
 import Solid hiding (null)
-import Solid.Types
+import Solid.Bytes.Unsafe
 
 import Data.ByteString.Lazy qualified as LB
 import Solid.Process.Typed (Config)

@@ -9,10 +9,12 @@ module String (
 ) where
 
 import Solid.Common hiding (empty, replicate)
-import Solid.Types hiding (asFilePath)
-use Solid.Types
+import Solid.String
+import Solid.ByteString (ByteString)
+import Solid.Bytes.Unsafe
 use Solid.Bytes
 use Solid.StackTrace
+
 import Solid.Ansi.Types (Ansi(..))
 use Solid.Ansi.Types as Ansi
 
@@ -27,7 +29,7 @@ use Data.Text.Encoding as Text
 import Text.Read (readMaybe)
 
 asByteString :: String -> ByteString
-asByteString = Types.asByteString
+asByteString = Bytes.asByteString
 
 toText :: String -> Text
 toText = Text.decodeUtf8 . unBytes
@@ -111,7 +113,7 @@ contains :: String -> String -> Bool
 contains = isInfixOf
 
 asFilePath :: String -> FilePath
-asFilePath = Types.asFilePath
+asFilePath = Bytes.asFilePath
 
 read :: Read a => String -> Maybe a
 read = readMaybe . unpack

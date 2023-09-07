@@ -19,7 +19,7 @@ module Temp (
 ) where
 
 import Solid hiding (writeFile)
-import Solid.Types
+import Solid.Bytes.Unsafe
 
 import System.Environment.Import (getProgName)
 import System.Directory.Import (getTemporaryDirectory)

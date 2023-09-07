@@ -13,7 +13,7 @@ module Char (
 ) where
 
 import Solid.Common hiding (replicate)
-import Solid.Types
+import Solid.String
 
 import Data.Char
 
