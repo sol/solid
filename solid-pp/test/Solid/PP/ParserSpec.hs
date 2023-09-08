@@ -26,8 +26,17 @@ import           Solid.PP.SrcLoc
 
 instance IsList (Module ()) where
   type Item (Module ()) = Node ()
-  fromList = Module NoModuleHeader
+  fromList = Module NoModuleHeader []
   toList = undefined
+
+instance IsString (ModuleHeader ()) where
+  fromString name = ModuleHeader () (fromString name) NoExportList
+
+instance IsString (ImportName ()) where
+  fromString = ImportName Nothing . fromString
+
+instance IsString (Import ()) where
+  fromString name = Import () Unqualified (fromString name) Nothing NoImportList
 
 instance IsList (End () -> Expression ()) where
   type Item (End () -> Expression ()) = Node ()
@@ -96,13 +105,39 @@ spec = do
   describe "parse" $ do
     context "when parsing module headers" $ do
       it "accepts an unqualified module name" $ do
-        parse "module Foo where" `shouldBe` Module (ModuleHeader () "Foo" NoExportList) [Token () ITvocurly]
+        parse "module Foo where" `shouldBe` Module "Foo" [] []
 
       it "accepts a qualified module name" $ do
-        parse "module Foo.Bar where" `shouldBe` Module (ModuleHeader () "Foo.Bar" NoExportList) [Token () ITvocurly]
+        parse "module Foo.Bar where" `shouldBe` Module "Foo.Bar" [] []
 
       it "accepts an export list" $ do
-        parse "module Foo (bar, baz) where" `shouldBe` Module (ModuleHeader () "Foo" (ExportList [["bar"], ["baz"]])) [Token () ITvocurly]
+        parse "module Foo (bar, baz) where" `shouldBe` Module (ModuleHeader () "Foo" (ExportList [["bar"], ["baz"]])) [] []
+
+    context "when parsing imports" $ do
+      it "accepts imports" $ do
+        parse (unlines [
+            "module Foo where"
+          , "import Bar"
+          , "import Baz"
+          ]) `shouldBe` Module "Foo" ["Bar", "Baz"] []
+
+      it "accepts package imports" $ do
+        parse "import \"foo\" Foo" `shouldBe` Module NoModuleHeader [Import () Unqualified (ImportName (Just "foo") "Foo") Nothing NoImportList] []
+
+      it "accepts renamed imports" $ do
+        parse "import Foo as Bar" `shouldBe` Module NoModuleHeader [Import () Unqualified "Foo" (Just "Bar") NoImportList] []
+
+      it "accepts qualified imports" $ do
+        parse "import qualified Foo" `shouldBe` Module NoModuleHeader [Import () Qualified "Foo" Nothing NoImportList] []
+
+      it "accepts post-qualified imports" $ do
+        parse "import Foo qualified as Bar" `shouldBe` Module NoModuleHeader [Import () QualifiedPost "Foo" (Just "Bar") NoImportList] []
+
+      it "accepts import lists" $ do
+        parse "import Foo (bar, baz)" `shouldBe` Module NoModuleHeader [Import () Unqualified "Foo" Nothing (ImportList [["bar"], ["baz"]])] []
+
+      it "accepts hiding lists" $ do
+        parse "import Foo hiding (bar, baz)" `shouldBe` Module NoModuleHeader [Import () Unqualified "Foo" Nothing (HidingList [["bar"], ["baz"]])] []
 
     context "when parsing function calls" $ do
       it "accepts qualified names" $ do

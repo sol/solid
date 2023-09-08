@@ -109,9 +109,10 @@ data Where = Before | After
 
 addImplicitImports :: Module BufferSpan -> [Edit] -> [Edit]
 addImplicitImports module_ = case module_ of
-  Module NoModuleHeader [] -> id
-  Module NoModuleHeader (node : _) -> addImports Before node.start
-  Module (ModuleHeader loc _ _) _ -> addImports After loc.endLoc
+  Module (ModuleHeader loc _ _) _ _ -> addImports After loc.endLoc
+  Module NoModuleHeader (import_ : _) _ -> addImports Before import_.start.startLoc
+  Module NoModuleHeader [] (node : _) -> addImports Before node.start
+  Module NoModuleHeader [] [] -> id
   where
     addImports where_ loc = case Set.null modules of
       True -> id
@@ -138,7 +139,14 @@ usedModules = ($ mempty) . fromModule . void
     foreach f xs set = foldr f set xs
 
     fromModule :: Module () -> Set ModuleName -> Set ModuleName
-    fromModule (Module header nodes) = fromModuleHeader header . fromNodes nodes
+    fromModule (Module header imports nodes) = foreach fromImport imports . fromModuleHeader header . fromNodes nodes
+
+    fromImport :: Import () -> Set ModuleName -> Set ModuleName
+    fromImport = \ case
+      Import () Qualified (ImportName Nothing (_ :: ModuleName)) Nothing NoImportList -> id
+      Import () QualifiedPost (ImportName Nothing (_ :: ModuleName)) Nothing NoImportList -> id
+      Import () _ _ (Just name) _ -> Set.delete name
+      Import () _ (ImportName _ name) Nothing _ -> Set.delete name
 
     fromModuleHeader :: ModuleHeader () -> Set ModuleName -> Set ModuleName
     fromModuleHeader = \ case
@@ -238,7 +246,13 @@ unescapeStringLiteral loc old
     new = unescapeString old
 
 ppModule :: Module BufferSpan -> [Edit]
-ppModule (Module header nodes) = (ppHeader header <> pp nodes).build
+ppModule (Module header imports nodes) = (ppHeader header <> concatMap ppImport imports <> pp nodes).build
+
+ppImport :: Import BufferSpan -> DList Edit
+ppImport (Import (_ :: BufferSpan) _ _ _ imports) = case imports of
+  NoImportList -> mempty
+  ImportList names -> concatMap pp names
+  HidingList names -> concatMap pp names
 
 ppHeader :: ModuleHeader BufferSpan -> DList Edit
 ppHeader = \ case

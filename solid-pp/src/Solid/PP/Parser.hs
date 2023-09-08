@@ -17,6 +17,10 @@ module Solid.PP.Parser (
 , ModuleHeader(..)
 , ModuleName(..)
 , ExportList(..)
+, Import(..)
+, ImportQualification(..)
+, ImportName(..)
+, ImportList(..)
 , Subject(..)
 , BracketStyle(..)
 , Arguments(..)
@@ -181,7 +185,7 @@ require expected = token \ case
   _ -> Nothing
 
 pModule :: Parser (Module BufferSpan)
-pModule = Module <$> pModuleHeader <*> pModuleBody
+pModule = Module <$> pModuleHeader <*> many pImport <*> pModuleBody
 
 pModuleHeader :: Parser (ModuleHeader BufferSpan)
 pModuleHeader = moduleHeader <|> pure NoModuleHeader
@@ -190,7 +194,7 @@ pModuleHeader = moduleHeader <|> pure NoModuleHeader
       start <- require ITmodule
       name <- pModuleName
       exports <- pExportList
-      end <- require ITwhere
+      end <- require ITwhere <* require ITvocurly
       return $ ModuleHeader (start.merge end) name exports
 
 pModuleName :: Parser ModuleName
@@ -201,6 +205,36 @@ pModuleName = fmap ModuleName . token $ \ case
 
 pExportList :: Parser (ExportList BufferSpan)
 pExportList = oparen *> (ExportList <$> pBracketedInner) <* cparen <|> pure NoExportList
+
+pImport :: Parser (Import BufferSpan)
+pImport = import_ <*> (qualified_name <|> name_qualified) <*> optional pImportAs <*> pImportList <* many (require ITsemi)
+  where
+    import_ = fmap uncurry Import <$> require ITimport
+    qualified_name = (,) <$> pQualified <*> pImportName
+    name_qualified =  flip (,) <$> pImportName <*> pQualifiedPost
+
+pQualified :: Parser ImportQualification
+pQualified = require ITqualified *> pure Qualified
+
+pQualifiedPost :: Parser ImportQualification
+pQualifiedPost = require ITqualified *> pure QualifiedPost <|> pure Unqualified
+
+pImportName :: Parser (ImportName BufferSpan)
+pImportName = ImportName <$> optional pImportPackage <*> pModuleName
+
+pImportPackage :: Parser FastString
+pImportPackage = token $ \ case
+  L _ (ITstring _ name) -> Just name
+  _ -> Nothing
+
+pImportAs :: Parser ModuleName
+pImportAs = require ITas *> pModuleName
+
+pImportList :: Parser (ImportList BufferSpan)
+pImportList = importList <*> items <|> pure NoImportList
+  where
+    importList = require IThiding *> pure HidingList <|> pure ImportList
+    items = oparen *> pBracketedInner <* cparen
 
 pModuleBody :: Parser [Node BufferSpan]
 pModuleBody = many pNode <* eof
@@ -338,7 +372,7 @@ pattern TokenEnd loc src <- L loc (ITstring_interpolation_end (SourceText src) _
 pattern TokenEndBegin :: BufferSpan -> String -> Token
 pattern TokenEndBegin loc src <- L loc (ITstring_interpolation_end_begin (SourceText src) _)
 
-data Module loc = Module (ModuleHeader loc) [Node loc]
+data Module loc = Module (ModuleHeader loc) [Import loc] [Node loc]
   deriving (Eq, Show, Functor)
 
 data ModuleHeader loc = NoModuleHeader | ModuleHeader loc ModuleName (ExportList loc)
@@ -351,6 +385,25 @@ instance Ord ModuleName where
   compare = coerce GHC.uniqCompareFS
 
 data ExportList loc = NoExportList | ExportList [[Node loc]]
+  deriving (Eq, Show, Functor)
+
+data Import loc = Import {
+  start :: loc
+, qualification :: ImportQualification
+, name :: ImportName loc
+, as_name :: Maybe ModuleName
+, import_list :: ImportList loc
+} deriving (Eq, Show, Functor)
+
+data ImportQualification = Unqualified | Qualified | QualifiedPost
+  deriving (Eq, Show)
+
+data ImportName loc = ImportName {
+  package :: Maybe FastString
+, name :: ModuleName
+} deriving (Eq, Show, Functor)
+
+data ImportList loc = NoImportList | ImportList [[Node loc]] | HidingList [[Node loc]]
   deriving (Eq, Show, Functor)
 
 data Node loc =

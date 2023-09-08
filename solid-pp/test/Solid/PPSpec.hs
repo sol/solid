@@ -65,6 +65,35 @@ spec = do
           , "foo = Foo.bar"
           ]) `shouldBe` Set.fromList []
 
+    context "when the module component of a name coincides with the name of an explicitly imported module" $ do
+      context "when the module is imported qualified and without an import list" $ do
+        it "still extracts that module name" $ do
+          modules (unlines [
+              "import qualified String"
+            , "foo = String.length"
+            ]) `shouldBe` Set.fromList ["String"]
+
+      context "when the module is imported post-qualified and without an import list" $ do
+        it "still extracts that module name" $ do
+          modules (unlines [
+              "import String qualified"
+            , "foo = String.length"
+            ]) `shouldBe` Set.fromList ["String"]
+
+      context "otherwise" $ do
+        it "does not extract that module name" $ do
+          modules (unlines [
+              "import String"
+            , "foo = String.length"
+            ]) `shouldBe` Set.fromList []
+
+    context "when the module component of a name coincides with the as-name of an explicitly imported module" $ do
+      it "does not extract that module name" $ do
+        modules (unlines [
+            "import qualified Text as String"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList []
+
   describe "desugarExpression" $ around_ inTempDirectory $ do
     it "desugars identifiers" $ do
       desugarExpression "src.hs" 1 "foo!" `shouldBe` Right "fooᴉ"
@@ -114,23 +143,21 @@ spec = do
           , "foo = String.length"
           ]
 
-      context "when the same module name occurs in multiple qualified identifiers" $ do
-        it "adds a single import" $ do
+      context "with existing imports" $ do
+        it "places implicit imports before any existing imports" $ do
           writeFile "cur.hs" $ unlines [
-              "foo :: String -> Int"
+              "import qualified Foo"
+            , "foo :: String -> Int"
             , "foo = String.length"
-            , "bar :: String -> Int"
-            , "bar = String.length"
             ]
           run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
             , "import qualified String"
             , "{-# LINE 1 \"src.hs\" #-}"
+            , "import qualified Foo"
             , "foo :: String -> Int"
             , "foo = String.length"
-            , "bar :: String -> Int"
-            , "bar = String.length"
             ]
 
       context "with LANGUAGE pragmas" $ do
@@ -283,6 +310,10 @@ spec = do
       context "within a function argument" $ do
         it "desugars postfix bangs" $ do
           "foo(Bar.baz!)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(Bar.bazᴉ){-# COLUMN 13 #-})"
+
+      context "within an import list" $ do
+        it "desugars postfix bangs" $ do
+          "import Foo (bar!)" `shouldDesugarTo` "import Foo (barᴉ)"
 
     context "when pre-processing function calls" $ do
       it "desugars a function call with a single argument" $ do
