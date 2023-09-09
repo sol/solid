@@ -42,7 +42,7 @@ instance HasField "decodeUtf8" ByteString String where
 length :: ByteString -> Int
 length = coerce Haskell.length
 
-pack :: [Word8] -> ByteString 
+pack :: [Word8] -> ByteString
 pack = Bytes . Haskell.pack
 
 unpack :: ByteString -> [Word8]

@@ -1,5 +1,7 @@
 name: build
 
+permissions: write-all
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -24,12 +26,6 @@ jobs:
         ghc:
           - 9.6.2
     steps:
-      - run: |
-          eval `ssh-agent -s`
-          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
-          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
-          ssh-add - <<< '${{ secrets.DEPLOY_KEY }}'
-
       - uses: actions/checkout@v3
       - uses: hspec/setup-haskell@v1
         with:
@@ -62,15 +58,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-#  success:
-#    needs: build
-#    runs-on: ubuntu-latest
-#    if: always() # this is required as GitHub considers "skipped" jobs as "passed" when checking branch protection rules
-#
-#    steps:
-#      - run: false
-#        if: needs.build.result != 'success'
-#
-#      - uses: actions/checkout@v3
-#      - name: Check for trailing whitespace
-#        run: '! git grep -I "\s\+$"'
+  success:
+    needs: build
+    runs-on: ubuntu-latest
+    if: always() # this is required as GitHub considers "skipped" jobs as "passed" when checking branch protection rules
+
+    steps:
+      - run: false
+        if: needs.build.result != 'success'
+
+      - uses: actions/checkout@v3
+      - name: Check for trailing whitespace
+        run: '! git grep -I "\s\+$"'
