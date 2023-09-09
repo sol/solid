@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: git tag v0.2 -f
-      - run: push origin --tags -f
+      - run: git push origin --tags -f
       - uses: hspec/setup-haskell@v1
         with:
           ghc-version: ${{ matrix.ghc }}
