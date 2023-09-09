@@ -14,7 +14,7 @@ import System.Directory.Import
 import Solid.Ansi qualified as Ansi
 
 repository :: String
-repository = "git@github.com:sol/solid.git"
+repository = "https://github.com:sol/solid.git"
 
 revision :: String
 revision = "416c1e79145feef0be4bd025d700e59a52794d71"
