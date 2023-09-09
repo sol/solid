@@ -5,7 +5,7 @@
 
 ...
 
-# Solid: A modern remix of Haskell
+# Solid: A modern remix of Haskell<br>Solid: A functional scripting environment
 
 ```
 git clone git@github.com:sol/solid.git
@@ -143,25 +143,3 @@ $ echo | cabal repl --build-depends hspec,QuickCheck
   module Foo where bar :: Int
                    bar = 23
   ```
-- Some modules are imported implicitly.  As of now, explicit imports do not
-  prevent implicit imports of the same name.
-
-  **Example:**
-
-  ```haskell ignore
-  import Data.Text qualified as String
-
-  foo = String.length
-  ```
-
-  will be desugared to
-
-  ```haskell ignore
-  import String qualified
-  import Data.Text qualified as String
-
-  foo = String.length
-  ```
-  resultin in `String.length` being ambiguous.
-
-  This will be addressed eventually.

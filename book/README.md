@@ -9,6 +9,7 @@ by Simon Hengel
    * [Functions, methods, and associated modules](#functions-methods-and-associated-modules)
    * [Using a method as a function](#using-a-method-as-a-function)
    * [Argument order](#argument-order)
+   * [Method chaining](#method-chaining)
    * [Strings and binary data](#strings-and-binary-data)
       * [String interpolation](#string-interpolation)
       * [ByteString literals](#bytestring-literals)
@@ -23,7 +24,6 @@ by Simon Hengel
    * [Extending Solid with Haskell](#extending-solid-with-haskell)
    * [Extending Solid with C](#extending-solid-with-c)
 * [Proposals (not yet implemented, feedback welcome)](#proposals-not-yet-implemented-feedback-welcome)
-   * [Method chaining](#method-chaining)
    * [Revised import syntax](#revised-import-syntax)
 
 
@@ -125,6 +125,34 @@ True
 
 >>> is_a_joe "John Doe"
 True
+```
+
+## Method chaining
+
+When you want to chain multiple methods that take arguments then you have to
+use nested parentheses.
+
+**Example:**
+
+```repl
+>>> ((Process.shell "pwd").chdir "/tmp").read
+"/tmp\n"
+```
+
+This can quickly become unwieldy.
+
+To remedy this situation Solid steals some Haskell syntax that is not commonly
+used, _identifiers that are directly followed by an opening parenthesis without
+any separating whitespace_, and desugar it as follows:
+
+1. `ident(exp)` ~> `(ident (exp))`
+1. `ident(exp_1, exp_2, ..., exp_n)` ~> `(ident (exp_1) (exp_2) ... (exp_n))`
+
+With this you can simplify the example from above to:
+
+```repl
+>>> Process.shell("pwd").chdir("/tmp").read
+"/tmp\n"
 ```
 
 ## Strings and binary data
@@ -255,11 +283,11 @@ Process.command :: FilePath -> [String] -> Process.Config () () ()
 
 ```repl
 Run a shell command:
->>> (Process.shell "echo Hey there 👋").run
+>>> Process.shell("echo Hey there 👋").run
 Hey there 👋
 
 Run an executable:
->>> (Process.command "echo" ["Hey there 👋"]).run
+>>> Process.command("echo", ["Hey there 👋"]).run
 Hey there 👋
 ```
 
@@ -277,8 +305,8 @@ Hey there 👋
 ## Interacting with processes
 
 `Process.run` is a specialization that is suitable for simple cases.  It is
-defined in terms of `Process.with` and `Process.checkStatus` (both will be
-discussed in later sections):
+defined in terms of `Process.with` and `Process.checkStatus` (both of which
+will be discussed in later sections):
 
 ```haskell
 run :: Process.Config stdin stdout stderr -> IO ()
@@ -294,7 +322,7 @@ run config = config.with (.checkStatus)
 ```
 
 To use `Process.run`, you construct a process config and pass it in.  The
-previous section shows examples of this.
+previous section showed examples of this.
 
 In the general case, you are going to construct a process config, spawn a
 process, access properties of the process instance and wait for process
@@ -346,7 +374,7 @@ used to construct a process config.
 ```repl
 Provide stdin as a string and capture stdout:
 >>> let config = Process.command "cat" []
->>> (config.stdin.set "foo").stdout.capture.with Process.stdout
+>>> config.stdin.set("foo").stdout.capture.with Process.stdout
 "foo"
 ```
 
@@ -365,14 +393,14 @@ config.stdin.createPipe.stdout.capture.stderr.toStdout.with $ \ process -> do
 ```repl
 Set the process environment:
 >>> let config = Process.command "env" []
->>> (config.environment [("FOO", "23")]).run
+>>> config.environment([("FOO", "23")]).run
 FOO=23
 ```
 
 ```repl
 Set the working directory:
 >>> let config = Process.command "pwd" []
->>> (config.chdir "/tmp").run
+>>> config.chdir("/tmp").run
 /tmp
 ```
 
@@ -474,32 +502,6 @@ wcwidth = fromEnum . c_wcwidth . C.toWChar
 ```
 
 # Proposals (not yet implemented, feedback welcome)
-
-## Method chaining
-
-When you want to chain multiple methods that take arguments then you have to
-use nested parentheses.
-
-**Example:**
-
-```haskell ignore
-((Process.shell "pwd").chdir "/tmp").read
-```
-
-This can quickly become unwieldy.
-
-To remedy this situation Solid intends to steal some Haskell syntax that is not
-commonly used, _identifiers that are directly followed by an opening
-parenthesis without any separating whitespace_, and desugar it as follows:
-
-1. `ident(exp)` ~> `(ident (exp))`
-1. `ident(exp_1, exp_2, ..., exp_n)` ~> `(ident (exp_1) (exp_2) ... (exp_n))`
-
-With this you can simplify the example from above to:
-
-```haskell ignore
-Process.shell("pwd").chdir("/tmp").read
-```
 
 ## Revised import syntax
 
