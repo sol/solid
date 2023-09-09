@@ -27,8 +27,6 @@ jobs:
           - 9.6.2
     steps:
       - uses: actions/checkout@v3
-      - run: git tag v0.2 -f
-      - run: git push origin --tags -f
       - uses: hspec/setup-haskell@v1
         with:
           ghc-version: ${{ matrix.ghc }}
@@ -56,7 +54,7 @@ jobs:
           git push origin --tags -f
           gh release create v0.2 --prerelease || true
           gh release upload v0.2 `find dist-newstyle/build/ -name solid -type f` --clobber
-        # if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
 
