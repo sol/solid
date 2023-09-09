@@ -47,15 +47,6 @@ jobs:
       - run: (cd book && make && make toc)
       - run: git diff --quiet || (git diff && false)
 
-      - run: |
-          git tag v0.2 -f
-          git push origin --tags -f
-          gh release create v0.2 --prerelease || true
-          gh release upload v0.2 `find dist-newstyle/build/ -name solid -type f` --clobber
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-
 #  success:
 #    needs: build
 #    runs-on: ubuntu-latest
