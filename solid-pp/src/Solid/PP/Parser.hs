@@ -20,6 +20,7 @@ module Solid.PP.Parser (
 , Import(..)
 , ImportQualification(..)
 , ImportName(..)
+, PackageName(..)
 , ImportList(..)
 , Subject(..)
 , BracketStyle(..)
@@ -222,12 +223,12 @@ pQualifiedPost :: Parser ImportQualification
 pQualifiedPost = require ITqualified *> pure QualifiedPost <|> pure Unqualified
 
 pImportName :: Parser (ImportName BufferSpan)
-pImportName = ImportName <$> optional pImportPackage <*> pModuleName
+pImportName = ImportName <$> pImportPackage <*> pModuleName
 
-pImportPackage :: Parser FastString
-pImportPackage = token $ \ case
-  L _ (ITstring _ name) -> Just name
-  _ -> Nothing
+pImportPackage :: Parser PackageName
+pImportPackage = (token $ \ case
+  L _ (ITstring _ name) -> Just $ PackageName name
+  _ -> Nothing) <|> pure NoPackageName
 
 pImportAs :: Parser (ModuleName BufferSpan)
 pImportAs = require ITas *> pModuleName
@@ -394,13 +395,16 @@ data Import loc = Import {
 , import_list :: ImportList loc
 } deriving (Eq, Show, Functor)
 
-data ImportQualification = Use | Unqualified | Qualified | QualifiedPost
+data ImportQualification = Use | Qualified | QualifiedPost | Unqualified
   deriving (Eq, Show)
 
 data ImportName loc = ImportName {
-  package :: Maybe FastString
+  package :: PackageName
 , name :: ModuleName loc
 } deriving (Eq, Show, Functor)
+
+data PackageName = NoPackageName | PackageName FastString
+  deriving (Eq, Show)
 
 data ImportList loc = NoImportList | ImportList [[Node loc]] | HidingList [[Node loc]]
   deriving (Eq, Show, Functor)

@@ -1,6 +1,8 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Haskell (
-  Haskell.ByteString
+  Haskell.String
+
+, Haskell.ByteString
 , asByteString
 , fromByteString
 
@@ -27,10 +29,12 @@ module Haskell (
 ) where
 
 import Solid.Common
-import Solid.Types (String, ByteString, Bytes(..), FilePath(..))
+import Solid.Types (ByteString, Bytes(..), FilePath(..))
+import Solid.Types qualified as Solid
 import Solid.StackTrace (toCallStack, fromCallStack)
 
 import System.IO.Unsafe (unsafePerformIO)
+import Data.String qualified as Haskell
 import Data.ByteString qualified as Haskell
 import System.FilePath qualified as Haskell
 import System.OsPath qualified as Haskell
@@ -46,10 +50,10 @@ asByteString = unBytes
 fromByteString :: Haskell.ByteString -> ByteString
 fromByteString = Bytes
 
-toText :: String -> Text
+toText :: Solid.String -> Text
 toText = Text.decodeUtf8 . unBytes
 
-fromText :: Text -> String
+fromText :: Text -> Solid.String
 fromText = Bytes . Text.encodeUtf8
 
 asOsPath :: FilePath -> Haskell.OsPath

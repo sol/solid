@@ -34,6 +34,9 @@ toText = Text.decodeUtf8 . unBytes
 fromText :: Text -> String
 fromText = Bytes . Text.encodeUtf8
 
+empty? :: Bytes a -> Bool
+empty? = coerce Haskell.null
+
 length :: String -> Int
 length = utf8length . unBytes
   where
@@ -54,6 +57,18 @@ lines = coerce Char8.lines
 
 unlines :: [String] -> String
 unlines = coerce Char8.unlines
+
+-- |
+-- >>> let input = "hey-there" :: String
+--
+-- >>> input.split "-"
+-- ["hey","there"]
+--
+-- >>> input.split ""
+-- ["h","e","y","-","t","h","e","r","e"]
+split :: String -> String -> [String]
+split separator | separator.empty? = map (pack . return) . unpack
+split separator = map fromText . Text.splitOn (toText separator) . toText
 
 strip :: String -> String
 strip = fromText . Text.strip . toText
@@ -96,6 +111,9 @@ read! input = case String.read input of
 ansi :: String -> Ansi String
 ansi = Ansi.ansi
 
+instance HasField "empty\660" String Bool where
+  getField = empty?
+
 instance HasField "length" String Int where
   getField = length
 
@@ -116,6 +134,9 @@ instance HasField "lines" String [String] where
 
 instance HasField "unlines" [String] String where
   getField = unlines
+
+instance HasField "split" String (String -> [String]) where
+  getField = flip split
 
 instance HasField "strip" String String where
   getField = strip

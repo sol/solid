@@ -23,6 +23,8 @@ module FilePath (
 , rename
 
 , open
+
+, directory
 ) where
 
 import Solid.Common hiding (IsString(..))
@@ -96,6 +98,9 @@ rename = coerce Haskell.renamePath
 open :: IO.Mode -> FilePath -> IO Handle
 open = flip IO.open
 
+directory :: FilePath -> FilePath
+directory = coerce Haskell.takeDirectory
+
 instance HasField "toString" FilePath String where
   getField = toString
 
@@ -128,3 +133,6 @@ instance HasField "rename" FilePath (FilePath -> IO ()) where
 
 instance HasField "open" FilePath (IO.Mode -> IO Handle) where
   getField = IO.open
+
+instance HasField "directory" FilePath FilePath where
+  getField = directory

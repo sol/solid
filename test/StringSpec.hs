@@ -49,6 +49,18 @@ spec = do
       input.unlines === pack (Haskell.unlines (map unpack input))
       String.unlines input === pack (Haskell.unlines (map unpack input))
 
+  describe "split" $ do
+    it "splits a string" $ do
+      let input = "foo, bar, baz"
+      input.split ", " `shouldBe` ["foo", "bar", "baz"]
+      String.split ", " input `shouldBe` ["foo", "bar", "baz"]
+
+    context "with an empty separator" $ do
+      it "splits a string" $ do
+        let input = "foo"
+        input.split "" `shouldBe` ["f", "o", "o"]
+        String.split "" input `shouldBe` ["f", "o", "o"]
+
   describe "strip" $ do
     it "removes leading and trailing whitespace" $ do
       let input = "  foo\n \r" :: String
