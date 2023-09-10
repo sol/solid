@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.Bytes (
   Bytes(..)

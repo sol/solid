@@ -36,6 +36,15 @@ interpolationShouldDesugarTo input expected = do
 
 spec :: Spec
 spec = do
+  describe "implicitImport" $ do
+    context "with a module name" $ do
+      it "constructs an ImplicitImport value" $ do
+        implicitImport (ModuleName () Nothing "Foo") `shouldBe` ImplicitImport "Foo"
+
+    context "with a hierarchical module name" $ do
+      it "constructs an ImplicitImport value" $ do
+        implicitImport (ModuleName () (Just "Foo") "Bar") `shouldBe` ImplicitImport "Foo.Bar"
+
   describe "implicitImports" $ do
     let
       modules :: HasCallStack => Text -> ImplicitImports
@@ -72,32 +81,59 @@ spec = do
           , "foo = Foo.bar"
           ]) `shouldBe` Set.fromList []
 
-    context "when the module component of a name coincides with the name of an explicitly imported module" $ do
-      context "when the module is imported qualified and without an import list" $ do
-        it "still extracts that module name" $ do
-          modules (unlines [
-              "import qualified String"
-            , "foo = String.length"
-            ]) `shouldBe` Set.fromList ["String"]
+    context "with imports" $ do
+      it "does not filter out qualified imports" $ do
+        modules (unlines [
+            "import qualified String"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList ["String"]
 
-      context "when the module is imported post-qualified and without an import list" $ do
-        it "still extracts that module name" $ do
-          modules (unlines [
-              "import String qualified"
-            , "foo = String.length"
-            ]) `shouldBe` Set.fromList ["String"]
+      it "does not filter out post-qualified imports" $ do
+        modules (unlines [
+            "import String qualified"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList ["String"]
 
-      context "otherwise" $ do
-        it "does not extract that module name" $ do
-          modules (unlines [
-              "import String"
-            , "foo = String.length"
-            ]) `shouldBe` Set.fromList []
+      it "filters out imports with an import list" $ do
+        modules (unlines [
+            "import qualified String (length)"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList []
 
-    context "when the module component of a name coincides with the as-name of an explicitly imported module" $ do
-      it "does not extract that module name" $ do
+      it "filters out unqualified imports" $ do
+        modules (unlines [
+            "import String"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList []
+
+      it "filters out renamed imports" $ do
         modules (unlines [
             "import qualified Text as String"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList []
+
+    context "with use-statements" $ do
+      it "does not filter out use-statements" $ do
+        modules (unlines [
+            "use String"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList ["String"]
+
+      it "filters out hierarchical use-statements" $ do
+        modules (unlines [
+            "use Data.String"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList []
+
+      it "filters out use-statements with an import list" $ do
+        modules (unlines [
+            "use String (length)"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList []
+
+      it "filters out renamed use-statements" $ do
+        modules (unlines [
+            "use Data.Text as String"
           , "foo = String.length"
           ]) `shouldBe` Set.fromList []
 

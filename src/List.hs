@@ -133,5 +133,11 @@ instance HasField "filter" [a] ((a -> Bool) -> [a]) where
 instance HasField "join" [String] (String -> String) where
   getField = flip List.join
 
+instance HasField "intersperse" [a] (a -> [a]) where
+  getField = flip intersperse
+
+instance HasField "intercalate" [[a]] ([a] -> [a]) where
+  getField = flip intercalate
+
 instance HasField "randomChoice" [a] (IO a) where
   getField = randomChoice

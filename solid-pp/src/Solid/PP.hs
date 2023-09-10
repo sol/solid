@@ -1,8 +1,10 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NoFieldSelectors #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 module Solid.PP (
   main
 , desugarExpression
@@ -19,6 +21,9 @@ module Solid.PP (
 , extensions
 
 #ifdef TEST
+, ImplicitImport(..)
+, implicitImport
+
 , ImplicitImports
 , implicitImports
 #endif
@@ -122,7 +127,7 @@ data Where = Before | After
 addImplicitImports :: Module BufferSpan -> DList Edit
 addImplicitImports module_ = case module_ of
   Module (ModuleHeader loc _ _) _ _ -> addImports After loc.endLoc
-  Module NoModuleHeader (import_ : _) _ -> addImports Before import_.start.startLoc
+  Module NoModuleHeader (Import loc _ _ _ _ : _) _ -> addImports Before loc.startLoc
   Module NoModuleHeader [] (node : _) -> addImports Before node.start
   Module NoModuleHeader [] [] -> mempty
   where
@@ -141,24 +146,62 @@ addImplicitImports module_ = case module_ of
     formatImport :: ImplicitImport -> Text
     formatImport (ImplicitImport m) = "import qualified " <> m.toText
 
+implicitImport :: ModuleName () -> ImplicitImport
+implicitImport = \ case
+  (ModuleName () Nothing name) -> ImplicitImport name
+  (ModuleName () (Just qualified) name) -> ImplicitImport $ mconcat [qualified, ".", name]
+
+data EffectiveImport = EffectiveImport {
+  _qualification :: Qualification
+, _package :: PackageName
+, _name :: ImplicitImport
+, _as :: Maybe ImplicitImport
+, _imports :: Imports
+}
+
+data Qualification = QualifiedImport | UnqualifiedImport
+
+data Imports = NoImports | Imports
+
+effectiveImport :: Import () -> EffectiveImport
+effectiveImport = \ case
+  Import () qualification (ImportName package name) as imports -> case qualification of
+    Use -> effective $ maybe (useAsNameFromName name) (Just . implicitImport) as
+    _   -> effective (implicitImport <$> as)
+    where
+      effective as_ = EffectiveImport (effectiveQualification qualification) package (implicitImport name) as_ (effectiveImports imports)
+
+useAsNameFromName :: ModuleName () -> Maybe ImplicitImport
+useAsNameFromName = \ case
+  ModuleName () Nothing _ -> Nothing
+  ModuleName () (Just _) as -> Just (ImplicitImport as)
+
+effectiveImports :: ImportList a -> Imports
+effectiveImports = \ case
+  NoImportList -> NoImports
+  ImportList _ -> Imports
+  HidingList _ -> Imports
+
+effectiveQualification :: ImportQualification -> Qualification
+effectiveQualification = \ case
+  Use -> QualifiedImport
+  Qualified -> QualifiedImport
+  QualifiedPost -> QualifiedImport
+  Unqualified -> UnqualifiedImport
+
 implicitImports :: Module BufferSpan-> ImplicitImports
 implicitImports = ($ mempty) . fromModule . void
   where
     foreach :: Foldable sequence_of => (a -> ImplicitImports -> ImplicitImports) -> sequence_of a -> ImplicitImports -> ImplicitImports
     foreach f xs set = foldr f set xs
 
-    implicitImport :: ModuleName () -> ImplicitImport
-    implicitImport (ModuleName () qualified name) = ImplicitImport $ maybe id (<>) qualified name
-
     fromModule :: Module () -> ImplicitImports -> ImplicitImports
-    fromModule (Module header imports nodes) = foreach fromImport imports . fromModuleHeader header . fromNodes nodes
+    fromModule (Module header imports nodes) = foreach (fromImport . effectiveImport) imports . fromModuleHeader header . fromNodes nodes
 
-    fromImport :: Import () -> ImplicitImports -> ImplicitImports
+    fromImport :: EffectiveImport -> ImplicitImports -> ImplicitImports
     fromImport = \ case
-      Import () Qualified (ImportName Nothing (_ :: ModuleName ())) Nothing NoImportList -> id
-      Import () QualifiedPost (ImportName Nothing (_ :: ModuleName ())) Nothing NoImportList -> id
-      Import () _ _ (Just name) _ -> Set.delete $ implicitImport name
-      Import () _ (ImportName _ name) Nothing _ -> Set.delete $ implicitImport name
+      EffectiveImport QualifiedImport NoPackageName _name Nothing NoImports -> id
+      EffectiveImport _ _ name as _ -> Set.delete $ fromMaybe name as
 
     fromModuleHeader :: ModuleHeader () -> ImplicitImports -> ImplicitImports
     fromModuleHeader = \ case

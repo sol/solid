@@ -45,7 +45,10 @@ instance IsString (ModuleName ()) where
         parts -> Just . packFS $ T.intercalate "." parts
 
 instance IsString (ImportName ()) where
-  fromString = ImportName Nothing . fromString
+  fromString = ImportName NoPackageName . fromString
+
+instance IsString PackageName where
+  fromString = PackageName . fromString
 
 instance IsString (Import ()) where
   fromString name = Import () Unqualified (fromString name) Nothing NoImportList
@@ -138,7 +141,7 @@ spec = do
           ]) `shouldBe` Module "Foo" ["Bar", "Baz"] []
 
       it "accepts package imports" $ do
-        parse "import \"foo\" Foo" `shouldBe` Module NoModuleHeader [Import () Unqualified (ImportName (Just "foo") "Foo") Nothing NoImportList] []
+        parse "import \"foo\" Foo" `shouldBe` Module NoModuleHeader [Import () Unqualified (ImportName "foo" "Foo") Nothing NoImportList] []
 
       it "accepts renamed imports" $ do
         parse "import Foo as Bar" `shouldBe` Module NoModuleHeader [Import () Unqualified "Foo" (Just "Bar") NoImportList] []

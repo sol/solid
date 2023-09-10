@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE DefaultSignatures #-}
 module Solid.ToString (
   ToString(..)
@@ -13,17 +14,22 @@ import           Data.Text (Text)
 import           Data.Typeable (TypeRep)
 import           System.Exit (ExitCode(..))
 
-class ToString a where
+class Show a => ToString a where
   toString :: a -> String
-
-  default toString :: Show a => a -> String
   toString = pack . show
+
+  listToString :: [a] -> String
+  listToString xs = pack $ showList xs ""
+
+instance ToString a => ToString [a] where
+  toString = listToString
 
 instance ToString String where
   toString = id
 
 instance ToString Char where
   toString = Bytes . LB.toStrict . Builder.toLazyByteString . Builder.charUtf8
+  listToString = pack
 
 instance ToString Text where
   toString = Bytes . encodeUtf8
@@ -46,7 +52,6 @@ instance ToString Double
 
 instance Show a => ToString (Maybe a)
 instance (Show a, Show b) => ToString (Either a b)
-instance Show a => ToString [a] where
 
 instance (Show a, Show b) => ToString (a, b)
 instance (Show a, Show b, Show c) => ToString (a, b, c)
