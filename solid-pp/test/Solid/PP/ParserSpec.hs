@@ -15,7 +15,8 @@ import           Test.Hspec.Expectations.Contrib (annotate)
 import           Test.HUnit.Lang
 import           Solid.PP.LexerSpec ()
 import           GHC.IsList
-import           GHC.Data.FastString (FastString)
+import           GHC.Data.FastString (FastString, mkFastString)
+import qualified Data.Text as T
 
 import           Solid.PP (extensions)
 import           Solid.PP.Lexer (Token(..))
@@ -33,7 +34,15 @@ instance IsString (ModuleHeader ()) where
   fromString name = ModuleHeader () (fromString name) NoExportList
 
 instance IsString (ModuleName ()) where
-  fromString = ModuleName () . fromString
+  fromString string = case splitModuleName string of
+    [] -> ModuleName () Nothing ""
+    name : qualified -> ModuleName () (joinModuleName qualified) (packFS name)
+    where
+      packFS = mkFastString . T.unpack
+      splitModuleName = reverse . T.splitOn "." . T.pack
+      joinModuleName qualified = case reverse qualified of
+        [] -> Nothing
+        parts -> Just . packFS $ T.intercalate "." parts
 
 instance IsString (ImportName ()) where
   fromString = ImportName Nothing . fromString
@@ -115,6 +124,10 @@ spec = do
 
       it "accepts an export list" $ do
         parse "module Foo (bar, baz) where" `shouldBe` Module (ModuleHeader () "Foo" (ExportList [["bar"], ["baz"]])) [] []
+
+    context "when parsing use statements" $ do
+      it "accepts a use-statement" $ do
+        parse "use Data.Foldable" `shouldBe` Module NoModuleHeader [Import () Use "Data.Foldable" Nothing NoImportList] []
 
     context "when parsing imports" $ do
       it "accepts imports" $ do

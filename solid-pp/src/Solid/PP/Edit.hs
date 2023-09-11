@@ -3,7 +3,11 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE NoFieldSelectors #-}
 module Solid.PP.Edit (
-  Edit(..)
+  insert
+, insert_
+, replace
+, replace_
+, Edit(..)
 , insertClosingParen
 , edit
 , columnPragma
@@ -11,9 +15,22 @@ module Solid.PP.Edit (
 
 import           Prelude ()
 import           Solid.PP.IO
-import           Solid.PP.SrcLoc (SrcLoc(..))
-import           Data.List
+import           Solid.PP.SrcLoc (BufferSpan(..), SrcLoc(..))
+import           Data.List hiding (singleton, insert)
+import           Solid.PP.DList
 import qualified Data.Text as T
+
+insert :: SrcLoc -> Text -> DList Edit
+insert loc = singleton . Replace (Just loc.column) loc.offset 0
+
+insert_ :: SrcLoc -> Text -> DList Edit
+insert_ loc = singleton . Replace Nothing loc.offset 0
+
+replace :: BufferSpan -> Text -> DList Edit
+replace loc = singleton . Replace (Just loc.startColumn) loc.start loc.length
+
+replace_ :: BufferSpan -> Text -> DList Edit
+replace_ loc = singleton . Replace Nothing loc.start loc.length
 
 data Edit = Replace {
   startColumn :: Maybe Int

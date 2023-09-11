@@ -1,3 +1,4 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -113,21 +114,21 @@ preProcesses :: FilePath -> FilePath -> Text -> IO Result
 preProcesses src dst input = case parseModule extensions src 1 input of
   Left err -> return (Failure err)
   Right module_ -> withFile dst WriteMode $ \ h -> do
-    edit (hPutStr h) input $ addImplicitImports module_ (ppModule module_)
+    edit (hPutStr h) input (addImplicitImports module_ <> ppModule module_).build
     return Success
 
 data Where = Before | After
 
-addImplicitImports :: Module BufferSpan -> [Edit] -> [Edit]
+addImplicitImports :: Module BufferSpan -> DList Edit
 addImplicitImports module_ = case module_ of
   Module (ModuleHeader loc _ _) _ _ -> addImports After loc.endLoc
   Module NoModuleHeader (import_ : _) _ -> addImports Before import_.start.startLoc
   Module NoModuleHeader [] (node : _) -> addImports Before node.start
-  Module NoModuleHeader [] [] -> id
+  Module NoModuleHeader [] [] -> mempty
   where
     addImports where_ loc = case Set.null modules of
-      True -> id
-      False -> (:) $ insert loc.offset $ formatImports where_ modules <> linePragma loc.line loc.file
+      True -> mempty
+      False -> Edit.insert_ loc $ formatImports where_ modules <> linePragma loc.line loc.file
 
     modules :: ImplicitImports
     modules = Set.intersection (implicitImports module_) wellKnownModules
@@ -140,9 +141,6 @@ addImplicitImports module_ = case module_ of
     formatImport :: ImplicitImport -> Text
     formatImport (ImplicitImport m) = "import qualified " <> m.toText
 
-    insert :: Int -> Text -> Edit
-    insert offset = Replace Nothing offset 0
-
 implicitImports :: Module BufferSpan-> ImplicitImports
 implicitImports = ($ mempty) . fromModule . void
   where
@@ -150,7 +148,7 @@ implicitImports = ($ mempty) . fromModule . void
     foreach f xs set = foldr f set xs
 
     implicitImport :: ModuleName () -> ImplicitImport
-    implicitImport (ModuleName () name) = ImplicitImport name
+    implicitImport (ModuleName () qualified name) = ImplicitImport $ maybe id (<>) qualified name
 
     fromModule :: Module () -> ImplicitImports -> ImplicitImports
     fromModule (Module header imports nodes) = foreach fromImport imports . fromModuleHeader header . fromNodes nodes
@@ -208,7 +206,7 @@ implicitImports = ($ mempty) . fromModule . void
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
 desugarIdentifier start end identifier
-  | lastChar == qmark || lastChar == bang = replace replacement
+  | lastChar == qmark || lastChar == bang = replace_ replacement
   | otherwise = mempty
   where
     lastChar :: Word8
@@ -229,21 +227,11 @@ desugarIdentifier start end identifier
       '?' -> 'ʔ'
       _ -> c
 
-    replace :: Text -> DList Edit
-    replace = singleton . Replace Nothing start (end - start)
+    replace_ :: Text -> DList Edit
+    replace_ = singleton . Replace Nothing start (end - start)
 
 desugarQualifiedName :: BufferSpan -> FastString -> FastString -> DList Edit
 desugarQualifiedName loc (succ . lengthFS -> offset) identifier = desugarIdentifier (loc.start + offset) loc.end identifier
-
-data WithColumnPragma = WithColumnPragma | WithoutColumnPragma
-
-replaceBufferSpan :: WithColumnPragma -> BufferSpan -> String -> Edit
-replaceBufferSpan with_pragma loc = Replace pragma loc.start loc.length . pack
-  where
-    pragma :: Maybe Int
-    pragma = case with_pragma of
-      WithColumnPragma -> Just loc.startColumn
-      WithoutColumnPragma -> Nothing
 
 unescapeString :: String -> String
 unescapeString = go
@@ -256,18 +244,28 @@ unescapeString = go
 unescapeStringLiteral :: BufferSpan -> String -> DList Edit
 unescapeStringLiteral loc old
   | new == old = mempty
-  | otherwise = singleton $ replaceBufferSpan WithColumnPragma loc new
+  | otherwise = Edit.replace loc (pack new)
   where
     new = unescapeString old
 
-ppModule :: Module BufferSpan -> [Edit]
-ppModule (Module header imports nodes) = (ppHeader header <> concatMap ppImport imports <> pp nodes).build
+ppModule :: Module BufferSpan -> DList Edit
+ppModule (Module header imports nodes) = ppHeader header <> concatMap ppImport imports <> pp nodes
 
 ppImport :: Import BufferSpan -> DList Edit
-ppImport (Import (_ :: BufferSpan) _ _ _ imports) = case imports of
-  NoImportList -> mempty
-  ImportList names -> concatMap pp names
-  HidingList names -> concatMap pp names
+ppImport = \ case
+  Import loc Use name as imports -> ppUseStatement loc name as <> ppImportList imports
+  Import _ _ _ _ imports -> ppImportList imports
+  where
+    ppUseStatement use (ImportName _ (ModuleName loc qualified name)) as = Edit.replace use "import" <> Edit.insert loc.endLoc case (qualified, as) of
+      (Nothing, _) -> " qualified"
+      (Just _, Nothing) -> " qualified as " <> name.toText
+      _ -> " qualified"
+
+    ppImportList :: ImportList BufferSpan -> DList Edit
+    ppImportList = \ case
+      NoImportList -> mempty
+      ImportList names -> concatMap pp names
+      HidingList names -> concatMap pp names
 
 ppHeader :: ModuleHeader BufferSpan -> DList Edit
 ppHeader = \ case
@@ -288,7 +286,7 @@ pp = ppNodes
     ppNode :: Node BufferSpan -> DList Edit
     ppNode = \ case
       Token loc t -> ppToken loc t
-      node@(MethodChain subject methodCalls) -> insert node.start (replicate n '(') <> ppSubject subject <> concatMap ppMethodCall methodCalls
+      node@(MethodChain subject methodCalls) -> Edit.insert node.start (T.replicate n "(") <> ppSubject subject <> concatMap ppMethodCall methodCalls
         where
           n :: Int
           n = length $ filter hasArguments methodCalls
@@ -310,7 +308,7 @@ pp = ppNodes
       where
         open = case arguments of
           NoArguments -> mempty
-          Arguments {} -> insert start "("
+          Arguments {} -> Edit.insert start "("
 
     ppMethodCall :: MethodCall BufferSpan -> DList Edit
     ppMethodCall (MethodCall loc name arguments) = desugarIdentifier loc.start loc.end name <> ppCloseArguments arguments
@@ -339,7 +337,7 @@ pp = ppNodes
 
     ppExpression :: Int -> Expression BufferSpan -> DList Edit
     ppExpression n = \ case
-      Expression [] end -> insert end.loc.startLoc (abstractionParam n "") <> ppEnd (succ n) end
+      Expression [] end -> Edit.insert end.loc.startLoc (pack $ abstractionParam n "") <> ppEnd (succ n) end
       Expression nodes end -> ppNodes nodes <> ppEnd n end
 
     ppEnd :: Int -> End BufferSpan -> DList Edit
@@ -360,24 +358,20 @@ pp = ppNodes
           Just string -> "\"" <> string <> "\" <> "
 
     endInterpolation :: BufferSpan -> String -> DList Edit
-    endInterpolation loc src = singleton (replaceBufferSpan WithoutColumnPragma loc end) <> close_paren loc.endLoc
+    endInterpolation loc src = Edit.replace_ loc end <> close_paren loc.endLoc
       where
-        end :: String
+        end :: Text
         end = case unescape src of
           Nothing -> ")"
-          Just string -> (") <> \"" <> string <> "\"").build
+          Just string -> pack (") <> \"" <> string <> "\"").build
 
     endBeginInterpolation :: String -> DString
     endBeginInterpolation src = ") <> " <> beginInterpolation src
 
-    replace :: BufferSpan -> String -> DList Edit
-    replace loc = singleton . replaceBufferSpan WithColumnPragma loc
-
-    insert :: SrcLoc -> String -> DList Edit
-    insert loc = singleton . Replace (Just loc.column) loc.offset 0 . pack
-
     close_paren :: SrcLoc -> DList Edit
     close_paren = singleton . Edit.insertClosingParen
+
+    replace loc = Edit.replace loc . pack
 
 lambdaAbstract :: Expression BufferSpan -> DString
 lambdaAbstract = lambda . countAbstractions
