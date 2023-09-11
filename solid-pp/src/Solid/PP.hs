@@ -18,13 +18,16 @@ module Solid.PP (
 , extensions
 
 #ifdef TEST
-, usedModules
+, ImplicitImports
+, implicitImports
 #endif
 ) where
 
 import           Prelude ()
 import           Solid.PP.IO hiding (concatMap)
 
+import qualified GHC.Data.FastString as GHC
+import           Data.Coerce (coerce)
 import           Control.Monad.Trans.Writer.CPS (execWriter, tell)
 import           Data.Char
 import           Data.Word
@@ -50,7 +53,15 @@ extensions = [
   , Disable FieldSelectors
   ]
 
-wellKnownModules :: Set ModuleName
+newtype ImplicitImport = ImplicitImport FastString
+  deriving newtype (Eq, Show, IsString)
+
+instance Ord ImplicitImport where
+  compare = coerce GHC.uniqCompareFS
+
+type ImplicitImports = Set ImplicitImport
+
+wellKnownModules :: ImplicitImports
 wellKnownModules = Set.fromList [
     "ByteString"
   , "Directory"
@@ -74,7 +85,7 @@ wellKnownModules = Set.fromList [
   , toStringModule
   ]
 
-toStringModule :: ModuleName
+toStringModule :: ImplicitImport
 toStringModule = "Solid.ToString"
 
 data Result = Failure String | Success
@@ -118,76 +129,79 @@ addImplicitImports module_ = case module_ of
       True -> id
       False -> (:) $ insert loc.offset $ formatImports where_ modules <> linePragma loc.line loc.file
 
-    modules :: Set ModuleName
-    modules = Set.intersection (usedModules module_) wellKnownModules
+    modules :: ImplicitImports
+    modules = Set.intersection (implicitImports module_) wellKnownModules
 
-    formatImports :: Where -> Set ModuleName -> Text
+    formatImports :: Where -> ImplicitImports -> Text
     formatImports = \ case
       Before -> T.unlines . map formatImport . Set.toList
       After -> ("\n" <>) . T.unlines . map formatImport . Set.toList
 
-    formatImport :: ModuleName -> Text
-    formatImport (ModuleName m) = "import qualified " <> m.toText
+    formatImport :: ImplicitImport -> Text
+    formatImport (ImplicitImport m) = "import qualified " <> m.toText
 
     insert :: Int -> Text -> Edit
     insert offset = Replace Nothing offset 0
 
-usedModules :: Module BufferSpan-> Set ModuleName
-usedModules = ($ mempty) . fromModule . void
+implicitImports :: Module BufferSpan-> ImplicitImports
+implicitImports = ($ mempty) . fromModule . void
   where
-    foreach :: Foldable sequence_of => (a -> Set ModuleName -> Set ModuleName) -> sequence_of a -> Set ModuleName -> Set ModuleName
+    foreach :: Foldable sequence_of => (a -> ImplicitImports -> ImplicitImports) -> sequence_of a -> ImplicitImports -> ImplicitImports
     foreach f xs set = foldr f set xs
 
-    fromModule :: Module () -> Set ModuleName -> Set ModuleName
+    implicitImport :: ModuleName () -> ImplicitImport
+    implicitImport (ModuleName () name) = ImplicitImport name
+
+    fromModule :: Module () -> ImplicitImports -> ImplicitImports
     fromModule (Module header imports nodes) = foreach fromImport imports . fromModuleHeader header . fromNodes nodes
 
-    fromImport :: Import () -> Set ModuleName -> Set ModuleName
+    fromImport :: Import () -> ImplicitImports -> ImplicitImports
     fromImport = \ case
-      Import () Qualified (ImportName Nothing (_ :: ModuleName)) Nothing NoImportList -> id
-      Import () QualifiedPost (ImportName Nothing (_ :: ModuleName)) Nothing NoImportList -> id
-      Import () _ _ (Just name) _ -> Set.delete name
-      Import () _ (ImportName _ name) Nothing _ -> Set.delete name
+      Import () Qualified (ImportName Nothing (_ :: ModuleName ())) Nothing NoImportList -> id
+      Import () QualifiedPost (ImportName Nothing (_ :: ModuleName ())) Nothing NoImportList -> id
+      Import () _ _ (Just name) _ -> Set.delete $ implicitImport name
+      Import () _ (ImportName _ name) Nothing _ -> Set.delete $ implicitImport name
 
-    fromModuleHeader :: ModuleHeader () -> Set ModuleName -> Set ModuleName
+    fromModuleHeader :: ModuleHeader () -> ImplicitImports -> ImplicitImports
     fromModuleHeader = \ case
       NoModuleHeader -> id
-      ModuleHeader () name exports -> Set.delete name . fromExportList exports
+      ModuleHeader () name exports -> Set.delete (implicitImport name) . fromExportList exports
 
-    fromExportList :: ExportList () -> Set ModuleName -> Set ModuleName
+    fromExportList :: ExportList () -> ImplicitImports -> ImplicitImports
     fromExportList = \ case
       NoExportList -> id
       ExportList nodes -> foreach fromNodes nodes
 
-    fromNodes :: [Node ()] -> Set ModuleName -> Set ModuleName
+    fromNodes :: [Node ()] -> ImplicitImports -> ImplicitImports
     fromNodes = foreach fromNode
 
-    fromNode :: Node () -> Set ModuleName -> Set ModuleName
+    fromNode :: Node () -> ImplicitImports -> ImplicitImports
     fromNode = \ case
-      Token () (ITqvarid (m, _)) -> Set.insert (ModuleName m)
-      Token () (ITqconid (m, _)) -> Set.insert (ModuleName m)
+      Token () (ITqvarid (m, _)) -> Set.insert (ImplicitImport m)
+      Token () (ITqconid (m, _)) -> Set.insert (ImplicitImport m)
       Token () (_ :: Token) -> id
       MethodChain subject methodCalls -> fromSubject subject . foreach fromMethodCall methodCalls
 
-    fromSubject :: Subject () -> Set ModuleName -> Set ModuleName
+    fromSubject :: Subject () -> ImplicitImports -> ImplicitImports
     fromSubject = \ case
       LiteralString (Begin () (_ :: String) expression) -> Set.insert toStringModule . fromExpression expression
       LiteralString (Literal () (_ :: String)) -> id
       Bracketed (_ :: BracketStyle) () nodes -> foreach fromNodes nodes
       Name () (_ :: FastString) arguments -> fromArguments arguments
-      QualifiedName () m (_ :: FastString) arguments -> Set.insert (ModuleName m) . fromArguments arguments
+      QualifiedName () m (_ :: FastString) arguments -> Set.insert (ImplicitImport m) . fromArguments arguments
 
-    fromMethodCall :: MethodCall () -> Set ModuleName -> Set ModuleName
+    fromMethodCall :: MethodCall () -> ImplicitImports -> ImplicitImports
     fromMethodCall (MethodCall () (_ :: FastString) arguments) = fromArguments arguments
 
-    fromArguments :: Arguments () -> Set ModuleName -> Set ModuleName
+    fromArguments :: Arguments () -> ImplicitImports -> ImplicitImports
     fromArguments = \ case
       NoArguments -> id
       Arguments () nodes -> foreach fromArgument nodes
 
-    fromArgument :: Argument () -> Set ModuleName -> Set ModuleName
+    fromArgument :: Argument () -> ImplicitImports -> ImplicitImports
     fromArgument (Argument () nodes) = foreach fromNode nodes
 
-    fromExpression :: Expression () -> Set ModuleName -> Set ModuleName
+    fromExpression :: Expression () -> ImplicitImports -> ImplicitImports
     fromExpression (Expression nodes end) = fromNodes nodes . case end of
       EndBegin () (_ :: String) expression -> fromExpression expression
       End () (_ :: String) -> id

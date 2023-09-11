@@ -6,7 +6,6 @@ import           Solid.PP.IO
 
 import           Test.Hspec
 import           Test.Mockery.Directory
-import           Data.Set (Set)
 import qualified Data.Set as Set
 
 import           Solid.PP.Parser
@@ -37,10 +36,10 @@ interpolationShouldDesugarTo input expected = do
 
 spec :: Spec
 spec = do
-  describe "usedModules" $ do
+  describe "implicitImports" $ do
     let
-      modules :: HasCallStack => Text -> Set ModuleName
-      modules = usedModules . either error id . parseModule extensions "src.hs" 1
+      modules :: HasCallStack => Text -> ImplicitImports
+      modules = implicitImports . either error id . parseModule extensions "src.hs" 1
 
     context "with a qualified identifier" $ do
       it "extracts module name" $ do
