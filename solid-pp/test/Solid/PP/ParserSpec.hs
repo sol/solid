@@ -32,6 +32,9 @@ instance IsList (Module ()) where
 instance IsString (ModuleHeader ()) where
   fromString name = ModuleHeader () (fromString name) NoExportList
 
+instance IsString (ModuleName ()) where
+  fromString = ModuleName () . fromString
+
 instance IsString (ImportName ()) where
   fromString = ImportName Nothing . fromString
 

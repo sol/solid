@@ -36,7 +36,6 @@ module Solid.PP.Parser (
 import           Prelude ()
 import           Solid.PP.IO hiding (try, error, some, many)
 
-import           Data.Coerce (coerce)
 import           Data.Foldable1 (fold1)
 import           Data.List hiding (lines)
 import qualified Data.List.NonEmpty as NonEmpty
@@ -197,10 +196,10 @@ pModuleHeader = moduleHeader <|> pure NoModuleHeader
       end <- require ITwhere <* require ITvocurly
       return $ ModuleHeader (start.merge end) name exports
 
-pModuleName :: Parser ModuleName
-pModuleName = fmap ModuleName . token $ \ case
-  L _ (ITconid name) -> Just name
-  L _ (ITqconid (qualified, name)) -> Just (qualified <> "." <> name)
+pModuleName :: Parser (ModuleName BufferSpan)
+pModuleName = token $ \ (L loc t) -> ModuleName loc <$> case t of
+  ITconid name -> Just name
+  ITqconid (qualified, name) -> Just (qualified <> "." <> name)
   _ -> Nothing
 
 pExportList :: Parser (ExportList BufferSpan)
@@ -227,7 +226,7 @@ pImportPackage = token $ \ case
   L _ (ITstring _ name) -> Just name
   _ -> Nothing
 
-pImportAs :: Parser ModuleName
+pImportAs :: Parser (ModuleName BufferSpan)
 pImportAs = require ITas *> pModuleName
 
 pImportList :: Parser (ImportList BufferSpan)
@@ -375,14 +374,11 @@ pattern TokenEndBegin loc src <- L loc (ITstring_interpolation_end_begin (Source
 data Module loc = Module (ModuleHeader loc) [Import loc] [Node loc]
   deriving (Eq, Show, Functor)
 
-data ModuleHeader loc = NoModuleHeader | ModuleHeader loc ModuleName (ExportList loc)
+data ModuleHeader loc = NoModuleHeader | ModuleHeader loc (ModuleName loc) (ExportList loc)
   deriving (Eq, Show, Functor)
 
-newtype ModuleName = ModuleName FastString
-  deriving newtype (Eq, Show, IsString)
-
-instance Ord ModuleName where
-  compare = coerce GHC.uniqCompareFS
+data ModuleName loc = ModuleName loc FastString
+  deriving (Eq, Show, Functor)
 
 data ExportList loc = NoExportList | ExportList [[Node loc]]
   deriving (Eq, Show, Functor)
@@ -391,7 +387,7 @@ data Import loc = Import {
   start :: loc
 , qualification :: ImportQualification
 , name :: ImportName loc
-, as_name :: Maybe ModuleName
+, as_name :: Maybe (ModuleName loc)
 , import_list :: ImportList loc
 } deriving (Eq, Show, Functor)
 
@@ -400,7 +396,7 @@ data ImportQualification = Unqualified | Qualified | QualifiedPost
 
 data ImportName loc = ImportName {
   package :: Maybe FastString
-, name :: ModuleName
+, name :: ModuleName loc
 } deriving (Eq, Show, Functor)
 
 data ImportList loc = NoImportList | ImportList [[Node loc]] | HidingList [[Node loc]]
