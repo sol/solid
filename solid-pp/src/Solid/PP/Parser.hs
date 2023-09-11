@@ -184,7 +184,7 @@ require expected = token \ case
   _ -> Nothing
 
 pModule :: Parser (Module BufferSpan)
-pModule = Module <$> pModuleHeader <*> many pImport <*> pModuleBody
+pModule = Module <$> pModuleHeader <*> many (pUse <|> pImport) <*> pModuleBody
 
 pModuleHeader :: Parser (ModuleHeader BufferSpan)
 pModuleHeader = moduleHeader <|> pure NoModuleHeader
@@ -197,13 +197,16 @@ pModuleHeader = moduleHeader <|> pure NoModuleHeader
       return $ ModuleHeader (start.merge end) name exports
 
 pModuleName :: Parser (ModuleName BufferSpan)
-pModuleName = token $ \ (L loc t) -> ModuleName loc <$> case t of
-  ITconid name -> Just name
-  ITqconid (qualified, name) -> Just (qualified <> "." <> name)
+pModuleName = token $ \ case
+  L loc (ITconid name) -> Just $ ModuleName loc Nothing name
+  L loc (ITqconid (qualified, name)) -> Just $ ModuleName loc (Just qualified) name
   _ -> Nothing
 
 pExportList :: Parser (ExportList BufferSpan)
 pExportList = oparen *> (ExportList <$> pBracketedInner) <* cparen <|> pure NoExportList
+
+pUse :: Parser (Import BufferSpan)
+pUse = Import <$> require (ITvarid "use") <*> pure Use <*> pImportName <*> optional pImportAs <*> pImportList <* many (require ITsemi)
 
 pImport :: Parser (Import BufferSpan)
 pImport = import_ <*> (qualified_name <|> name_qualified) <*> optional pImportAs <*> pImportList <* many (require ITsemi)
@@ -377,7 +380,7 @@ data Module loc = Module (ModuleHeader loc) [Import loc] [Node loc]
 data ModuleHeader loc = NoModuleHeader | ModuleHeader loc (ModuleName loc) (ExportList loc)
   deriving (Eq, Show, Functor)
 
-data ModuleName loc = ModuleName loc FastString
+data ModuleName loc = ModuleName loc (Maybe FastString) FastString
   deriving (Eq, Show, Functor)
 
 data ExportList loc = NoExportList | ExportList [[Node loc]]
@@ -391,7 +394,7 @@ data Import loc = Import {
 , import_list :: ImportList loc
 } deriving (Eq, Show, Functor)
 
-data ImportQualification = Unqualified | Qualified | QualifiedPost
+data ImportQualification = Use | Unqualified | Qualified | QualifiedPost
   deriving (Eq, Show)
 
 data ImportName loc = ImportName {

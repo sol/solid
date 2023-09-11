@@ -322,6 +322,19 @@ spec = do
         it "desugars postfix bangs" $ do
           "import Foo (bar!)" `shouldDesugarTo` "import Foo (barᴉ)"
 
+    context "when pre-processing use-statements" $ do
+      context "with an unqualified module name" $ do
+        it "desugars the use-statement" $ do
+          "use Foo" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo qualified{-# COLUMN 8 #-}"
+
+      context "with a qualified module name" $ do
+        it "desugars the use-statement" $ do
+          "use Foo.Bar" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar qualified as Bar{-# COLUMN 12 #-}"
+
+      context "with `as` specified" $ do
+        it "desugars the use-statement" $ do
+          "use Foo.Bar as Baz" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar qualified{-# COLUMN 12 #-} as Baz"
+
     context "when pre-processing function calls" $ do
       it "desugars a function call with a single argument" $ do
         "foo(bar baz)" `shouldDesugarTo` "({-# COLUMN 1 #-}foo(bar baz){-# COLUMN 12 #-})"

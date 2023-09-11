@@ -10,19 +10,19 @@ module String (
 
 import Solid.Common
 import Solid.Types hiding (asFilePath)
-import Solid.Types qualified as Types
-import Solid.Bytes qualified as Bytes
-import Solid.StackTrace qualified as StackTrace
+use Solid.Types
+use Solid.Bytes
+use Solid.StackTrace
 import Solid.Ansi.Types (Ansi(..))
-import Solid.Ansi.Types qualified as Ansi
+use Solid.Ansi.Types as Ansi
 
 import Data.Bits ((.&.))
 import Data.Coerce (coerce)
-import Data.ByteString qualified as Haskell
-import Data.ByteString.Char8 qualified as Char8
+use Data.ByteString as Haskell
+use Data.ByteString.Char8
 import Data.Text (Text)
-import Data.Text qualified as Text
-import Data.Text.Encoding qualified as Text
+use Data.Text
+use Data.Text.Encoding as Text
 import Text.Read (readMaybe)
 
 asByteString :: String -> ByteString
