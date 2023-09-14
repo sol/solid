@@ -70,6 +70,7 @@ type ImplicitImports = Set ImplicitImport
 wellKnownModules :: ImplicitImports
 wellKnownModules = Set.fromList [
     "ByteString"
+  , "Char"
   , "Directory"
   , "Either"
   , "Env"

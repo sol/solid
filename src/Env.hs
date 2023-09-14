@@ -6,6 +6,8 @@ module Env (
 , set
 , unset
 
+, without
+
 , ensure
 , clear
 
@@ -32,6 +34,9 @@ set = coerce Raw.set
 
 unset :: String -> IO ()
 unset = coerce Raw.unset
+
+without :: String -> IO a -> IO a
+without = Raw.without . String.asByteString
 
 ensure :: [(String, String)] -> IO ()
 ensure = coerce Raw.ensure

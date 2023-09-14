@@ -4,6 +4,8 @@ module Env.Raw (
 , set
 , unset
 
+, without
+
 , all
 , ensure
 , clear
@@ -27,6 +29,11 @@ set name value = Haskell.setEnv (unBytes name) (unBytes value) True
 
 unset :: ByteString -> IO ()
 unset = coerce Haskell.unsetEnv
+
+without :: ByteString -> IO a -> IO a
+without name action = bracket (get name) (maybe pass (set name)) $ \ _ -> do
+  unset name
+  action
 
 all :: IO [(ByteString, ByteString)]
 #if MIN_VERSION_unix(2,8,2)

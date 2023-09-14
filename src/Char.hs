@@ -1,16 +1,19 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Solid.Char (
+module Char (
   chr
 
 , ord
+
+, replicate
 
 , valid?
 , ascii?
 , space?
 ) where
 
-import Solid.Common
+import Solid.Common hiding (replicate)
+import Solid.Types
 
 import Data.Char
 
@@ -43,3 +46,9 @@ instance HasField "ascii\660" Char Bool where
 
 instance HasField "space\660" Char Bool where
   getField = space?
+
+replicate :: Int -> Char -> String
+replicate n = String.times n . pack . return
+
+instance HasField "replicate" Char (Int -> String) where
+  getField = flip  replicate

@@ -5,7 +5,10 @@
 
 ...
 
-# Solid: A modern remix of Haskell<br>Solid: A functional scripting environment
+# Solid: A functional scripting environment
+
+Solid is a modern remix of (GHC) Haskell with a focus on productivity and joy
+for programmers.
 
 ```
 git clone git@github.com:sol/solid.git

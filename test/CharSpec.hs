@@ -1,10 +1,8 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-module Solid.CharSpec (spec) where
+module CharSpec (spec) where
 
 import Helper
 import Gen
-
-import Solid.Char
 
 spec :: Spec
 spec = do
@@ -29,4 +27,4 @@ spec = do
   describe ".ord" $ do
     it "is inverse to chr" $ do
       c <- forAll Gen.unicodeAny
-      chr c.ord === c
+      Char.chr c.ord === c

@@ -9,12 +9,22 @@ module List (
 , nub
 , nubOn
 
+, startsWith
+, endsWith
+, contains
+
 , enumerate
+, enumerateFrom
 , List.join
 , randomChoice
+
+, for
+, for_
+, traverse
+, traverse_
 ) where
 
-import Solid.Common hiding (empty, null)
+import Solid.Common hiding (empty, null, traverse)
 import Solid.Types
 import Data.List hiding (nub, nubBy, null, length)
 import GHC.OldList as Data.List (null, length)
@@ -23,6 +33,9 @@ import Data.Set qualified as Set
 import Data.ByteString qualified
 import Data.Coerce (coerce)
 import System.Random.Stateful qualified as Haskell
+
+use Data.Foldable
+use Data.Traversable
 
 empty :: [a]
 empty = []
@@ -59,6 +72,9 @@ nub!! = Haskell.nub
 enumerate :: [a] -> [(Int, a)]
 enumerate = zip [0..]
 
+enumerateFrom :: Int -> [a] -> [(Int, a)]
+enumerateFrom n = zip [n..]
+
 -- | Join a list of strings.
 --
 -- Examples:
@@ -87,14 +103,23 @@ instance HasField "map" [a] ((a -> b) -> [b])
 instance HasField "reverse" [a] [a] where
   getField = reverse
 
+startsWith :: Eq a => [a] -> [a] -> Bool
+startsWith = isPrefixOf
+
+endsWith :: Eq a => [a] -> [a] -> Bool
+endsWith = isSuffixOf
+
+contains :: Eq a => [a] -> [a] -> Bool
+contains = isInfixOf
+
 instance Eq a => HasField "startsWith" [a] ([a] -> Bool) where
-  getField = flip isPrefixOf
+  getField = flip startsWith
 
 instance Eq a => HasField "endsWith" [a] ([a] -> Bool) where
-  getField = flip isSuffixOf
+  getField = flip endsWith
 
 instance Eq a => HasField "contains" [a] ([a] -> Bool) where
-  getField = flip isInfixOf
+  getField = flip contains
 
 instance Eq a => HasField "span" [a] ((a -> Bool) -> ([a], [a])) where
   getField = flip span
@@ -127,6 +152,9 @@ instance HasField "zip" [b] ([a] -> [(a, b)])
 instance HasField "enumerate" [a] [(Int, a)] where
   getField = enumerate
 
+instance HasField "enumerateFrom" [a] (Int -> [(Int, a)]) where
+  getField = flip enumerateFrom
+
 instance HasField "filter" [a] ((a -> Bool) -> [a]) where
   getField = flip filter
 
@@ -141,3 +169,31 @@ instance HasField "intercalate" [[a]] ([a] -> [a]) where
 
 instance HasField "randomChoice" [a] (IO a) where
   getField = randomChoice
+
+traverse :: Applicative m => (a -> m b) -> [a] -> m [b]
+traverse = Traversable.traverse
+
+for :: Applicative m => [a] -> (a -> m b) -> m [b]
+for = Traversable.for
+
+traverse_ :: Applicative m => (a -> m b) -> [a] -> m ()
+traverse_ = Foldable.traverse_
+
+for_ :: Applicative m => [a] -> (a -> m b) -> m ()
+for_ = Foldable.for_
+
+instance (HasField "for" [a] ((a -> m b) -> m [b]), Applicative m)
+      =>  HasField "for" [a] ((a -> m b) -> m [b]) where
+  getField = for
+
+instance (HasField "traverse" [a] ((a -> m b) -> m [b]), Applicative m)
+      =>  HasField "traverse" [a] ((a -> m b) -> m [b]) where
+  getField = for
+
+instance (HasField "for_" [a] ((a -> m b) -> m ()), Applicative m)
+      =>  HasField "for_" [a] ((a -> m b) -> m ()) where
+  getField = for_
+
+instance (HasField "traverse_" [a] ((a -> m b) -> m ()), Applicative m)
+      =>  HasField "traverse_" [a] ((a -> m b) -> m ()) where
+  getField = for_

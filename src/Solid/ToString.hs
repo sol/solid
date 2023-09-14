@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DefaultSignatures #-}
 module Solid.ToString (
   ToString(..)
@@ -49,6 +50,22 @@ instance ToString Word32
 instance ToString Word64
 instance ToString Float
 instance ToString Double
+
+instance HasField "toString" () String where getField = toString
+instance HasField "toString" Bool String where getField = toString
+instance HasField "toString" Integer String where getField = toString
+instance HasField "toString" Int String where getField = toString
+instance HasField "toString" Int8 String where getField = toString
+instance HasField "toString" Int16 String where getField = toString
+instance HasField "toString" Int32 String where getField = toString
+instance HasField "toString" Int64 String where getField = toString
+instance HasField "toString" Word String where getField = toString
+instance HasField "toString" Word8 String where getField = toString
+instance HasField "toString" Word16 String where getField = toString
+instance HasField "toString" Word32 String where getField = toString
+instance HasField "toString" Word64 String where getField = toString
+instance HasField "toString" Float String where getField = toString
+instance HasField "toString" Double String where getField = toString
 
 instance Show a => ToString (Maybe a)
 instance (Show a, Show b) => ToString (Either a b)
