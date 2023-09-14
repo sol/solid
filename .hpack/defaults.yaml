@@ -1,0 +1,15 @@
+spec-version: 0.36.0
+
+language: GHC2021
+default-extensions:
+  - DataKinds
+  - DeriveAnyClass
+  - DuplicateRecordFields
+  - LambdaCase
+  - OverloadedRecordDot
+  - OverloadedStrings
+  - NoFieldSelectors
+
+build-tools: solid-pp
+ghc-options: -F -pgmF=solid-pp
+dependencies: solid

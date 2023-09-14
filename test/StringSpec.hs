@@ -61,6 +61,34 @@ spec = do
         input.split "" `shouldBe` ["f", "o", "o"]
         String.split "" input `shouldBe` ["f", "o", "o"]
 
+  describe "ljust" $ do
+    it "pads the end of a string with spaces" $ do
+      let input = "foo" :: String
+      input.ljust 5 `shouldBe` "foo  "
+      String.ljust 5 input `shouldBe` "foo  "
+
+  describe "rjust" $ do
+    it "pads the start of a string with spaces" $ do
+      let input = "foo" :: String
+      input.rjust 5 `shouldBe` "  foo"
+      String.rjust 5 input `shouldBe` "  foo"
+
+  describe "times" $ do
+    it "replicates a string a given number of times" $ do
+      let input = "foo" :: String
+      input.times 3 `shouldBe` "foofoofoo"
+      String.times 3 input `shouldBe` "foofoofoo"
+
+    context "with 0" $ do
+      it "returns the empty string" $ do
+        let input = "foo" :: String
+        String.times 0 input `shouldBe` ""
+
+    context "with a negative number" $ do
+      it "returns the empty string" $ do
+        let input = "foo" :: String
+        String.times (-1) input `shouldBe` ""
+
   describe "strip" $ do
     it "removes leading and trailing whitespace" $ do
       let input = "  foo\n \r" :: String

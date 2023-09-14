@@ -10,6 +10,7 @@ module IO.Handle (
 , Mode
 , Haskell.IOMode(..)
 , SeekMode(..)
+, BufferMode(..)
 
 , print
 , write
@@ -22,6 +23,8 @@ module IO.Handle (
 , tell
 , seek
 , rewind
+, setEcho
+, setBuffering
 , getContents
 , withLock
 ) where
@@ -29,7 +32,7 @@ module IO.Handle (
 import Solid.Common
 import Solid.Types
 
-import           System.IO (SeekMode(..), stdin, stdout, stderr)
+import           System.IO (SeekMode(..), BufferMode(..), stdin, stdout, stderr)
 import qualified System.IO as Haskell
 import qualified System.File.OsPath as OsPath
 
@@ -79,6 +82,12 @@ seek mode n h = Haskell.hSeek h mode n
 rewind :: Handle -> IO ()
 rewind = seek AbsoluteSeek 0
 
+setEcho :: Bool -> Handle -> IO ()
+setEcho = flip Haskell.hSetEcho
+
+setBuffering :: BufferMode -> Handle -> IO ()
+setBuffering = flip Haskell.hSetBuffering
+
 getContents :: Handle -> IO ByteString
 getContents = fmap Bytes . B.hGetContents
 
@@ -122,6 +131,12 @@ instance HasField "seek" Handle (SeekMode -> Integer -> IO ()) where
 
 instance HasField "rewind" Handle (IO ()) where
   getField = rewind
+
+instance HasField "setEcho" Handle (Bool -> IO ()) where
+  getField = Haskell.hSetEcho
+
+instance HasField "setBuffering" Handle (BufferMode -> IO ()) where
+  getField = Haskell.hSetBuffering
 
 instance HasField "getContents" Handle (IO ByteString) where
   getField = getContents

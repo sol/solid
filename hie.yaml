@@ -1,3 +1,16 @@
 cradle:
-  cabal:
-    component: solid:test:spec
+  direct:
+    arguments:
+      - -isrc
+      - -iimport
+      - -ivendor/cabal-install
+      - -ivendor/hspec-hedgehog/src
+      - -itest
+      - -XNoImplicitPrelude
+      - -XDataKinds
+      - -XDeriveAnyClass
+      - -XDuplicateRecordFields
+      - -XLambdaCase
+      - -XOverloadedRecordDot
+      - -XOverloadedStrings
+      - -XNoFieldSelectors

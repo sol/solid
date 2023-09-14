@@ -7,11 +7,6 @@ import           System.Exit
 
 import           Solid.Driver
 
-withUnsetEnv :: String -> IO a -> IO a
-withUnsetEnv name action = bracket (Env.get name) (maybe pass (Env.set name)) $ \ _ -> do
-  Env.unset name
-  action
-
 script :: String
 script = unlines [
     "import System.Exit"
@@ -32,7 +27,7 @@ script = unlines [
   ]
 
 spec :: Spec
-spec = around_ (inTempDirectory . withUnsetEnv "GHC_ENVIRONMENT") $ do
+spec = around_ (inTempDirectory . Env.without "GHC_ENVIRONMENT") $ do
   describe "solid" $ do
     it "runs a script" $ do
       writeFile "main.hs" script

@@ -8,7 +8,7 @@ module String (
 , unpack
 ) where
 
-import Solid.Common
+import Solid.Common hiding (empty, replicate)
 import Solid.Types hiding (asFilePath)
 use Solid.Types
 use Solid.Bytes
@@ -18,6 +18,7 @@ use Solid.Ansi.Types as Ansi
 
 import Data.Bits ((.&.))
 import Data.Coerce (coerce)
+import Data.Semigroup
 use Data.ByteString as Haskell
 use Data.ByteString.Char8
 import Data.Text (Text)
@@ -33,6 +34,9 @@ toText = Text.decodeUtf8 . unBytes
 
 fromText :: Text -> String
 fromText = Bytes . Text.encodeUtf8
+
+empty :: String
+empty = mempty
 
 empty? :: Bytes a -> Bool
 empty? = coerce Haskell.null
@@ -69,6 +73,15 @@ unlines = coerce Char8.unlines
 split :: String -> String -> [String]
 split separator | separator.empty? = map (pack . return) . unpack
 split separator = map fromText . Text.splitOn (toText separator) . toText
+
+ljust :: Int -> String -> String
+ljust n string = string <> times (n - length string) " "
+
+rjust :: Int -> String -> String
+rjust n string = times (n - length string) " " <> string
+
+times :: Int -> String -> String
+times n string = if n < 0 then empty else stimes n string
 
 strip :: String -> String
 strip = fromText . Text.strip . toText
@@ -137,6 +150,15 @@ instance HasField "unlines" [String] String where
 
 instance HasField "split" String (String -> [String]) where
   getField = flip split
+
+instance HasField "ljust" String (Int -> String) where
+  getField = flip ljust
+
+instance HasField "rjust" String (Int -> String) where
+  getField = flip rjust
+
+instance HasField "times" String (Int -> String) where
+  getField = flip times
 
 instance HasField "strip" String String where
   getField = strip

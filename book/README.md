@@ -26,6 +26,7 @@ by Simon Hengel
 * [Proposals (not yet implemented, feedback welcome)](#proposals-not-yet-implemented-feedback-welcome)
    * [Revised import syntax](#revised-import-syntax)
 
+<!-- Created by https://github.com/ekalinin/github-markdown-toc -->
 
 
 <!--te-->
