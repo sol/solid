@@ -33,8 +33,8 @@ module GHCi.UI (
 -- GHCi
 import qualified GHCi.UI.Monad as GhciMonad ( args, runStmt, runDecls' )
 import GHCi.UI.Monad hiding ( args, runStmt )
-import GHCi.UI.Tags
 import GHCi.UI.Info
+import GHCi.UI.Exception
 import GHC.Runtime.Debugger
 
 -- The GHC interface
@@ -46,6 +46,7 @@ import GHC.Core.DataCon
 import GHC.Core.ConLike
 import GHC.Core.PatSyn
 import GHC.Driver.Errors
+import GHC.Driver.Errors.Types
 import GHC.Driver.Phases
 import GHC.Driver.Session as DynFlags
 import GHC.Driver.Ppr hiding (printForUser)
@@ -105,6 +106,7 @@ import GHC.Utils.Misc
 import qualified GHC.LanguageExtensions as LangExt
 import GHC.Data.Bag (unitBag)
 import qualified GHC.Data.Strict as Strict
+import GHC.Types.Error
 
 -- Haskell Libraries
 import System.Console.Haskeline as Haskeline
@@ -170,9 +172,6 @@ import GHC.TopHandler ( topHandler )
 import GHCi.Leak
 import qualified GHC.Unit.Module.Graph as GHC
 
-import qualified Solid.PP
-import qualified Data.Text as Text
-
 -----------------------------------------------------------------------------
 
 data GhciSettings = GhciSettings {
@@ -211,8 +210,6 @@ ghciCommands = map mkCmd [
   ("check",     keepGoing' checkModule,         completeHomeModule),
   ("continue",  keepGoing continueCmd,          noCompletion),
   ("cmd",       keepGoing cmdCmd,               completeExpression),
-  ("ctags",     keepGoing createCTagsWithLineNumbersCmd, completeFilename),
-  ("ctags!",    keepGoing createCTagsWithRegExesCmd, completeFilename),
   ("def",       keepGoing (defineMacro False),  completeExpression),
   ("def!",      keepGoing (defineMacro True),   completeExpression),
   ("delete",    keepGoing deleteCmd,            noCompletion),
@@ -220,7 +217,6 @@ ghciCommands = map mkCmd [
   ("doc",       keepGoing' docCmd,              completeIdentifier),
   ("edit",      keepGoingMulti' editFile,            completeFilename),
   ("enable",    keepGoing enableCmd,            noCompletion),
-  ("etags",     keepGoing createETagsFileCmd,   completeFilename),
   ("force",     keepGoing forceCmd,             completeExpression),
   ("forward",   keepGoing forwardCmd,           noCompletion),
   ("help",      keepGoingMulti help,                 noCompletion),
@@ -360,15 +356,12 @@ defFullHelpText =
   "   :cd <dir>                   change directory to <dir>\n" ++
   "   :cmd <expr>                 run the commands returned by <expr>::IO String\n" ++
   "   :complete <dom> [<rng>] <s> list completions for partial input string\n" ++
-  "   :ctags[!] [<file>]          create tags file <file> for Vi (default: \"tags\")\n" ++
-  "                               (!: use regex instead of line number)\n" ++
   "   :def[!] <cmd> <expr>        define command :<cmd> (later defined command has\n" ++
   "                               precedence, ::<cmd> is always a builtin command)\n" ++
   "                               (!: redefine an existing command name)\n" ++
   "   :doc <name>                 display docs for the given name (experimental)\n" ++
   "   :edit <file>                edit file\n" ++
   "   :edit                       edit last module\n" ++
-  "   :etags [<file>]             create tags file <file> for Emacs (default: \"TAGS\")\n" ++
   "   :help, :?                   display this list of commands\n" ++
   "   :info[!] [<name> ...]       display information about the given names\n" ++
   "                               (!: do not filter instances)\n" ++
@@ -490,8 +483,8 @@ default_progname = "<interactive>"
 default_stop = ""
 
 default_prompt, default_prompt_cont :: PromptFunction
-default_prompt = generatePromptFunctionFromString ">>> "
-default_prompt_cont = generatePromptFunctionFromString ">>| "
+default_prompt = generatePromptFunctionFromString "ghci> "
+default_prompt_cont = generatePromptFunctionFromString "ghci| "
 
 default_args :: [String]
 default_args = []
@@ -559,7 +552,10 @@ interactiveUI config srcs maybe_exprs = do
 
    default_editor <- liftIO $ findEditor
    eval_wrapper <- mkEvalWrapper default_progname default_args
-   let prelude_import = simpleImportDecl preludeModuleName
+   let prelude_import =
+         case simpleImportDecl preludeModuleName of
+           -- Set to True because Prelude is implicitly imported.
+           impDecl@ImportDecl{ideclExt=ext} -> impDecl{ideclExt = ext{ideclImplicit=True}}
    hsc_env <- GHC.getSession
    let in_multi = length (hsc_all_home_unit_ids hsc_env) > 1
    empty_cache <- liftIO newIfaceCache
@@ -775,7 +771,6 @@ runGHCi paths maybe_exprs = do
           do
             -- enter the interactive loop
             runGHCiInput $ runCommands $ nextInputLine show_prompt is_tty
-
         Just exprs -> do
             -- just evaluate the expression we were given
             enqueueCommands exprs
@@ -1116,7 +1111,7 @@ runOneCommand eh gCmd = do
                -- is the handler necessary here?
   where
     printErrorAndFail err = do
-        GHC.printException err
+        printGhciException err
         return $ Just False     -- Exit ghc -e, but not GHCi
 
     noSpace q = q >>= maybe (return Nothing)
@@ -1260,17 +1255,6 @@ enqueueCommands cmds = do
 -- The return value True indicates success, as in `runOneCommand`.
 runStmt :: GhciMonad m => String -> SingleStep -> m (Maybe GHC.ExecResult)
 runStmt input step = do
-  st <- getGHCiState
-  let source = progname st
-  let line = line_number st
-  case Solid.PP.desugarExpression source line (Text.pack input) of
-    Left err -> liftIO $ do
-      hPutStrLn stderr err
-      return Nothing
-    Right expression -> runStmt_ (Text.unpack expression) step
-
-runStmt_ :: GhciMonad m => String -> SingleStep -> m (Maybe GHC.ExecResult)
-runStmt_ input step = do
   pflags <- initParserOpts <$> GHC.getInteractiveDynFlags
   -- In GHCi, we disable `-fdefer-type-errors`, as well as `-fdefer-type-holes`
   -- and `-fdefer-out-of-scope-variables` for **naked expressions**. The
@@ -1600,7 +1584,7 @@ help _ = do
 
 info :: GHC.GhcMonad m => Bool -> String -> m ()
 info _ "" = throwGhcException (CmdLineError "syntax: ':i <thing-you-want-info-about>'")
-info allInfo s  = handleSourceError GHC.printException $ do
+info allInfo s  = handleSourceError printGhciException $ do
     forM_ (words s) $ \thing -> do
       sdoc <- infoThing allInfo thing
       rendered <- showSDocForUser' sdoc
@@ -2014,7 +1998,7 @@ instancesCmd :: String -> InputT GHCi ()
 instancesCmd "" =
   throwGhcException (CmdLineError "syntax: ':instances <type-you-want-instances-for>'")
 instancesCmd s = do
-  handleSourceError GHC.printException $ do
+  handleSourceError printGhciException $ do
     ty <- GHC.parseInstanceHead s
     res <- GHC.getInstancesForType ty
 
@@ -2187,7 +2171,9 @@ doLoad retain_context howmuch = do
               liftIO $ do hSetBuffering stdout NoBuffering
                           hSetBuffering stderr NoBuffering) $ \_ -> do
       hmis <- ifaceCache <$> getGHCiState
-      ok <- trySuccess $ GHC.loadWithCache (Just hmis) howmuch
+      -- If GHCi message gets its own configuration at some stage then this will need to be
+      -- modified to 'embedUnknownDiagnostic'.
+      ok <- trySuccess $ GHC.loadWithCache (Just hmis) (mkUnknownDiagnostic . GHCiMessage) howmuch
       afterLoad ok retain_context
       return ok
 
@@ -2321,7 +2307,7 @@ modulesLoadedMsg ok mods = do
 -- and printing 'throwE' strings to 'stderr'. If in expression
 -- evaluation mode - throw GhcException and exit.
 runExceptGhciMonad :: GhciMonad m => ExceptT SDoc m () -> m ()
-runExceptGhciMonad act = handleSourceError GHC.printException $
+runExceptGhciMonad act = handleSourceError printGhciException $
                          either handleErr pure =<<
                          runExceptT act
   where
@@ -2358,8 +2344,12 @@ typeAtCmd str = runExceptGhciMonad $ do
     (span',sample) <- exceptT $ parseSpanArg str
     infos      <- lift $ mod_infos <$> getGHCiState
     (info, ty) <- findType infos span' sample
-    lift $ printForUserModInfo (modinfoInfo info)
-                               (sep [text sample,nest 2 (dcolon <+> ppr ty)])
+    let mb_rdr_env = case modinfoRdrEnv info of
+          Strict.Just rdrs -> Just rdrs
+          Strict.Nothing   -> Nothing
+    lift $ printForUserGlobalRdrEnv
+              mb_rdr_env
+              (sep [text sample,nest 2 (dcolon <+> ppr ty)])
 
 -----------------------------------------------------------------------------
 -- | @:uses@ command
@@ -3153,11 +3143,8 @@ newDynFlags interactive_only minus_opts = do
       idflags0 <- GHC.getInteractiveDynFlags
       (idflags1, leftovers, warns) <- DynFlags.parseDynamicFlagsCmdLine idflags0 lopts
 
-      liftIO $ handleFlagWarnings logger (initPrintConfig idflags1) (initDiagOpts idflags1) warns
-      when (not $ null leftovers)
-           (throwGhcException . CmdLineError
-            $ "Some flags have not been recognized: "
-            ++ (concat . intersperse ", " $ map unLoc leftovers))
+      liftIO $ printOrThrowDiagnostics logger (initPrintConfig idflags1) (initDiagOpts idflags1) (GhcDriverMessage <$> warns)
+      when (not $ null leftovers) (unknownFlagsErr $ map unLoc leftovers)
 
       when (interactive_only && packageFlagsChanged idflags1 idflags0) $ do
           liftIO $ hPutStrLn stderr "cannot set package flags with :seti; use :set"
@@ -3207,6 +3194,15 @@ newDynFlags interactive_only minus_opts = do
 
       return ()
 
+unknownFlagsErr :: [String] -> a
+unknownFlagsErr fs = throwGhcException $ CmdLineError $ concatMap oneError fs
+  where
+    oneError f =
+        "unrecognised flag: " ++ f ++ "\n" ++
+        (case flagSuggestions ghciFlags f of
+            [] -> ""
+            suggs -> "did you mean one of:\n" ++ unlines (map ("  " ++) suggs))
+    ghciFlags = nubSort $ flagsForCompletion True
 
 unsetOptions :: GhciMonad m => String -> m ()
 unsetOptions str
@@ -4555,7 +4551,7 @@ failIfExprEvalMode = do
 -- | When in expression evaluation mode (ghc -e), we want to exit immediately.
 -- Otherwis, just print out the message.
 printErrAndMaybeExit :: (GhciMonad m, MonadIO m, HasLogger m) => SourceError -> m ()
-printErrAndMaybeExit = (>> failIfExprEvalMode) . GHC.printException
+printErrAndMaybeExit = (>> failIfExprEvalMode) . printGhciException
 
 -----------------------------------------------------------------------------
 -- recursive exception handlers
@@ -4653,7 +4649,7 @@ wantNameFromInterpretedModule :: GHC.GhcMonad m
                               -> (Name -> m ())
                               -> m ()
 wantNameFromInterpretedModule noCanDo str and_then =
-  handleSourceError GHC.printException $ do
+  handleSourceError printGhciException $ do
     n NE.:| _ <- GHC.parseName str
     let modl = assert (isExternalName n) $ GHC.nameModule n
     if not (GHC.isExternalName n)
