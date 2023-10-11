@@ -50,13 +50,13 @@ Read: [`book/README.md`](book/README.md)
 
 # Tooling
 
-`solid` installs GHC `9.6.2` to a private location.  It does not use any system
+`solid` installs GHC `9.8.1` to a private location.  It does not use any system
 provided GHC.
 
 `solid` uses the user-global cabal store (e.g.
-`~/.local/state/cabal/store/ghc-9.6.2/`) for package caching.  This reduces
+`~/.local/state/cabal/store/ghc-9.8.1/`) for package caching.  This reduces
 build times and is usually safe.  However, in the unlikely case that you,
-besides using `solid`, use a build of GHC `9.6.2` that is not ABI compatible
+besides using `solid`, use a build of GHC `9.8.1` that is not ABI compatible
 with the official GHC releases from
 [`haskell.org`](https://www.haskell.org/ghc/), you may run into issues.
 
