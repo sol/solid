@@ -18,7 +18,6 @@ module Env.Raw (
 import Solid hiding (all)
 import Solid.Bytes.Unsafe
 import Data.Coerce (coerce)
-import System.Posix.Env (getEnvironmentPrim)
 import System.Posix.Env.ByteString qualified as Haskell
 
 get :: ByteString -> IO (Maybe ByteString)
@@ -36,13 +35,7 @@ without name action = bracket (get name) (maybe pass (set name)) $ \ _ -> do
   action
 
 all :: IO [(ByteString, ByteString)]
-#if MIN_VERSION_unix(2,8,2)
 all = coerce Haskell.getEnvironment
-#else
-all = getEnvironmentPrim >>= \ case
-  [] -> return []
-  _ -> coerce Haskell.getEnvironment
-#endif
 
 ensure :: [(ByteString, ByteString)] -> IO ()
 ensure = Haskell.setEnvironment . reverse . coerce

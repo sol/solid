@@ -23,7 +23,7 @@ instance IsString StringBuffer where
   fromString = stringToStringBuffer
 
 instance IsString SourceText where
-  fromString = SourceText
+  fromString = SourceText . fromString
 
 instance (Enum a, Show a) => Show (EnumSet a) where
   showsPrec n = showsPrec n . toList
@@ -82,16 +82,16 @@ spec = do
     context "when parsing string literals" $ do
       let
         string :: String -> Token
-        string str = ITstring (SourceText $ show str) (fromString str)
+        string str = ITstring (fromString $ show str) (fromString str)
 
         end_begin :: String -> Token
-        end_begin str = ITstring_interpolation_end_begin (SourceText $ "}" <> str <> "{") (fromString str)
+        end_begin str = ITstring_interpolation_end_begin (fromString $ "}" <> str <> "{") (fromString str)
 
         end :: String -> Token
-        end str = ITstring_interpolation_end (SourceText $ "}" <> str <> "\"") (fromString str)
+        end str = ITstring_interpolation_end (fromString $ "}" <> str <> "\"") (fromString str)
 
         begin :: String -> Token
-        begin str = ITstring_interpolation_begin (SourceText $ "\"" <> str <> "{") (fromString str)
+        begin str = ITstring_interpolation_begin (fromString $ "\"" <> str <> "{") (fromString str)
 
       it "accepts string literals" $ do
         tokenize "\"foo\"" `shouldBe` [string "foo"]

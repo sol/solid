@@ -1,6 +1,7 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE DisambiguateRecordFields #-}
@@ -53,6 +54,7 @@ import           GHC.Driver.Errors.Types
 import           GHC.Types.SourceError
 import           GHC.Driver.Session hiding (language)
 import qualified GHC.Parser.Header as ModuleHeader
+import           GHC.Unit.Module.Warnings (emptyWarningCategorySet)
 
 instance HasField "toText" FastString Text where
   getField = T.decodeUtf8Lenient . bytesFS
@@ -77,12 +79,14 @@ makeOpts extensions = mkParserOpts extensions diagOpts allowedExtensions False F
     allowedExtensions = Map.keys allExtensions ++ map ("No" <>) (Map.keys allExtensions)
 
     diagOpts = DiagOpts {
-      diag_warning_flags       = mempty
+      diag_warning_flags = mempty
     , diag_fatal_warning_flags = mempty
-    , diag_warn_is_error       = False
-    , diag_reverse_errors      = False
-    , diag_max_errors          = Nothing
-    , diag_ppr_ctx             = defaultSDocContext
+    , diag_custom_warning_categories = emptyWarningCategorySet
+    , diag_fatal_custom_warning_categories = emptyWarningCategorySet
+    , diag_warn_is_error = False
+    , diag_reverse_errors = False
+    , diag_max_errors = Nothing
+    , diag_ppr_ctx = defaultSDocContext
     }
 
 data LanguageFlag = Enable Extension | Disable Extension

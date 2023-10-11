@@ -102,16 +102,16 @@ shouldBe action a = action (`Hspec.shouldBe` a)
 spec :: Spec
 spec = do
   let
-    begin :: String -> Expression () -> Node ()
+    begin :: FastString -> Expression () -> Node ()
     begin str expression = MethodChain (LiteralString $ Begin () str expression) []
 
-    end :: String -> End ()
+    end :: FastString -> End ()
     end = End ()
 
-    end_begin :: String -> Expression () -> End ()
+    end_begin :: FastString -> Expression () -> End ()
     end_begin = EndBegin ()
 
-    literal :: String -> Node ()
+    literal :: FastString -> Node ()
     literal string = MethodChain (LiteralString (Literal () string)) []
 
     bracketed :: BracketStyle -> [[Node ()]] -> Node ()

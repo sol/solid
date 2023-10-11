@@ -226,8 +226,8 @@ implicitImports = ($ mempty) . fromModule . void
 
     fromSubject :: Subject () -> ImplicitImports -> ImplicitImports
     fromSubject = \ case
-      LiteralString (Begin () (_ :: String) expression) -> Set.insert toStringModule . fromExpression expression
-      LiteralString (Literal () (_ :: String)) -> id
+      LiteralString (Begin () (_ :: FastString) expression) -> Set.insert toStringModule . fromExpression expression
+      LiteralString (Literal () (_ :: FastString)) -> id
       Bracketed (_ :: BracketStyle) () nodes -> foreach fromNodes nodes
       Name () (_ :: FastString) arguments -> fromArguments arguments
       QualifiedName () m (_ :: FastString) arguments -> Set.insert (ImplicitImport m) . fromArguments arguments
@@ -245,8 +245,8 @@ implicitImports = ($ mempty) . fromModule . void
 
     fromExpression :: Expression () -> ImplicitImports -> ImplicitImports
     fromExpression (Expression nodes end) = fromNodes nodes . case end of
-      EndBegin () (_ :: String) expression -> fromExpression expression
-      End () (_ :: String) -> id
+      EndBegin () (_ :: FastString) expression -> fromExpression expression
+      End () (_ :: FastString) -> id
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
 desugarIdentifier start end identifier
@@ -285,8 +285,8 @@ unescapeString = go
       '\\' : '{' : xs -> '{' : go xs
       x : xs -> x : go xs
 
-unescapeStringLiteral :: BufferSpan -> String -> DList Edit
-unescapeStringLiteral loc old
+unescapeStringLiteral :: BufferSpan -> FastString -> DList Edit
+unescapeStringLiteral loc (unpackFS -> old)
   | new == old = mempty
   | otherwise = Edit.replace loc (pack new)
   where
@@ -390,26 +390,26 @@ pp = ppNodes
       EndBegin loc src expression -> replace loc (endBeginInterpolation src).build <> ppExpression n expression
 
     unescape :: String -> (Maybe DString)
-    unescape (init . tail -> string)
+    unescape (init . drop 1 -> string)
       | null string = Nothing
       | otherwise = Just (fromString $ unescapeString string)
 
-    beginInterpolation :: String -> DString
+    beginInterpolation :: FastString -> DString
     beginInterpolation src = literal <> "Solid.ToString.toString ("
       where
-        literal = case unescape src of
+        literal = case unescape (unpackFS src) of
           Nothing -> ""
           Just string -> "\"" <> string <> "\" <> "
 
-    endInterpolation :: BufferSpan -> String -> DList Edit
+    endInterpolation :: BufferSpan -> FastString -> DList Edit
     endInterpolation loc src = Edit.replace_ loc end <> close_paren loc.endLoc
       where
         end :: Text
-        end = case unescape src of
+        end = case unescape (unpackFS src) of
           Nothing -> ")"
           Just string -> pack (") <> \"" <> string <> "\"").build
 
-    endBeginInterpolation :: String -> DString
+    endBeginInterpolation :: FastString -> DString
     endBeginInterpolation src = ") <> " <> beginInterpolation src
 
     close_paren :: SrcLoc -> DList Edit
