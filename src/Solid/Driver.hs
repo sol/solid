@@ -35,6 +35,7 @@ executables :: [String]
 executables = [
     "ghc-bin:exe:repl"
   , "solid-doctest:exe:solid-doctest"
+  , "markdown-unlit"
   ]
 
 fingerprint :: Fingerprint
@@ -80,7 +81,7 @@ internalCommand name = "{name}-{marker}"
     marker :: String
     marker = "f817da5ee1a2164ad58986293141e5bf"
 
-data Mode = GhcOptions | Repl | Doctest | With FilePath | Run
+data Mode = GhcPath | GhcOptions | Repl | Doctest | With FilePath | Run
 
 solid :: Mode -> FilePath -> [String] -> IO ()
 solid mode self args = do
@@ -88,6 +89,7 @@ solid mode self args = do
   Env.path.extend runtime.ghc_dir do
     let options = ghcOptions self runtime.package_env args
     case mode of
+      GhcPath -> stdout.print (runtime.ghc_dir </> "ghc")
       GhcOptions -> stdout.print options.unlines
       Repl -> do
         repl <- get_repl runtime
@@ -102,7 +104,7 @@ ghcOptions self packageEnv args = opts ++ args
     opts = "-package-env={packageEnv}"
       : "-package=process"
       : desugar ++ exts
-    desugar = ["-F", "-pgmF={self}", "-optF={desugarCommand}"]
+    desugar = ["-pgmL=markdown-unlit", "-F", "-pgmF={self}", "-optF={desugarCommand}"]
     exts = "-X" <> pack (show language) : map showLanguageFlag extensions
 
     showLanguageFlag :: LanguageFlag -> String

@@ -108,6 +108,17 @@ provides a more robust way to run `doctest`.
 $ solid doctest main.hs
 ```
 
+## Literate programming
+
+By default, Solid uses [`markdown-unlit`](https://github.com/sol/markdown-unlit) as the literate pre-processor.
+
+To use the `unlit` executable that ships with GHC you have to specify `-pgmL`
+explicitly, e.g.:
+
+```bash
+$ solid -pgmL=$(solid repl -e 'Process.read "$(solid ghc-path) --info" <&> ByteString.read! @[([Char], [Char])] <&> List.lookup! "unlit command" >>= print') main.lhs
+```
+
 ## Specifying additional dependencies
 
 As of now, `solid` does not provide a mechanism to manage third-party

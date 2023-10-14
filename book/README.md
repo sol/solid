@@ -47,6 +47,7 @@ If you want to experiment with the examples given in this book in a REPL then:
 ```
 $ git clone https://github.com/sol/solid
 $ cd solid/book
+$ cabal install markdown-unlit
 $ solid repl README.lhs
 ```
 
