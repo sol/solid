@@ -1,17 +1,20 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE UndecidableInstances #-}
 module ByteString (
   ByteString
 , module ByteString
 ) where
 
-import Solid.Common
+import Solid.Common hiding (read)
 import Solid.String (String)
 import Solid.ByteString
 import Solid.Bytes.Unsafe
 import Exception
 use Solid.Bytes
 use Solid.String
+use String
+use Solid.StackTrace
 
 import Data.Coerce (coerce)
 import Data.ByteString qualified as Haskell
@@ -95,6 +98,14 @@ contains = isInfixOf
 asFilePath :: ByteString -> FilePath
 asFilePath = Bytes.asFilePath
 
+read :: Read a => ByteString -> Maybe a
+read = asString >=> String.read
+
+read! :: WithStackTrace => Read a => ByteString -> a
+read! input = case read input of
+  Nothing -> StackTrace.suppress Exception.invalidValue! "no parse"
+  Just a -> a
+
 instance HasField "length" ByteString Int where
   getField = length
 
@@ -133,3 +144,11 @@ instance HasField "stripSuffix" ByteString (ByteString -> Maybe ByteString) wher
 
 instance HasField "asFilePath" ByteString FilePath where
   getField = asFilePath
+
+instance (HasField "read" ByteString (Maybe a), Read a)
+       => HasField "read" ByteString (Maybe a) where
+  getField = read
+
+instance (HasField "read\7433" ByteString a, Read a)
+       => HasField "read\7433" ByteString a where
+  getField = StackTrace.suppressForMethod "ByteString.read!" ByteString.read!
