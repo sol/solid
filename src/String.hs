@@ -8,7 +8,7 @@ module String (
 , unpack
 ) where
 
-import Solid.Common hiding (empty, replicate)
+import Solid.Common hiding (read, empty, replicate)
 import Solid.String
 import Solid.ByteString (ByteString)
 import Solid.Bytes.Unsafe
@@ -119,9 +119,9 @@ read :: Read a => String -> Maybe a
 read = readMaybe . unpack
 
 read! :: WithStackTrace => Read a => String -> a
-read! input = case String.read input of
-  Just a -> a
+read! input = case read input of
   Nothing -> StackTrace.suppress Exception.invalidValue! "no parse"
+  Just a -> a
 
 ansi :: String -> Ansi String
 ansi = Ansi.ansi
@@ -179,7 +179,7 @@ instance HasField "asFilePath" String FilePath where
 
 instance (HasField "read" String (Maybe a), Read a)
        => HasField "read" String (Maybe a) where
-  getField = String.read
+  getField = read
 
 instance (HasField "read\7433" String a, Read a)
        => HasField "read\7433" String a where

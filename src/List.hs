@@ -13,6 +13,8 @@ module List (
 , endsWith
 , contains
 
+, lookup!
+
 , enumerate
 , enumerateFrom
 , List.join
@@ -25,15 +27,14 @@ module List (
 ) where
 
 import Solid.Common hiding (empty, null, traverse)
-import Solid.Bytes.Unsafe
 import Solid.String
+use Solid.Bytes
+use Solid.StackTrace
 
 import Data.List hiding (nub, nubBy, null, length)
 import GHC.OldList as Data.List (null, length)
 import Data.List qualified as Haskell
 import Data.Set qualified as Set
-import Data.ByteString qualified
-import Data.Coerce (coerce)
 import System.Random.Stateful qualified as Haskell
 
 use Data.Foldable
@@ -87,7 +88,7 @@ enumerateFrom n = zip [n..]
 -- >>> ["foo", "bar", "baz" :: String].join ", "
 -- "foo, bar, baz"
 join :: String -> [String] -> String
-join = coerce Data.ByteString.intercalate
+join = Bytes.intercalate
 
 randomChoice :: [a] -> IO a
 randomChoice xs = (xs !!) <$> Haskell.uniformRM (0, pred xs.length) Haskell.globalStdGen
@@ -114,6 +115,11 @@ endsWith = isSuffixOf
 contains :: Eq a => [a] -> [a] -> Bool
 contains = isInfixOf
 
+lookup! :: WithStackTrace => Eq a => a -> [(a, b)] -> b
+lookup! key values = case lookup key values of
+  Nothing -> StackTrace.suppress Exception.invalidValue! "invalid key"
+  Just a -> a
+
 instance Eq a => HasField "startsWith" [a] ([a] -> Bool) where
   getField = flip startsWith
 
@@ -122,6 +128,12 @@ instance Eq a => HasField "endsWith" [a] ([a] -> Bool) where
 
 instance Eq a => HasField "contains" [a] ([a] -> Bool) where
   getField = flip contains
+
+instance Eq a => HasField "lookup" [(a, b)] (a -> Maybe b) where
+  getField = flip lookup
+
+instance Eq a => HasField "lookup\7433" [(a, b)] (a -> b) where
+  getField = StackTrace.suppressForMethod "List.lookup!" flip List.lookup!
 
 instance Eq a => HasField "span" [a] ((a -> Bool) -> ([a], [a])) where
   getField = flip span

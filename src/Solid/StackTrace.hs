@@ -28,6 +28,7 @@ module Solid.StackTrace (
 import Solid.Common hiding (empty)
 import Solid.String
 import Solid.ToString qualified as Solid
+use Solid.Bytes
 
 import Data.Function (fix)
 import Data.List qualified as Haskell
@@ -126,7 +127,7 @@ fromCallStack = StackTrace . go
       x : xs -> x : rec xs
 
 prettyCallStack :: GHC.CallStack -> String
-prettyCallStack stack = List.join "\n" $ case GHC.getCallStack stack of
+prettyCallStack stack = Bytes.intercalate "\n" $ case GHC.getCallStack stack of
   []  -> []
   stk -> "StackTrace (from WithStackTrace):" : map prettyCallSite stk
   where

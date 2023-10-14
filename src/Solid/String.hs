@@ -14,8 +14,8 @@ asString (Bytes string) = if Haskell.isValidUtf8 string then Just (Bytes string)
 
 decodeUtf8 :: Bytes a -> String
 decodeUtf8 input = case asString input of
-  Just xs -> xs
   Nothing -> Bytes . Text.encodeUtf8 $ Text.decodeUtf8With Text.lenientDecode (unBytes input)
+  Just xs -> xs
 
 data Utf8
 type String = Bytes Utf8

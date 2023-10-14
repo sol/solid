@@ -15,6 +15,9 @@ import Data.ByteString qualified as Haskell
 import Data.ByteString.Short (toShort)
 import System.OsString.Internal.Types (OsString(..), PosixString(..))
 
+intercalate :: Bytes a -> [Bytes a] -> Bytes a
+intercalate = coerce Haskell.intercalate
+
 isPrefixOf :: Bytes a -> Bytes a -> Bool
 isPrefixOf = coerce Haskell.isPrefixOf
 
