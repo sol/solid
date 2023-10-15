@@ -24,6 +24,7 @@ module FilePath (
 
 , open
 
+, parent
 , directory
 ) where
 
@@ -77,6 +78,9 @@ rename = Import.renamePath
 open :: IO.Mode -> FilePath -> IO Handle
 open = flip IO.open
 
+parent :: FilePath -> FilePath
+parent = Import.takeDirectory . Import.dropTrailingPathSeparator
+
 directory :: FilePath -> FilePath
 directory = Import.takeDirectory
 
@@ -109,6 +113,9 @@ instance HasField "rename" FilePath (FilePath -> IO ()) where
 
 instance HasField "open" FilePath (IO.Mode -> IO Handle) where
   getField = IO.open
+
+instance HasField "parent" FilePath FilePath where
+  getField = parent
 
 instance HasField "directory" FilePath FilePath where
   getField = directory

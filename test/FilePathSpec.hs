@@ -162,3 +162,23 @@ spec = do
           handle.open? `shouldReturn` True
         with (FilePath.open IO.WriteMode path) $ \ handle -> do
           handle.open? `shouldReturn` True
+
+  describe "parent" $ do
+    it "returns the logical parent of a FilePath" $ do
+      FilePath.parent "/a/b/c/d" `shouldBe` "/a/b/c"
+
+    it "ignores trailing slashes" $ do
+      FilePath.parent "/a/b/c/d/" `shouldBe` "/a/b/c"
+
+    it "stops at the root" $ do
+      FilePath.parent "/" `shouldBe` "/"
+
+    it "stops at ." $ do
+      FilePath.parent "." `shouldBe` "."
+
+    it "is a purely lexical operation" $ do
+      FilePath.parent "foo/.." `shouldBe` "foo"
+
+    context "with the empty path" $ do
+      it "returns ." $ do
+        FilePath.parent "" `shouldBe` "."
