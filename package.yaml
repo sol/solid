@@ -1,3 +1,4 @@
+spec-version: 0.36.0
 name: solid
 
 copyright: (c) 2022-2023 Simon Hengel
@@ -43,9 +44,6 @@ library:
   source-dirs:
     - src
     - import
-  when:
-    condition: false
-    other-modules: Paths_solid
 
 executable:
   main: Main.hs
@@ -62,9 +60,6 @@ executable:
     - rio
     - optparse-applicative == 0.17.0.0
     - pantry >= 0.8.2.2 && < 0.9
-  when:
-    condition: false
-    other-modules: Paths_solid
 
 tests:
   spec:
@@ -89,6 +84,3 @@ tests:
       - mockery
       - base64-bytestring
       - temporary
-    when:
-      condition: false
-      other-modules: Paths_solid

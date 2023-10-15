@@ -16,11 +16,25 @@ import Solid.Ansi qualified as Ansi
 repository :: String
 repository = "https://github.com/sol/solid.git"
 
-revision :: String
-revision = "416c1e79145feef0be4bd025d700e59a52794d71"
-
 ghc :: String
 ghc = "9.6.2"
+
+revision :: String
+revision = "d3cb9cf8fd363e5cda96c0e3f6d74fc87ea15eab"
+
+libraries :: [String]
+libraries = [
+    "lib:solid"
+  , "lib:haskell-base"
+  ]
+
+executables :: [String]
+executables = [
+    "ghc-bin:exe:repl"
+  ]
+
+fingerprint :: Fingerprint
+fingerprint = (ghc : revision : libraries.sort <> executables.sort).unlines.md5sum
 
 tty :: FilePath
 tty = "/dev/tty"
@@ -65,33 +79,63 @@ internalCommand name = "{name}-{marker}"
 data Mode = GhcOptions | Repl | Doctest | With FilePath | Run
 
 solid :: Mode -> FilePath -> [String] -> IO ()
-solid mode self args = withConsole $ \ console -> do
-  cache <- getCacheDirectory
-  ghc_dir <- determine_ghc_dir console self (cache </> "ghc-{ghc}".asFilePath)
-  Env.path.extend ghc_dir do
-    (packageEnv, bindir) <- ensurePackageEnv console self cache
-    let options = ghcOptions self packageEnv args
+solid mode self args = do
+  runtime <- ensureRuntime self
+  Env.path.extend runtime.ghc_dir do
+    let options = ghcOptions self runtime.package_env args
     case mode of
       GhcOptions -> stdout.print options.unlines
       Repl -> do
-        repl <- get_repl ghc_dir bindir
+        repl <- get_repl runtime.ghc_dir runtime.bindir
         Process.command.uncurry(repl <&> (<> options)).with Process.status >>= throwIO
       Doctest -> do
-        repl <- get_repl ghc_dir bindir
+        repl <- get_repl runtime.ghc_dir runtime.bindir
         doctestWithRepl repl.bimap((.toString.unpack), map unpack) options.map(unpack)
       With command -> Process.command(command, options).with Process.status >>= throwIO
-      Run -> Process.command(ghc_dir </> "runghc", options).with Process.status >>= throwIO
+      Run -> Process.command(runtime.ghc_dir </> "runghc", options).with Process.status >>= throwIO
+
+ghcOptions :: FilePath -> FilePath -> [String] -> [String]
+ghcOptions self packageEnv args = opts ++ args
+  where
+    opts = "-package-env={packageEnv}"
+      : "-package=process"
+      : desugar ++ exts
+    desugar = ["-F", "-pgmF={self}", "-optF={desugarCommand}"]
+    exts = "-X" <> pack (show language) : map showLanguageFlag extensions
+
+    showLanguageFlag :: LanguageFlag -> String
+    showLanguageFlag = \ case
+      Enable extension  -> "-X"   <> pack (showExtension extension)
+      Disable extension -> "-XNo" <> pack (showExtension extension)
 
 get_repl :: FilePath -> FilePath -> IO (FilePath, [String])
 get_repl ghc_dir bindir = do
   libdir <- (.decodeUtf8.strip) <$> Process.command(ghc_dir </> "ghc", ["--print-libdir"]).read
   return (bindir </> "repl", ["-B{libdir}", "--interactive"])
 
-getCacheDirectory :: IO FilePath
-getCacheDirectory = do
-  cache <- getXdgDirectory XdgCache "solid"
-  Directory.ensure cache
-  return cache
+data Runtime = Runtime {
+  ghc_dir :: FilePath
+, package_env :: FilePath
+, bindir :: FilePath
+}
+
+ensureRuntime :: FilePath -> IO Runtime
+ensureRuntime self = withConsole $ \ console -> do
+  base_dir <- getBaseDirectory
+  ghc_dir <- determine_ghc_dir console self (base_dir </> "ghc")
+  Env.path.extend ghc_dir do
+    (package_env, bindir) <- ensurePackageEnv console self base_dir
+    return Runtime {
+      ghc_dir
+    , package_env
+    , bindir
+    }
+
+getBaseDirectory :: IO FilePath
+getBaseDirectory = do
+  dir <- getXdgDirectory XdgState "solid" <&> (</> "ghc-{ghc}-{fingerprint}".asFilePath)
+  Directory.ensure dir
+  return dir
 
 determine_ghc_dir :: Console -> FilePath -> FilePath -> IO FilePath
 determine_ghc_dir console self cache = do
@@ -130,19 +174,19 @@ atomicWriteFile dst str = do
   tmp.rename dst
 
 ensurePackageEnv :: Console -> FilePath -> FilePath -> IO (FilePath, FilePath)
-ensurePackageEnv console self cache = do
+ensurePackageEnv console self base_dir = do
   unless -< packageEnv.exists? $ do
     console.info "Creating package environment...\n"
     let intensity = Ansi.Faint
     bracket_ (console.info intensity.set) (console.info intensity.reset) do
-      Temp.withDirectoryAt cache $ \ tmp -> do
+      Temp.withDirectoryAt base_dir $ \ tmp -> do
         Directory.withCurrent tmp do
           git ["init", "-q"]
           git ["remote", "add", "origin", repository]
           git ["fetch", "--depth", "1", "origin", revision, "-q"]
           git ["checkout", "FETCH_HEAD", "-q"]
-          cabal $ "install" : "--package-env={packageEnv}" : "--lib" : packages
-          cabal ["install", "ghc-bin", "--installdir={bindir}"]
+          cabal $ "install" : "--package-env={packageEnv}" : "--lib" : libraries
+          cabal $ "install" : "--installdir={bindir}" : executables
   return (packageEnv, bindir)
   where
     git :: [String] -> IO ()
@@ -154,25 +198,8 @@ ensurePackageEnv console self cache = do
     cabal :: [String] -> IO ()
     cabal args = (console.command self ("cabal" : verbosity args)).run
 
-    packages :: [String]
-    packages = ["lib:solid", "lib:haskell-base"]
-
     packageEnv :: FilePath
-    packageEnv = cache </> "{revision}-{packages.sort.unlines.md5sum}.env".asFilePath
+    packageEnv = base_dir </> "package.env"
 
     bindir :: FilePath
-    bindir = cache </> "bin" </> ghc.asFilePath
-
-ghcOptions :: FilePath -> FilePath -> [String] -> [String]
-ghcOptions self packageEnv args = opts ++ args
-  where
-    opts = "-package-env={packageEnv}"
-      : "-package=process"
-      : desugar ++ exts
-    desugar = ["-F", "-pgmF={self}", "-optF={desugarCommand}"]
-    exts = "-X" <> pack (show language) : map showLanguageFlag extensions
-
-    showLanguageFlag :: LanguageFlag -> String
-    showLanguageFlag = \ case
-      Enable extension  -> "-X"   <> pack (showExtension extension)
-      Disable extension -> "-XNo" <> pack (showExtension extension)
+    bindir = base_dir </> "bin"
