@@ -11,7 +11,9 @@ import Solid.PP (LanguageFlag(..), language, extensions, showExtension)
 import Test.DocTest.Internal.Run (doctestWithRepl)
 
 import System.Directory.Import
-import Solid.Ansi qualified as Ansi
+
+use Solid.Util
+use Solid.Ansi
 
 repository :: String
 repository = "https://github.com/sol/solid.git"
@@ -119,43 +121,54 @@ data Runtime = Runtime {
 , bindir :: FilePath
 }
 
+data Paths = Paths {
+  base_dir :: FilePath
+, ghc_dir_cache :: FilePath
+, package_env :: FilePath
+, bindir :: FilePath
+}
+
+pathsFrom :: FilePath -> Paths
+pathsFrom base_dir = Paths {
+  base_dir
+, ghc_dir_cache = base_dir </> "ghc"
+, package_env = base_dir </> "package.env"
+, bindir = base_dir </> "bin"
+}
+
 ensureRuntime :: FilePath -> IO Runtime
-ensureRuntime self = withConsole $ \ console -> do
-  base_dir <- getBaseDirectory
-  ghc_dir <- determine_ghc_dir console self (base_dir </> "ghc")
-  Env.path.extend ghc_dir do
-    (package_env, bindir) <- ensurePackageEnv console self base_dir
-    return Runtime {
-      ghc_dir
-    , package_env
-    , bindir
-    }
+ensureRuntime self = do
+  runtime_dir <- getRuntimeDirectory
+  unless -< runtime_dir.exists? $ do
+    createRuntime runtime_dir self
+  readRuntime runtime_dir
 
-getBaseDirectory :: IO FilePath
-getBaseDirectory = do
-  dir <- getXdgDirectory XdgState "solid" <&> (</> "ghc-{ghc}-{fingerprint}".asFilePath)
-  Directory.ensure dir
-  return dir
-
-determine_ghc_dir :: Console -> FilePath -> FilePath -> IO FilePath
-determine_ghc_dir console self cache = do
-  unless -< valid? $ do
-    find_ghc console self >>= write_cache
-  read_cache
+readRuntime :: FilePath -> IO Runtime
+readRuntime base_dir = do
+  ghc_dir <- readBinaryFile paths.ghc_dir_cache <&> ByteString.asFilePath
+  return Runtime {
+    ghc_dir
+  , package_env = paths.package_env
+  , bindir = paths.bindir
+  }
   where
-    read_cache :: IO FilePath
-    read_cache = readBinaryFile cache <&> ByteString.asFilePath
+    paths :: Paths
+    paths = pathsFrom base_dir
 
-    write_cache :: FilePath -> IO ()
-    write_cache = FilePath.asByteString >>> atomicWriteFile cache
+createRuntime :: FilePath -> FilePath -> IO ()
+createRuntime runtime_dir self = withConsole $ \ console -> do
+  Util.createAtomic runtime_dir $ \ tmp -> do
+    let paths = pathsFrom tmp
+    ghc_dir <- install_ghc console self
+    writeBinaryFile paths.ghc_dir_cache ghc_dir.asByteString
+    Env.path.extend ghc_dir do
+      createPackageEnv console self paths
 
-    valid? :: IO Bool
-    valid? = cache.exists? >>= \ case
-      False -> return False
-      True -> read_cache >>= FilePath.exists?
+getRuntimeDirectory :: IO FilePath
+getRuntimeDirectory = getXdgDirectory XdgState "solid" <&> (</> "ghc-{ghc}-{fingerprint}".asFilePath)
 
-find_ghc :: Console -> FilePath -> IO FilePath
-find_ghc console self = do
+install_ghc :: Console -> FilePath -> IO FilePath
+install_ghc console self = do
   console.info "Installing GHC {ghc}... "
   Temp.withDirectory $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
@@ -167,27 +180,19 @@ find_ghc console self = do
     stack :: [String] -> Process.Config () (IO ByteString) ()
     stack args = (console.command self ("stack" : "--verbosity" : "error" : args)).stdout.capture
 
-atomicWriteFile :: FilePath -> ByteString -> IO ()
-atomicWriteFile dst str = do
-  let tmp = dst <.> "tmp"
-  writeBinaryFile tmp str
-  tmp.rename dst
-
-ensurePackageEnv :: Console -> FilePath -> FilePath -> IO (FilePath, FilePath)
-ensurePackageEnv console self base_dir = do
-  unless -< packageEnv.exists? $ do
-    console.info "Creating package environment...\n"
-    let intensity = Ansi.Faint
-    bracket_ (console.info intensity.set) (console.info intensity.reset) do
-      Temp.withDirectoryAt base_dir $ \ tmp -> do
-        Directory.withCurrent tmp do
-          git ["init", "-q"]
-          git ["remote", "add", "origin", repository]
-          git ["fetch", "--depth", "1", "origin", revision, "-q"]
-          git ["checkout", "FETCH_HEAD", "-q"]
-          cabal $ "install" : "--package-env={packageEnv}" : "--lib" : libraries
-          cabal $ "install" : "--installdir={bindir}" : executables
-  return (packageEnv, bindir)
+createPackageEnv :: Console -> FilePath -> Paths -> IO ()
+createPackageEnv console self paths = do
+  console.info "Creating package environment...\n"
+  let intensity = Ansi.Faint
+  bracket_ (console.info intensity.set) (console.info intensity.reset) do
+    Temp.withDirectoryAt paths.base_dir $ \ tmp -> do
+      Directory.withCurrent tmp do
+        git ["init", "-q"]
+        git ["remote", "add", "origin", repository]
+        git ["fetch", "--depth", "1", "origin", revision, "-q"]
+        git ["checkout", "FETCH_HEAD", "-q"]
+        cabal $ "install" : "--package-env={paths.package_env}" : "--lib" : libraries
+        cabal $ "install" : "--installdir={paths.bindir}" : executables
   where
     git :: [String] -> IO ()
     git args = (console.command "git" args).run
@@ -197,9 +202,3 @@ ensurePackageEnv console self base_dir = do
 
     cabal :: [String] -> IO ()
     cabal args = (console.command self ("cabal" : verbosity args)).run
-
-    packageEnv :: FilePath
-    packageEnv = base_dir </> "package.env"
-
-    bindir :: FilePath
-    bindir = base_dir </> "bin"

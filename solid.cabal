@@ -54,6 +54,7 @@ library
       Solid.String
       Solid.ToString
       Solid.TypeLits
+      Solid.Util
       String
       Temp
       Word8
@@ -189,6 +190,7 @@ test-suite spec
       Solid.String
       Solid.ToString
       Solid.TypeLits
+      Solid.Util
       String
       Temp
       Word8
@@ -225,6 +227,7 @@ test-suite spec
       Solid.Process.TypedSpec
       Solid.StackTraceSpec
       Solid.ToStringSpec
+      Solid.UtilSpec
       SolidSpec
       StringSpec
       TempSpec
