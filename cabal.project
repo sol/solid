@@ -2,6 +2,7 @@ packages:
   .
   solid-pp
   haskell-base
+  solid-doctest
   vendor/ghc-bin
 
 package solid
@@ -12,6 +13,10 @@ package solid-pp
 
 package haskell-base
   ghc-options: -Werror
+
+package solid-doctest
+  ghc-options: -Werror
+  executable-dynamic: true
 
 package ghc-bin
   ghc-options: -Werror

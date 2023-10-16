@@ -40,6 +40,6 @@ spec = around_ (inTempDirectory . Env.without "GHC_ENVIRONMENT") $ do
     describe "doctest" $ do
       it "runs doctests" $ do
         writeFile "main.hs" script
-        hCapture_ [stderr] (solid Doctest "solid" ["main.hs"]) `shouldReturn` unlines [
+        hCapture_ [stderr] (solid Doctest "solid" ["main.hs"] `shouldThrow` ExitSuccess) `shouldReturn` unlines [
             "Examples: 1  Tried: 1  Errors: 0  Failures: 0"
           ]
