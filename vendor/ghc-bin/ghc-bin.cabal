@@ -2,7 +2,7 @@
 -- ./configure.  Make sure you are editing ghc-bin.cabal.in, not ghc-bin.cabal.
 
 Name: ghc-bin
-Version: 9.6.2
+Version: 9.8.1
 Copyright: XXX
 -- License: XXX
 -- License-File: XXX
@@ -35,14 +35,14 @@ Executable repl
     Main-Is: Main.hs
     Build-Depends: base       >= 4   && < 5,
                    array      >= 0.1 && < 0.6,
-                   bytestring >= 0.9 && < 0.12,
+                   bytestring >= 0.9 && < 0.13,
                    directory  >= 1   && < 1.4,
                    process    >= 1   && < 1.7,
                    filepath   >= 1   && < 1.5,
                    containers >= 0.5 && < 0.7,
                    transformers >= 0.5 && < 0.7,
-                   ghc-boot      == 9.6.2,
-                   ghc           == 9.6.2
+                   ghc-boot      == 9.8.1,
+                   ghc           == 9.8.1
 
     if os(windows)
         Build-Depends: Win32  >= 2.3 && < 2.14
@@ -58,9 +58,9 @@ Executable repl
     if flag(internal-interpreter)
         -- NB: this is never built by the bootstrapping GHC+libraries
         Build-depends:
-            deepseq        == 1.4.*,
-            ghc-prim       >= 0.5.0 && < 0.11,
-            ghci           == 9.6.2,
+            deepseq        >= 1.4 && < 1.6,
+            ghc-prim       >= 0.5.0 && < 0.12,
+            ghci           == 9.8.1,
             haskeline      == 0.8.*,
             exceptions     == 0.10.*,
             time           >= 1.8 && < 1.13
@@ -70,7 +70,7 @@ Executable repl
             GHCi.UI
             GHCi.UI.Info
             GHCi.UI.Monad
-            GHCi.UI.Tags
+            GHCi.UI.Exception
             GHCi.Util
         Other-Extensions:
             FlexibleInstances

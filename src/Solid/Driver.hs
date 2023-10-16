@@ -20,10 +20,10 @@ repository :: String
 repository = "https://github.com/sol/solid.git"
 
 ghc :: String
-ghc = "9.6.2"
+ghc = "9.8.1"
 
 revision :: String
-revision = "8003d05d2114d66b2a5f668f4f9f0d1d00a3731f"
+revision = "ac21993f725b6a80b39423534ff2e6036c0c3016"
 
 libraries :: [String]
 libraries = [

@@ -22,8 +22,20 @@ package ghc-bin
   ghc-options: -Werror
   executable-dynamic: true
 
-allow-newer: cabal-install:base
-allow-newer: cabal-install-solver:base
-allow-newer: stack:Cabal
+allow-newer: *:base
+allow-newer: *:bytestring
+allow-newer: *:deepseq
+allow-newer: *:ghc-prim
+allow-newer: *:primitive
+allow-newer: *:resolv
+allow-newer: *:template-haskell
+allow-newer: *:text
+allow-newer: *:unix
 
 tests: True
+
+source-repository-package
+  type: git
+  location: https://github.com/haskell/aeson
+  tag: 397b9893cab8d298a537abbe49b436af704cebde
+  subdir: attoparsec-aeson

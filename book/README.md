@@ -526,5 +526,5 @@ eventually intends to desugar import statements as follows:
 [foreign-c]: ../src/Solid/Foreign/C.hs
 [foreign-haskell]: ../src/Haskell.hs
 
-[overloaded_record_dot]: https://downloads.haskell.org/ghc/9.6.2/docs/users_guide/exts/overloaded_record_dot.html
-[haskell-pre-processor]: https://downloads.haskell.org/ghc/9.6.2/docs/users_guide/phases.html#options-affecting-a-haskell-pre-processor
+[overloaded_record_dot]: https://downloads.haskell.org/ghc/9.8.1/docs/users_guide/exts/overloaded_record_dot.html
+[haskell-pre-processor]: https://downloads.haskell.org/ghc/9.8.1/docs/users_guide/phases.html#options-affecting-a-haskell-pre-processor

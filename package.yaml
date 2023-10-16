@@ -36,6 +36,7 @@ dependencies:
 
   - solid-pp
   - doctest
+  - markdown-unlit
 
 build-tools: solid-pp
 
@@ -50,16 +51,15 @@ executable:
   source-dirs:
     - driver
     - vendor/cabal-install
-    - vendor/stack-2.11.1/src/main
   dependencies:
     - solid
     - Cabal
     - cabal-install == 3.10.1.0 # update / remove vendor/Distribution/Client/Main.hs
-    - stack == 2.11.1
+    - stack >= 2.13.1
     - hpack
     - rio
-    - optparse-applicative == 0.17.0.0
-    - pantry >= 0.8.2.2 && < 0.9
+    - optparse-applicative
+    - pantry
 
 tests:
   spec:

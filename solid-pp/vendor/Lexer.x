@@ -42,12 +42,14 @@
 
 {
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnboxedSums #-}
 {-# LANGUAGE UnliftedNewtypes #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 
 {-# OPTIONS_GHC -funbox-strict-fields #-}
@@ -199,6 +201,10 @@ $docsym    = [\| \^ \* \$]
 @hexadecimal  = $hexit(@numspc $hexit)*
 @exponent     = @numspc [eE] [\-\+]? @decimal
 @bin_exponent = @numspc [pP] [\-\+]? @decimal
+
+@binarylit      = 0[bB] @numspc @binary
+@octallit       = 0[oO] @numspc @octal
+@hexadecimallit = 0[xX] @numspc @hexadecimal
 
 @qual = (@conid \.)+
 @qvarid = @qual @varid
@@ -533,15 +539,15 @@ $unigraphic / { isSmartQuote } { smart_quote_error }
 --
 <0,interpolation,nested_braces_in_interpolation> {
   -- Normal integral literals (:: Num a => a, from Integer)
-  @decimal                                                                   { tok_num positive 0 0 decimal }
-  0[bB] @numspc @binary                / { ifExtension BinaryLiteralsBit }   { tok_num positive 2 2 binary }
-  0[oO] @numspc @octal                                                       { tok_num positive 2 2 octal }
-  0[xX] @numspc @hexadecimal                                                 { tok_num positive 2 2 hexadecimal }
-  @negative @decimal                   / { negLitPred }                      { tok_num negative 1 1 decimal }
-  @negative 0[bB] @numspc @binary      / { negLitPred `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_num negative 3 3 binary }
-  @negative 0[oO] @numspc @octal       / { negLitPred }                      { tok_num negative 3 3 octal }
-  @negative 0[xX] @numspc @hexadecimal / { negLitPred }                      { tok_num negative 3 3 hexadecimal }
+  @decimal                                                      { tok_num positive 0 0 decimal }
+  @binarylit                / { ifExtension BinaryLiteralsBit } { tok_num positive 2 2 binary }
+  @octallit                                                     { tok_num positive 2 2 octal }
+  @hexadecimallit                                               { tok_num positive 2 2 hexadecimal }
+  @negative @decimal        / { negLitPred }                    { tok_num negative 1 1 decimal }
+  @negative @binarylit      / { negLitPred `alexAndPred`
+                                ifExtension BinaryLiteralsBit } { tok_num negative 3 3 binary }
+  @negative @octallit       / { negLitPred }                    { tok_num negative 3 3 octal }
+  @negative @hexadecimallit / { negLitPred }                    { tok_num negative 3 3 hexadecimal }
 
   -- Normal rational literals (:: Fractional a => a, from Rational)
   @floating_point                                                            { tok_frac 0 tok_float }
@@ -556,31 +562,116 @@ $unigraphic / { isSmartQuote } { smart_quote_error }
   -- Unboxed ints (:: Int#) and words (:: Word#)
   -- It's simpler (and faster?) to give separate cases to the negatives,
   -- especially considering octal/hexadecimal prefixes.
-  @decimal                          \# / { ifExtension MagicHashBit }        { tok_primint positive 0 1 decimal }
-  0[bB] @numspc @binary             \# / { ifExtension MagicHashBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint positive 2 3 binary }
-  0[oO] @numspc @octal              \# / { ifExtension MagicHashBit }        { tok_primint positive 2 3 octal }
-  0[xX] @numspc @hexadecimal        \# / { ifExtension MagicHashBit }        { tok_primint positive 2 3 hexadecimal }
-  @negative @decimal                \# / { negHashLitPred }                  { tok_primint negative 1 2 decimal }
-  @negative 0[bB] @numspc @binary   \# / { negHashLitPred `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint negative 3 4 binary }
-  @negative 0[oO] @numspc @octal    \# / { negHashLitPred }                  { tok_primint negative 3 4 octal }
-  @negative 0[xX] @numspc @hexadecimal \#
-                                       / { negHashLitPred }                  { tok_primint negative 3 4 hexadecimal }
+  @decimal                     \# / { ifExtension MagicHashBit }        { tok_primint positive 0 1 decimal }
+  @binarylit                   \# / { ifExtension MagicHashBit `alexAndPred`
+                                      ifExtension BinaryLiteralsBit }   { tok_primint positive 2 3 binary }
+  @octallit                    \# / { ifExtension MagicHashBit }        { tok_primint positive 2 3 octal }
+  @hexadecimallit              \# / { ifExtension MagicHashBit }        { tok_primint positive 2 3 hexadecimal }
+  @negative @decimal           \# / { negHashLitPred MagicHashBit }     { tok_primint negative 1 2 decimal }
+  @negative @binarylit         \# / { negHashLitPred MagicHashBit `alexAndPred`
+                                      ifExtension BinaryLiteralsBit }   { tok_primint negative 3 4 binary }
+  @negative @octallit          \# / { negHashLitPred MagicHashBit }     { tok_primint negative 3 4 octal }
+  @negative @hexadecimallit    \# / { negHashLitPred MagicHashBit }     { tok_primint negative 3 4 hexadecimal }
 
-  @decimal                       \# \# / { ifExtension MagicHashBit }        { tok_primword 0 2 decimal }
-  0[bB] @numspc @binary          \# \# / { ifExtension MagicHashBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primword 2 4 binary }
-  0[oO] @numspc @octal           \# \# / { ifExtension MagicHashBit }        { tok_primword 2 4 octal }
-  0[xX] @numspc @hexadecimal     \# \# / { ifExtension MagicHashBit }        { tok_primword 2 4 hexadecimal }
+  @decimal                  \# \# / { ifExtension MagicHashBit }        { tok_primword 0 2 decimal }
+  @binarylit                \# \# / { ifExtension MagicHashBit `alexAndPred`
+                                      ifExtension BinaryLiteralsBit }   { tok_primword 2 4 binary }
+  @octallit                 \# \# / { ifExtension MagicHashBit }        { tok_primword 2 4 octal }
+  @hexadecimallit           \# \# / { ifExtension MagicHashBit }        { tok_primword 2 4 hexadecimal }
 
   -- Unboxed floats and doubles (:: Float#, :: Double#)
   -- prim_{float,double} work with signed literals
   @floating_point                  \# / { ifExtension MagicHashBit }        { tok_frac 1 tok_primfloat }
   @floating_point               \# \# / { ifExtension MagicHashBit }        { tok_frac 2 tok_primdouble }
 
-  @negative @floating_point        \# / { negHashLitPred }                  { tok_frac 1 tok_primfloat }
-  @negative @floating_point     \# \# / { negHashLitPred }                  { tok_frac 2 tok_primdouble }
+  @negative @floating_point        \# / { negHashLitPred MagicHashBit }     { tok_frac 1 tok_primfloat }
+  @negative @floating_point     \# \# / { negHashLitPred MagicHashBit }     { tok_frac 2 tok_primdouble }
+
+  @decimal                  \#"Int8"   / { ifExtension ExtendedLiteralsBit } { tok_primint8 positive 0 decimal }
+  @binarylit                \#"Int8"   / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint8 positive 2 binary }
+  @octallit                 \#"Int8"   / { ifExtension ExtendedLiteralsBit } { tok_primint8 positive 2 octal }
+  @hexadecimallit           \#"Int8"   / { ifExtension ExtendedLiteralsBit } { tok_primint8 positive 2 hexadecimal }
+  @negative @decimal        \#"Int8"   / { negHashLitPred ExtendedLiteralsBit } { tok_primint8 negative 1 decimal }
+  @negative @binarylit      \#"Int8"   / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint8 negative 3 binary }
+  @negative @octallit       \#"Int8"   / { negHashLitPred ExtendedLiteralsBit } { tok_primint8 negative 3 octal }
+  @negative @hexadecimallit \#"Int8"   / { negHashLitPred ExtendedLiteralsBit } { tok_primint8 negative 3 hexadecimal }
+
+  @decimal                  \#"Int16"  / { ifExtension ExtendedLiteralsBit } { tok_primint16 positive 0 decimal }
+  @binarylit                \#"Int16"  / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint16 positive 2 binary }
+  @octallit                 \#"Int16"  / { ifExtension ExtendedLiteralsBit } { tok_primint16 positive 2 octal }
+  @hexadecimallit           \#"Int16"  / { ifExtension ExtendedLiteralsBit } { tok_primint16 positive 2 hexadecimal }
+  @negative @decimal        \#"Int16"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint16 negative 1 decimal }
+  @negative @binarylit      \#"Int16"  / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint16 negative 3 binary }
+  @negative @octallit       \#"Int16"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint16 negative 3 octal }
+  @negative @hexadecimallit \#"Int16"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint16 negative 3 hexadecimal }
+
+  @decimal                  \#"Int32"  / { ifExtension ExtendedLiteralsBit } { tok_primint32 positive 0 decimal }
+  @binarylit                \#"Int32"  / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint32 positive 2 binary }
+  @octallit                 \#"Int32"  / { ifExtension ExtendedLiteralsBit } { tok_primint32 positive 2 octal }
+  @hexadecimallit           \#"Int32"  / { ifExtension ExtendedLiteralsBit } { tok_primint32 positive 2 hexadecimal }
+  @negative @decimal        \#"Int32"  / { negHashLitPred ExtendedLiteralsBit } { tok_primint32 negative 1 decimal }
+  @negative @binarylit      \#"Int32"  / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint32 negative 3 binary }
+  @negative @octallit       \#"Int32"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint32 negative 3 octal }
+  @negative @hexadecimallit \#"Int32"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint32 negative 3 hexadecimal }
+
+  @decimal                  \#"Int64"  / { ifExtension ExtendedLiteralsBit } { tok_primint64 positive 0 decimal }
+  @binarylit                \#"Int64"  / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint64 positive 2 binary }
+  @octallit                 \#"Int64"  / { ifExtension ExtendedLiteralsBit } { tok_primint64 positive 2 octal }
+  @hexadecimallit           \#"Int64"  / { ifExtension ExtendedLiteralsBit } { tok_primint64 positive 2 hexadecimal }
+  @negative @decimal        \#"Int64"  / { negHashLitPred ExtendedLiteralsBit } { tok_primint64 negative 1 decimal }
+  @negative @binarylit      \#"Int64"  / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint64 negative 3 binary }
+  @negative @octallit       \#"Int64"  / { negHashLitPred ExtendedLiteralsBit } { tok_primint64 negative 3 octal }
+  @negative @hexadecimallit \#"Int64"  / { negHashLitPred ExtendedLiteralsBit } { tok_primint64 negative 3 hexadecimal }
+
+  @decimal                  \#"Int"    / { ifExtension ExtendedLiteralsBit } { tok_primint positive 0 4 decimal }
+  @binarylit                \#"Int"    / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint positive 2 6 binary }
+  @octallit                 \#"Int"    / { ifExtension ExtendedLiteralsBit } { tok_primint positive 2 6 octal }
+  @hexadecimallit           \#"Int"    / { ifExtension ExtendedLiteralsBit } { tok_primint positive 2 6 hexadecimal }
+  @negative @decimal        \#"Int"    / { negHashLitPred ExtendedLiteralsBit } { tok_primint negative 1 5 decimal }
+  @negative @binarylit      \#"Int"    / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primint negative 3 7 binary }
+  @negative @octallit       \#"Int"    / { negHashLitPred ExtendedLiteralsBit } { tok_primint negative 3 7 octal }
+  @negative @hexadecimallit \#"Int"    / { negHashLitPred ExtendedLiteralsBit } { tok_primint negative 3 7 hexadecimal }
+
+  @decimal                  \#"Word8"  / { ifExtension ExtendedLiteralsBit } { tok_primword8 0 decimal }
+  @binarylit                \#"Word8"  / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primword8 2 binary }
+  @octallit                 \#"Word8"  / { ifExtension ExtendedLiteralsBit } { tok_primword8 2 octal }
+  @hexadecimallit           \#"Word8"  / { ifExtension ExtendedLiteralsBit } { tok_primword8 2 hexadecimal }
+
+  @decimal                  \#"Word16" / { ifExtension ExtendedLiteralsBit } { tok_primword16 0 decimal }
+  @binarylit                \#"Word16" / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primword16 2 binary }
+  @octallit                 \#"Word16" / { ifExtension ExtendedLiteralsBit } { tok_primword16 2 octal }
+  @hexadecimallit           \#"Word16" / { ifExtension ExtendedLiteralsBit } { tok_primword16 2 hexadecimal }
+
+  @decimal                  \#"Word32" / { ifExtension ExtendedLiteralsBit } { tok_primword32 0 decimal }
+  @binarylit                \#"Word32" / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primword32 2 binary }
+  @octallit                 \#"Word32" / { ifExtension ExtendedLiteralsBit } { tok_primword32 2 octal }
+  @hexadecimallit           \#"Word32" / { ifExtension ExtendedLiteralsBit } { tok_primword32 2 hexadecimal }
+
+  @decimal                  \#"Word64" / { ifExtension ExtendedLiteralsBit } { tok_primword64 0 decimal }
+  @binarylit                \#"Word64" / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primword64 2 binary }
+  @octallit                 \#"Word64" / { ifExtension ExtendedLiteralsBit } { tok_primword64 2 octal }
+  @hexadecimallit           \#"Word64" / { ifExtension ExtendedLiteralsBit } { tok_primword64 2 hexadecimal }
+
+  @decimal                  \#"Word"   / { ifExtension ExtendedLiteralsBit } { tok_primword 0 5 decimal }
+  @binarylit                \#"Word"   / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                           ifExtension BinaryLiteralsBit }   { tok_primword 2 7 binary }
+  @octallit                 \#"Word"   / { ifExtension ExtendedLiteralsBit } { tok_primword 2 7 octal }
+  @hexadecimallit           \#"Word"   / { ifExtension ExtendedLiteralsBit } { tok_primword 2 7 hexadecimal }
+
 }
 
 -- Strings and chars are lexed by hand-written code.  The reason is
@@ -787,7 +878,7 @@ data Token
   | ITdependency
   | ITrequires
 
-  -- Pragmas, see  Note [Pragma source text] in "GHC.Types.Basic"
+  -- Pragmas, see  Note [Pragma source text] in "GHC.Types.SourceText"
   | ITinline_prag       SourceText InlineSpec RuleMatchInfo
   | ITopaque_prag       SourceText
   | ITspec_prag         SourceText                -- SPECIALISE
@@ -871,21 +962,29 @@ data Token
   | ITlabelvarid SourceText FastString   -- Overloaded label: #x
                                          -- The SourceText is required because we can
                                          -- have a string literal as a label
-                                         -- Note [Literal source text] in "GHC.Types.Basic"
+                                         -- Note [Literal source text] in "GHC.Types.SourceText"
 
-  | ITchar     SourceText Char       -- Note [Literal source text] in "GHC.Types.Basic"
-  | ITstring   SourceText FastString -- Note [Literal source text] in "GHC.Types.Basic"
+  | ITchar     SourceText Char       -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITstring   SourceText FastString -- Note [Literal source text] in "GHC.Types.SourceText"
   | ITstring_interpolation_end_begin SourceText FastString
   | ITstring_interpolation_end SourceText FastString
   | ITstring_interpolation_begin SourceText FastString
 
-  | ITinteger  IntegralLit           -- Note [Literal source text] in "GHC.Types.Basic"
+  | ITinteger  IntegralLit           -- Note [Literal source text] in "GHC.Types.SourceText"
   | ITrational FractionalLit
 
-  | ITprimchar   SourceText Char     -- Note [Literal source text] in "GHC.Types.Basic"
-  | ITprimstring SourceText ByteString -- Note [Literal source text] in "GHC.Types.Basic"
-  | ITprimint    SourceText Integer  -- Note [Literal source text] in "GHC.Types.Basic"
-  | ITprimword   SourceText Integer  -- Note [Literal source text] in "GHC.Types.Basic"
+  | ITprimchar   SourceText Char     -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimstring SourceText ByteString -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimint    SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimword   SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimint8   SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimint16  SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimint32  SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimint64  SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimword8  SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimword16 SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimword32 SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITprimword64 SourceText Integer  -- Note [Literal source text] in "GHC.Types.SourceText"
   | ITprimfloat  FractionalLit
   | ITprimdouble FractionalLit
 
@@ -938,18 +1037,11 @@ instance Outputable Token where
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 When using the Api Annotations to exact print a modified AST, managing
 the space before a comment is important.  The PsSpan in the comment
-token allows this to happen.
+token allows this to happen, and this location is tracked in prev_loc
+in PState.  This only tracks physical tokens, so is not updated for
+zero-width ones.
 
-We also need to track the space before the end of file. The normal
-mechanism of using the previous token does not work, as the ITeof is
-synthesised to come at the same location of the last token, and the
-normal previous token updating has by then updated the required
-location.
-
-We track this using a 2-back location, prev_loc2. This adds extra
-processing to every single token, which is a performance hit for
-something needed only at the end of the file. This needs
-improving. Perhaps a backward scan on eof?
+We also use this to track the space before the end-of-file marker.
 -}
 
 {- Note [Minus tokens]
@@ -1145,7 +1237,7 @@ skip_one_varid f span buf len _buf2
 
 skip_one_varid_src :: (SourceText -> FastString -> Token) -> Action
 skip_one_varid_src f span buf len _buf2
-  = return (L span $! f (SourceText $ lexemeToString (stepOn buf) (len-1))
+  = return (L span $! f (SourceText $ lexemeToFastString (stepOn buf) (len-1))
                         (lexemeToFastString (stepOn buf) (len-1)))
 
 skip_two_varid :: (FastString -> Token) -> Action
@@ -1155,6 +1247,10 @@ skip_two_varid f span buf len _buf2
 strtoken :: (String -> Token) -> Action
 strtoken f span buf len _buf2 =
   return (L span $! (f $! lexemeToString buf len))
+
+fstrtoken :: (FastString -> Token) -> Action
+fstrtoken f span buf len _buf2 =
+  return (L span $! (f $! lexemeToFastString buf len))
 
 begin :: Int -> Action
 begin code _span _str _len _buf2 = do pushLexState code; lexToken
@@ -1308,10 +1404,10 @@ negLitPred =
       alexNotPred precededByClosingToken
 
 -- Check if we should parse an unboxed negative literal (e.g. -123#) as a single token.
-negHashLitPred :: AlexAccPred ExtsBitmap
-negHashLitPred = prefix_minus `alexAndPred` magic_hash
+negHashLitPred :: ExtBits -> AlexAccPred ExtsBitmap
+negHashLitPred ext = prefix_minus `alexAndPred` magic_hash
   where
-    magic_hash = ifExtension MagicHashBit
+    magic_hash = ifExtension ext -- Either MagicHashBit or ExtendedLiteralsBit
     prefix_minus =
       -- Note [prefix_minus in negLitPred and negHashLitPred]
       alexNotPred precededByClosingToken
@@ -1390,7 +1486,7 @@ lineCommentToken :: Action
 lineCommentToken span buf len buf2 = do
   b <- getBit RawTokenStreamBit
   if b then do
-         lt <- getLastLocComment
+         lt <- getLastLocIncludingComments
          strtoken (\s -> ITlineComment s lt) span buf len buf2
        else lexToken
 
@@ -1401,7 +1497,7 @@ lineCommentToken span buf len buf2 = do
 -}
 nested_comment :: Action
 nested_comment span buf len _buf2 = {-# SCC "nested_comment" #-} do
-  l <- getLastLocComment
+  l <- getLastLocIncludingComments
   let endComment input (L _ comment) = commentEnd lexToken input (Nothing, ITblockComment comment l) buf span
   input <- getInput
   -- Include decorator in comment
@@ -1505,7 +1601,7 @@ withLexedDocType :: (AlexInput -> ((HsDocStringDecorator -> HsDocString) -> (Hdk
                  -> P (PsLocated Token)
 withLexedDocType lexDocComment = do
   input@(AI _ buf) <- getInput
-  l <- getLastLocComment
+  l <- getLastLocIncludingComments
   case prevChar buf ' ' of
     -- The `Bool` argument to lexDocComment signals whether or not the next
     -- line of input might also belong to this doc comment.
@@ -1550,7 +1646,7 @@ mkHdkCommentSection loc n mkDS = (HdkCommentSection n ds, ITdocComment ds loc)
 rulePrag :: Action
 rulePrag span buf len _buf2 = do
   setExts (.|. xbit InRulePragBit)
-  let !src = lexemeToString buf len
+  let !src = lexemeToFastString buf len
   return (L span (ITrules_prag (SourceText src)))
 
 -- When 'UsePosPragsBit' is not set, it is expected that we emit a token instead
@@ -1560,7 +1656,7 @@ linePrag span buf len buf2 = do
   usePosPrags <- getBit UsePosPragsBit
   if usePosPrags
     then begin line_prag2 span buf len buf2
-    else let !src = lexemeToString buf len
+    else let !src = lexemeToFastString buf len
          in return (L span (ITline_prag (SourceText src)))
 
 -- When 'UsePosPragsBit' is not set, it is expected that we emit a token instead
@@ -1568,10 +1664,9 @@ linePrag span buf len buf2 = do
 columnPrag :: Action
 columnPrag span buf len buf2 = do
   usePosPrags <- getBit UsePosPragsBit
-  let !src = lexemeToString buf len
   if usePosPrags
     then begin column_prag span buf len buf2
-    else let !src = lexemeToString buf len
+    else let !src = lexemeToFastString buf len
          in return (L span (ITcolumn_prag (SourceText src)))
 
 endPrag :: Action
@@ -1828,8 +1923,8 @@ tok_integral :: (SourceText -> Integer -> Token)
              -> Action
 tok_integral itint transint transbuf translen (radix,char_to_int) span buf len _buf2 = do
   numericUnderscores <- getBit NumericUnderscoresBit  -- #14473
-  let src = lexemeToString buf len
-  when ((not numericUnderscores) && ('_' `elem` src)) $ do
+  let src = lexemeToFastString buf len
+  when ((not numericUnderscores) && ('_' `elem` unpackFS src)) $ do
     pState <- getPState
     let msg = PsErrNumUnderscores NumUnderscore_Integral
     addError $ mkPlainErrorMsgEnvelope (mkSrcSpanPs (last_loc pState)) msg
@@ -1841,7 +1936,7 @@ tok_num :: (Integer -> Integer)
         -> Int -> Int
         -> (Integer, (Char->Int)) -> Action
 tok_num = tok_integral $ \case
-    st@(SourceText ('-':_)) -> itint st (const True)
+    st@(SourceText (unconsFS -> Just ('-',_))) -> itint st (const True)
     st@(SourceText _)       -> itint st (const False)
     st@NoSourceText         -> itint st (< 0)
   where
@@ -1865,6 +1960,40 @@ decimal = (10,octDecDigit)
 binary = (2,octDecDigit)
 octal = (8,octDecDigit)
 hexadecimal = (16,hexDigit)
+
+-- | Helper for defining @IntX@ primitive literal parsers (specifically for
+--   the ExtendedLiterals extension, such as @123#Int8@).
+tok_primintX :: (SourceText -> Integer -> Token)
+             -> Int
+             -> (Integer -> Integer)
+             -> Int
+             -> (Integer, (Char->Int)) -> Action
+tok_primintX itint addlen transint transbuf =
+    tok_integral itint transint transbuf (transbuf+addlen)
+
+tok_primint8,     tok_primint16,  tok_primint32,  tok_primint64
+    :: (Integer -> Integer)
+    -> Int -> (Integer, (Char->Int)) -> Action
+tok_primint8  = tok_primintX ITprimint8   5
+tok_primint16 = tok_primintX ITprimint16  6
+tok_primint32 = tok_primintX ITprimint32  6
+tok_primint64 = tok_primintX ITprimint64  6
+
+-- | Helper for defining @WordX@ primitive literal parsers (specifically for
+--   the ExtendedLiterals extension, such as @234#Word8@).
+tok_primwordX :: (SourceText -> Integer -> Token)
+              -> Int
+              -> Int
+              -> (Integer, (Char->Int)) -> Action
+tok_primwordX itint addlen transbuf =
+    tok_integral itint positive transbuf (transbuf+addlen)
+
+tok_primword8, tok_primword16, tok_primword32, tok_primword64
+    :: Int -> (Integer, (Char->Int)) -> Action
+tok_primword8  = tok_primwordX ITprimword8  6
+tok_primword16 = tok_primwordX ITprimword16 7
+tok_primword32 = tok_primwordX ITprimword32 7
+tok_primword64 = tok_primwordX ITprimword64 7
 
 -- readSignificandExponentPair can understand negative rationals, exponents, everything.
 tok_frac :: Int -> (String -> Token) -> Action
@@ -2038,7 +2167,7 @@ lex_string_prag_comment :: (String -> PsSpan -> Token) -> Action
 lex_string_prag_comment mkTok span _buf _len _buf2
     = do input <- getInput
          start <- getParsedLoc
-         l <- getLastLocComment
+         l <- getLastLocIncludingComments
          tok <- go l [] input
          end <- getParsedLoc
          return (L (mkPsSpan start end) tok)
@@ -2074,13 +2203,15 @@ lex_string_tok span buf _len _buf2 = do
       LexedRegularString s | is_interpolation_end -> ITstring_interpolation_end (SourceText src) (mkFastString s)
       LexedRegularString s | is_interpolation_begin -> ITstring_interpolation_begin (SourceText src) (mkFastString s)
       LexedRegularString s -> ITstring (SourceText src) (mkFastString s)
-    src = lexemeToString buf (cur bufEnd - cur buf)
+    src = lexemeToFastString buf (cur bufEnd - cur buf)
 
-    is_interpolation_end = case src of
+    src_string = unpackFS src
+
+    is_interpolation_end = case src_string of
       '}' : _ -> True
       _ -> False
 
-    is_interpolation_begin = case reverse src of
+    is_interpolation_begin = case reverse src_string of
       '{' : _ -> True
       _ -> False
 
@@ -2097,7 +2228,7 @@ lex_quoted_label span buf _len _buf2 = do
   (AI end bufEnd) <- getInput
   let
     token = ITlabelvarid (SourceText src) (mkFastString s)
-    src = lexemeToString (stepOn buf) (cur bufEnd - cur buf - 1)
+    src = lexemeToFastString (stepOn buf) (cur bufEnd - cur buf - 1)
     start = psSpanStart span
 
   return $ L (mkPsSpan start end) token
@@ -2228,13 +2359,13 @@ finish_char_tok buf loc ch  -- We've already seen the closing quote
                         -- Just need to check for trailing #
   = do  magicHash <- getBit MagicHashBit
         i@(AI end bufEnd) <- getInput
-        let src = lexemeToString buf (cur bufEnd - cur buf)
+        let src = lexemeToFastString buf (cur bufEnd - cur buf)
         if magicHash then do
             case alexGetChar' i of
               Just ('#',i@(AI end bufEnd')) -> do
                 setInput i
                 -- Include the trailing # in SourceText
-                let src' = lexemeToString buf (cur bufEnd' - cur buf)
+                let src' = lexemeToFastString buf (cur bufEnd' - cur buf)
                 return (L (mkPsSpan loc end)
                           (ITprimchar (SourceText src') ch))
               _other ->
@@ -2555,9 +2686,7 @@ data PState = PState {
         tab_first  :: Strict.Maybe RealSrcSpan, -- pos of first tab warning in the file
         tab_count  :: !Word,             -- number of tab warnings in the file
         last_tk    :: Strict.Maybe (PsLocated Token), -- last non-comment token
-        prev_loc   :: PsSpan,      -- pos of previous token, including comments,
-        prev_loc2  :: PsSpan,      -- pos of two back token, including comments,
-                                   -- see Note [PsSpan in Comments]
+        prev_loc   :: PsSpan,      -- pos of previous non-virtual token, including comments,
         last_loc   :: PsSpan,      -- pos of current token
         last_len   :: !Int,        -- len of current token
         loc        :: PsLoc,       -- current loc (end of prev token + 1)
@@ -2685,24 +2814,21 @@ setLastToken loc len = P $ \s -> POk s {
   } ()
 
 setLastTk :: PsLocated Token -> P ()
-setLastTk tk@(L l _) = P $ \s -> POk s { last_tk = Strict.Just tk
-                                       , prev_loc = l
-                                       , prev_loc2 = prev_loc s} ()
+setLastTk tk@(L l _) = P $ \s ->
+  if isPointRealSpan (psRealSpan l)
+    then POk s { last_tk = Strict.Just tk } ()
+    else POk s { last_tk = Strict.Just tk
+               , prev_loc = l } ()
 
 setLastComment :: PsLocated Token -> P ()
-setLastComment (L l _) = P $ \s -> POk s { prev_loc = l
-                                         , prev_loc2 = prev_loc s} ()
+setLastComment (L l _) = P $ \s -> POk s { prev_loc = l } ()
 
 getLastTk :: P (Strict.Maybe (PsLocated Token))
 getLastTk = P $ \s@(PState { last_tk = last_tk }) -> POk s last_tk
 
 -- see Note [PsSpan in Comments]
-getLastLocComment :: P PsSpan
-getLastLocComment = P $ \s@(PState { prev_loc = prev_loc }) -> POk s prev_loc
-
--- see Note [PsSpan in Comments]
-getLastLocEof :: P PsSpan
-getLastLocEof = P $ \s@(PState { prev_loc2 = prev_loc2 }) -> POk s prev_loc2
+getLastLocIncludingComments :: P PsSpan
+getLastLocIncludingComments = P $ \s@(PState { prev_loc = prev_loc }) -> POk s prev_loc
 
 getLastLoc :: P PsSpan
 getLastLoc = P $ \s@(PState { last_loc = last_loc }) -> POk s last_loc
@@ -2968,6 +3094,7 @@ data ExtBits
   | NoLexicalNegationBit   -- See Note [Why not LexicalNegationBit]
   | OverloadedRecordDotBit
   | OverloadedRecordUpdateBit
+  | ExtendedLiteralsBit
 
   -- Flags that are updated once parsing starts
   | InRulePragBit
@@ -3047,6 +3174,7 @@ mkParserOpts extensionFlags diag_opts supported
       .|. NoLexicalNegationBit        `xoptNotBit` LangExt.LexicalNegation -- See Note [Why not LexicalNegationBit]
       .|. OverloadedRecordDotBit      `xoptBit` LangExt.OverloadedRecordDot
       .|. OverloadedRecordUpdateBit   `xoptBit` LangExt.OverloadedRecordUpdate  -- Enable testing via 'getBit OverloadedRecordUpdateBit' in the parser (RecordDotSyntax parsing uses that information).
+      .|. ExtendedLiteralsBit         `xoptBit` LangExt.ExtendedLiterals
     optBits =
           HaddockBit        `setBitIf` isHaddock
       .|. RawTokenStreamBit `setBitIf` rawTokStream
@@ -3085,7 +3213,6 @@ initParserState options buf loc =
       tab_count     = 0,
       last_tk       = Strict.Nothing,
       prev_loc      = mkPsSpan init_loc init_loc,
-      prev_loc2     = mkPsSpan init_loc init_loc,
       last_loc      = mkPsSpan init_loc init_loc,
       last_len      = 0,
       loc           = init_loc,
@@ -3559,8 +3686,8 @@ lexToken = do
   case alexScanUser exts inp sc of
     AlexEOF -> do
         let span = mkPsSpan loc1 loc1
-        lt <- getLastLocEof
-        setEofPos (psRealSpan span) (psRealSpan lt)
+        lc <- getLastLocIncludingComments
+        setEofPos (psRealSpan span) (psRealSpan lc)
         setLastToken span 0
         return (L span ITeof)
     AlexError (AI loc2 buf) ->
@@ -3624,42 +3751,42 @@ ignoredPrags = Map.fromList (map ignored pragmas)
 oneWordPrags = Map.fromList [
      ("rules", rulePrag),
      ("inline",
-         strtoken (\s -> (ITinline_prag (SourceText s) (Inline (SourceText s)) FunLike))),
+         fstrtoken (\s -> (ITinline_prag (SourceText s) (Inline (SourceText s)) FunLike))),
      ("inlinable",
-         strtoken (\s -> (ITinline_prag (SourceText s) (Inlinable (SourceText s)) FunLike))),
+         fstrtoken (\s -> (ITinline_prag (SourceText s) (Inlinable (SourceText s)) FunLike))),
      ("inlineable",
-         strtoken (\s -> (ITinline_prag (SourceText s) (Inlinable (SourceText s)) FunLike))),
+         fstrtoken (\s -> (ITinline_prag (SourceText s) (Inlinable (SourceText s)) FunLike))),
                                     -- Spelling variant
      ("notinline",
-         strtoken (\s -> (ITinline_prag (SourceText s) (NoInline (SourceText s)) FunLike))),
-     ("opaque", strtoken (\s -> ITopaque_prag (SourceText s))),
-     ("specialize", strtoken (\s -> ITspec_prag (SourceText s))),
-     ("source", strtoken (\s -> ITsource_prag (SourceText s))),
-     ("warning", strtoken (\s -> ITwarning_prag (SourceText s))),
-     ("deprecated", strtoken (\s -> ITdeprecated_prag (SourceText s))),
-     ("scc", strtoken (\s -> ITscc_prag (SourceText s))),
-     ("unpack", strtoken (\s -> ITunpack_prag (SourceText s))),
-     ("nounpack", strtoken (\s -> ITnounpack_prag (SourceText s))),
-     ("ann", strtoken (\s -> ITann_prag (SourceText s))),
-     ("minimal", strtoken (\s -> ITminimal_prag (SourceText s))),
-     ("overlaps", strtoken (\s -> IToverlaps_prag (SourceText s))),
-     ("overlappable", strtoken (\s -> IToverlappable_prag (SourceText s))),
-     ("overlapping", strtoken (\s -> IToverlapping_prag (SourceText s))),
-     ("incoherent", strtoken (\s -> ITincoherent_prag (SourceText s))),
-     ("ctype", strtoken (\s -> ITctype (SourceText s))),
-     ("complete", strtoken (\s -> ITcomplete_prag (SourceText s))),
+         fstrtoken (\s -> (ITinline_prag (SourceText s) (NoInline (SourceText s)) FunLike))),
+     ("opaque", fstrtoken (\s -> ITopaque_prag (SourceText s))),
+     ("specialize", fstrtoken (\s -> ITspec_prag (SourceText s))),
+     ("source", fstrtoken (\s -> ITsource_prag (SourceText s))),
+     ("warning", fstrtoken (\s -> ITwarning_prag (SourceText s))),
+     ("deprecated", fstrtoken (\s -> ITdeprecated_prag (SourceText s))),
+     ("scc", fstrtoken (\s -> ITscc_prag (SourceText s))),
+     ("unpack", fstrtoken (\s -> ITunpack_prag (SourceText s))),
+     ("nounpack", fstrtoken (\s -> ITnounpack_prag (SourceText s))),
+     ("ann", fstrtoken (\s -> ITann_prag (SourceText s))),
+     ("minimal", fstrtoken (\s -> ITminimal_prag (SourceText s))),
+     ("overlaps", fstrtoken (\s -> IToverlaps_prag (SourceText s))),
+     ("overlappable", fstrtoken (\s -> IToverlappable_prag (SourceText s))),
+     ("overlapping", fstrtoken (\s -> IToverlapping_prag (SourceText s))),
+     ("incoherent", fstrtoken (\s -> ITincoherent_prag (SourceText s))),
+     ("ctype", fstrtoken (\s -> ITctype (SourceText s))),
+     ("complete", fstrtoken (\s -> ITcomplete_prag (SourceText s))),
      ("column", columnPrag)
      ]
 
 twoWordPrags = Map.fromList [
      ("inline conlike",
-         strtoken (\s -> (ITinline_prag (SourceText s) (Inline (SourceText s)) ConLike))),
+         fstrtoken (\s -> (ITinline_prag (SourceText s) (Inline (SourceText s)) ConLike))),
      ("notinline conlike",
-         strtoken (\s -> (ITinline_prag (SourceText s) (NoInline (SourceText s)) ConLike))),
+         fstrtoken (\s -> (ITinline_prag (SourceText s) (NoInline (SourceText s)) ConLike))),
      ("specialize inline",
-         strtoken (\s -> (ITspec_inline_prag (SourceText s) True))),
+         fstrtoken (\s -> (ITspec_inline_prag (SourceText s) True))),
      ("specialize notinline",
-         strtoken (\s -> (ITspec_inline_prag (SourceText s) False)))
+         fstrtoken (\s -> (ITspec_inline_prag (SourceText s) False)))
      ]
 
 dispatch_pragmas :: Map String Action -> Action
@@ -3745,14 +3872,19 @@ splitPriorComments
   -> ([LEpaComment], [LEpaComment])
 splitPriorComments ss prior_comments =
   let
-    -- True if there is only one line between the earlier and later span
-    cmp later earlier
-         = srcSpanStartLine later - srcSpanEndLine earlier == 1
+    -- True if there is only one line between the earlier and later span,
+    -- And the token preceding the comment is on a different line
+    cmp :: RealSrcSpan -> LEpaComment -> Bool
+    cmp later (L l c)
+         = srcSpanStartLine later - srcSpanEndLine (anchor l) == 1
+          && srcSpanEndLine (ac_prior_tok c) /= srcSpanStartLine (anchor l)
 
-    go decl _ [] = ([],decl)
-    go decl r (c@(L l _):cs) = if cmp r (anchor l)
-                              then go (c:decl) (anchor l) cs
-                              else (reverse (c:cs), decl)
+    go :: [LEpaComment] -> RealSrcSpan -> [LEpaComment]
+       -> ([LEpaComment], [LEpaComment])
+    go decl_comments _ [] = ([],decl_comments)
+    go decl_comments r (c@(L l _):cs) = if cmp r c
+                              then go (c:decl_comments) (anchor l) cs
+                              else (reverse (c:cs), decl_comments)
   in
     go [] ss prior_comments
 
@@ -3766,10 +3898,7 @@ allocatePriorComments ss comment_q mheader_comments =
     cmp (L l _) = anchor l <= ss
     (newAnns,after) = partition cmp comment_q
     comment_q'= after
-    (prior_comments, decl_comments)
-        = case mheader_comments of
-           Strict.Nothing -> (reverse newAnns, [])
-           _ -> splitPriorComments ss newAnns
+    (prior_comments, decl_comments) = splitPriorComments ss newAnns
   in
     case mheader_comments of
       Strict.Nothing -> (Strict.Just prior_comments, comment_q', decl_comments)

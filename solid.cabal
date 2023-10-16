@@ -87,6 +87,7 @@ library
     , file-io
     , filepath
     , haskell-base
+    , markdown-unlit
     , process
     , random
     , solid-pp
@@ -101,13 +102,9 @@ executable solid
   main-is: Main.hs
   other-modules:
       Distribution.Client.Main
-      BuildInfo
-      Stack
-      Stack.CLI
   hs-source-dirs:
       driver
       vendor/cabal-install
-      vendor/stack-2.11.1/src/main
   default-extensions:
       NoImplicitPrelude
       DataKinds
@@ -132,14 +129,15 @@ executable solid
     , filepath
     , haskell-base
     , hpack
-    , optparse-applicative ==0.17.0.0
-    , pantry >=0.8.2.2 && <0.9
+    , markdown-unlit
+    , optparse-applicative
+    , pantry
     , process
     , random
     , rio
     , solid
     , solid-pp
-    , stack ==2.11.1
+    , stack >=2.13.1
     , stm
     , text
     , time
@@ -267,6 +265,7 @@ test-suite spec
     , hedgehog
     , hspec ==2.*
     , hspec-core
+    , markdown-unlit
     , mockery
     , process
     , random

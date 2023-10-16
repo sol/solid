@@ -15,6 +15,7 @@ import Haskell qualified
 import Foreign.C (CString, CStringLen)
 import Data.List.NonEmpty (NonEmpty)
 import Data.ByteString qualified as ByteString
+import Data.ByteString.Char8 qualified as Char8
 import Data.ByteString.Lazy qualified
 
 type StrictByteString = ByteString
@@ -165,7 +166,7 @@ getContents = coerce ByteString.getContents
 
 getLine :: IO ByteString
 {-# INLINE getLine #-}
-getLine = coerce ByteString.getLine
+getLine = coerce Char8.getLine
 
 group :: ByteString -> [ByteString]
 {-# INLINE group #-}
@@ -185,7 +186,7 @@ hGetContents = coerce ByteString.hGetContents
 
 hGetLine :: Handle -> IO ByteString
 {-# INLINE hGetLine #-}
-hGetLine = coerce ByteString.hGetLine
+hGetLine = coerce Char8.hGetLine
 
 hGetNonBlocking :: Handle -> Int -> IO ByteString
 {-# INLINE hGetNonBlocking #-}

@@ -45,7 +45,7 @@ import qualified Text.Megaparsec as P
 import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest, some)
 import           Control.Applicative.Combinators.NonEmpty
 
-import           Solid.PP.Lexer hiding (Token, tokens)
+import           Solid.PP.Lexer hiding (Token, LexerResult(..))
 import qualified Solid.PP.Lexer as Lexer
 
 import qualified GHC.Types.Basic as GHC
@@ -366,13 +366,13 @@ pTokenEndBegin = token \ case
   TokenEndBegin loc src -> Just (EndBegin loc src)
   _ -> Nothing
 
-pattern TokenBegin :: BufferSpan -> String -> Token
+pattern TokenBegin :: BufferSpan -> FastString -> Token
 pattern TokenBegin loc src <- L loc (ITstring_interpolation_begin (SourceText src) _)
 
-pattern TokenEnd :: BufferSpan -> String -> Token
+pattern TokenEnd :: BufferSpan -> FastString -> Token
 pattern TokenEnd loc src <- L loc (ITstring_interpolation_end (SourceText src) _)
 
-pattern TokenEndBegin :: BufferSpan -> String -> Token
+pattern TokenEndBegin :: BufferSpan -> FastString -> Token
 pattern TokenEndBegin loc src <- L loc (ITstring_interpolation_end_begin (SourceText src) _)
 
 data Module loc = Module (ModuleHeader loc) [Import loc] [Node loc]
@@ -436,13 +436,13 @@ data Argument loc = Argument loc (NonEmpty (Node loc))
 data MethodCall loc = MethodCall loc FastString (Arguments loc)
   deriving (Eq, Show, Functor)
 
-data LiteralString loc = Literal loc String | Begin loc String (Expression loc)
+data LiteralString loc = Literal loc FastString | Begin loc FastString (Expression loc)
   deriving (Eq, Show, Functor)
 
 data Expression loc = Expression [Node loc] (End loc)
   deriving (Eq, Show, Functor)
 
-data End loc = End loc String | EndBegin loc String (Expression loc)
+data End loc = End loc FastString | EndBegin loc FastString (Expression loc)
   deriving (Eq, Show, Functor)
 
 instance HasField "loc" (End loc) loc where
