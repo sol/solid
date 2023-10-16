@@ -4,6 +4,7 @@ module Solid.Driver (
   Mode(..)
 , solid
 , desugarCommand
+, doctest
 ) where
 
 import Solid
@@ -82,19 +83,21 @@ data Mode = GhcOptions | Repl | Doctest | With FilePath | Run
 
 solid :: Mode -> FilePath -> [String] -> IO ()
 solid mode self args = do
-  runtime <- ensureRuntime self
+  runtime_dir <- getRuntimeDirectory
+  runtime <- ensureRuntime runtime_dir self
   Env.path.extend runtime.ghc_dir do
     let options = ghcOptions self runtime.package_env args
     case mode of
       GhcOptions -> stdout.print options.unlines
       Repl -> do
-        repl <- get_repl runtime.ghc_dir runtime.bindir
+        repl <- get_repl runtime
         Process.command.uncurry(repl <&> (<> options)).with Process.status >>= throwIO
-      Doctest -> do
-        repl <- get_repl runtime.ghc_dir runtime.bindir
-        doctestWithRepl repl.bimap((.toString.unpack), map unpack) options.map(unpack)
+      Doctest -> doctest runtime_dir options
       With command -> Process.command(command, options).with Process.status >>= throwIO
       Run -> Process.command(runtime.ghc_dir </> "runghc", options).with Process.status >>= throwIO
+  where
+    getRuntimeDirectory :: IO FilePath
+    getRuntimeDirectory = getXdgDirectory XdgState "solid" <&> (</> "ghc-{ghc}-{fingerprint}".asFilePath)
 
 ghcOptions :: FilePath -> FilePath -> [String] -> [String]
 ghcOptions self packageEnv args = opts ++ args
@@ -110,10 +113,15 @@ ghcOptions self packageEnv args = opts ++ args
       Enable extension  -> "-X"   <> pack (showExtension extension)
       Disable extension -> "-XNo" <> pack (showExtension extension)
 
-get_repl :: FilePath -> FilePath -> IO (FilePath, [String])
-get_repl ghc_dir bindir = do
-  libdir <- (.decodeUtf8.strip) <$> Process.command(ghc_dir </> "ghc", ["--print-libdir"]).read
-  return (bindir </> "repl", ["-B{libdir}", "--interactive"])
+doctest :: FilePath -> [String] -> IO ()
+doctest runtime_dir options = do
+  repl <- readRuntime runtime_dir >>= get_repl
+  doctestWithRepl repl.bimap((.toString.unpack), map unpack) options.map(unpack)
+
+get_repl :: Runtime -> IO (FilePath, [String])
+get_repl runtime = do
+  libdir <- (.decodeUtf8.strip) <$> Process.command(runtime.ghc_dir </> "ghc", ["--print-libdir"]).read
+  return (runtime.bindir </> "repl", ["-B{libdir}", "--interactive"])
 
 data Runtime = Runtime {
   ghc_dir :: FilePath
@@ -136,9 +144,8 @@ pathsFrom base_dir = Paths {
 , bindir = base_dir </> "bin"
 }
 
-ensureRuntime :: FilePath -> IO Runtime
-ensureRuntime self = do
-  runtime_dir <- getRuntimeDirectory
+ensureRuntime :: FilePath -> FilePath -> IO Runtime
+ensureRuntime runtime_dir self = do
   unless -< runtime_dir.exists? $ do
     createRuntime runtime_dir self
   readRuntime runtime_dir
@@ -163,9 +170,6 @@ createRuntime runtime_dir self = withConsole $ \ console -> do
     writeBinaryFile paths.ghc_dir_cache ghc_dir.asByteString
     Env.path.extend ghc_dir do
       createPackageEnv console self paths
-
-getRuntimeDirectory :: IO FilePath
-getRuntimeDirectory = getXdgDirectory XdgState "solid" <&> (</> "ghc-{ghc}-{fingerprint}".asFilePath)
 
 install_ghc :: Console -> FilePath -> IO FilePath
 install_ghc console self = do
@@ -192,7 +196,7 @@ createPackageEnv console self paths = do
         git ["fetch", "--depth", "1", "origin", revision, "-q"]
         git ["checkout", "FETCH_HEAD", "-q"]
         cabal $ "install" : "--package-env={paths.package_env}" : "--lib" : libraries
-        cabal $ "install" : "--installdir={paths.bindir}" : executables
+        cabal $ "install" : "--installdir={paths.bindir}" : "--install-method=copy" : executables
   where
     git :: [String] -> IO ()
     git args = (console.command "git" args).run

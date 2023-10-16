@@ -1,0 +1,9 @@
+name: solid-doctest
+
+defaults:
+  local: ../.hpack/defaults.yaml
+
+ghc-options: -Wall
+
+executable:
+  main: Main.hs

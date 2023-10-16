@@ -1,0 +1,26 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           solid-doctest
+version:        0.0.0
+build-type:     Simple
+
+executable solid-doctest
+  main-is: Main.hs
+  default-extensions:
+      DataKinds
+      DeriveAnyClass
+      DuplicateRecordFields
+      LambdaCase
+      OverloadedRecordDot
+      OverloadedStrings
+      NoFieldSelectors
+  ghc-options: -F -pgmF=solid-pp -Wall
+  build-tool-depends:
+      solid-pp:solid-pp
+  build-depends:
+      solid
+  default-language: GHC2021
