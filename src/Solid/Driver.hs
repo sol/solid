@@ -23,7 +23,7 @@ ghc :: String
 ghc = "9.6.2"
 
 revision :: String
-revision = "d3cb9cf8fd363e5cda96c0e3f6d74fc87ea15eab"
+revision = "8003d05d2114d66b2a5f668f4f9f0d1d00a3731f"
 
 libraries :: [String]
 libraries = [
@@ -34,6 +34,7 @@ libraries = [
 executables :: [String]
 executables = [
     "ghc-bin:exe:repl"
+  , "solid-doctest:exe:solid-doctest"
   ]
 
 fingerprint :: Fingerprint
@@ -83,8 +84,7 @@ data Mode = GhcOptions | Repl | Doctest | With FilePath | Run
 
 solid :: Mode -> FilePath -> [String] -> IO ()
 solid mode self args = do
-  runtime_dir <- getRuntimeDirectory
-  runtime <- ensureRuntime runtime_dir self
+  runtime <- ensureRuntime -< getRuntimeDirectory $ self
   Env.path.extend runtime.ghc_dir do
     let options = ghcOptions self runtime.package_env args
     case mode of
@@ -92,7 +92,7 @@ solid mode self args = do
       Repl -> do
         repl <- get_repl runtime
         Process.command.uncurry(repl <&> (<> options)).with Process.status >>= throwIO
-      Doctest -> doctest runtime_dir options
+      Doctest -> Process.command(runtime.bindir </> "solid-doctest", options).with Process.status >>= throwIO
       With command -> Process.command(command, options).with Process.status >>= throwIO
       Run -> Process.command(runtime.ghc_dir </> "runghc", options).with Process.status >>= throwIO
   where
