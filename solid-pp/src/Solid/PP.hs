@@ -54,6 +54,7 @@ extensions = [
   , Enable DeriveAnyClass
   , Enable DuplicateRecordFields
   , Enable LambdaCase
+  , Enable LexicalNegation
   , Enable OverloadedRecordDot
   , Enable OverloadedStrings
   , Disable FieldSelectors

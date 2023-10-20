@@ -72,10 +72,11 @@ library
       DeriveAnyClass
       DuplicateRecordFields
       LambdaCase
+      LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-  ghc-options: -Wall -fhide-source-paths
+  ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
@@ -111,10 +112,11 @@ executable solid
       DeriveAnyClass
       DuplicateRecordFields
       LambdaCase
+      LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-  ghc-options: -Wall -fhide-source-paths
+  ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
@@ -242,10 +244,11 @@ test-suite spec
       DeriveAnyClass
       DuplicateRecordFields
       LambdaCase
+      LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-  ghc-options: -Wall -fhide-source-paths
+  ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace
   build-tools:
       solid
   build-tool-depends:

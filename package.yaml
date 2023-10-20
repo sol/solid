@@ -12,11 +12,12 @@ default-extensions:
   - DeriveAnyClass
   - DuplicateRecordFields
   - LambdaCase
+  - LexicalNegation
   - OverloadedRecordDot
   - OverloadedStrings
   - NoFieldSelectors
 
-ghc-options: -Wall -fhide-source-paths
+ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace
 
 dependencies:
   - haskell-base
