@@ -514,3 +514,30 @@ spec = do
   describe "unwords" $ do
     it "joins a list of words with spaces" $ do
       ByteArray.unwords ["foo", "bar", "baz"] `shouldBe` "foo bar baz"
+
+  describe "==" $ do
+    it "" $ do
+      input <- forAll arbitrary
+      input === ByteArray.copy input
+
+  describe "inits" $ do
+    it "" $ do
+      ByteArray.inits "foo" `shouldBe` ["","f","fo","foo"]
+
+    it "" $ do
+      input <- forAll arbitrary
+      List.all (`isPrefixOf` input) (ByteArray.inits input) === True
+
+_debug :: ByteArray -> IO ()
+_debug input = do
+  -- stdout.writeLine "-----------------------------------------"
+  let
+    arr = input.arr.toString
+    foo = input.off * 6
+
+    (pre, rest) = arr.asByteString.splitAt foo
+    (mid, end) = rest.splitAt (input.len * 6)
+
+  print "{pre.asString!.ansi.magenta}{mid.asString!.ansi.cyan}{end.asString!}  {input.off.toString.ansi.magenta}+{input.len.toString.ansi.cyan}"
+  -- print input.arr.toString.ansi.cyan
+  print (String.times input.off "      " <> input.toString).ansi.green
