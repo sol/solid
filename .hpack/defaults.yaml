@@ -6,10 +6,11 @@ default-extensions:
   - DeriveAnyClass
   - DuplicateRecordFields
   - LambdaCase
+  - LexicalNegation
   - OverloadedRecordDot
   - OverloadedStrings
   - NoFieldSelectors
 
 build-tools: solid-pp
-ghc-options: -F -pgmF=solid-pp
+ghc-options: -F -pgmF=solid-pp -Werror=operator-whitespace
 dependencies: solid

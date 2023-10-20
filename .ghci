@@ -5,6 +5,9 @@
 :set -XDeriveAnyClass
 :set -XDuplicateRecordFields
 :set -XLambdaCase
+:set -XLexicalNegation
 :set -XOverloadedRecordDot
 :set -XOverloadedStrings
 :set -XNoFieldSelectors
+
+:set -Werror=operator-whitespace

@@ -15,10 +15,11 @@ executable solid-doctest
       DeriveAnyClass
       DuplicateRecordFields
       LambdaCase
+      LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-  ghc-options: -F -pgmF=solid-pp -Wall
+  ghc-options: -F -pgmF=solid-pp -Werror=operator-whitespace -Wall
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
