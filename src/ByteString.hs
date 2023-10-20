@@ -6,7 +6,7 @@ module ByteString (
 , module ByteString
 ) where
 
-import Solid.Common hiding (read)
+import Solid.Common hiding (read, take, drop, splitAt)
 import Solid.String (String)
 import Solid.ByteString
 import Solid.Bytes.Unsafe
@@ -52,6 +52,15 @@ pack = Bytes . Haskell.pack
 
 unpack :: ByteString -> [Word8]
 unpack = Haskell.unpack . unBytes
+
+take :: Int -> ByteString -> ByteString
+take = coerce Haskell.take
+
+drop :: Int -> ByteString -> ByteString
+drop = coerce Haskell.drop
+
+splitAt :: Int -> ByteString -> (ByteString, ByteString)
+splitAt = coerce Haskell.splitAt
 
 words :: ByteString -> [ByteString]
 words = coerce Char8.words
@@ -114,6 +123,15 @@ instance HasField "pack" [Word8] ByteString where
 
 instance HasField "unpack" ByteString [Word8] where
   getField = unpack
+
+instance HasField "take" ByteString (Int -> ByteString) where
+  getField = flip take
+
+instance HasField "drop" ByteString (Int -> ByteString) where
+  getField = flip drop
+
+instance HasField "splitAt" ByteString (Int -> (ByteString, ByteString)) where
+  getField = flip splitAt
 
 instance HasField "words" ByteString [ByteString] where
   getField = words

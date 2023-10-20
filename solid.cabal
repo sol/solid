@@ -17,6 +17,10 @@ library
   exposed-modules:
       ByteString
       Char
+      Data.Sliced.ByteArray
+      Data.Sliced.ByteArray.Conversion
+      Data.Sliced.ByteArray.Unsafe
+      Data.Sliced.ByteArray.Util
       Directory
       Either
       Env
@@ -89,8 +93,10 @@ library
     , filepath
     , haskell-base
     , markdown-unlit
+    , primitive >=0.9.1
     , process
     , random
+    , simdutf
     , solid-pp
     , stm
     , text
@@ -134,9 +140,11 @@ executable solid
     , markdown-unlit
     , optparse-applicative
     , pantry
+    , primitive >=0.9.1
     , process
     , random
     , rio
+    , simdutf
     , solid
     , solid-pp
     , stack >=2.13.1
@@ -153,6 +161,10 @@ test-suite spec
   other-modules:
       ByteString
       Char
+      Data.Sliced.ByteArray
+      Data.Sliced.ByteArray.Conversion
+      Data.Sliced.ByteArray.Unsafe
+      Data.Sliced.ByteArray.Util
       Directory
       Either
       Env
@@ -201,6 +213,10 @@ test-suite spec
       System.FilePath.Import
       ByteStringSpec
       CharSpec
+      Data.Sliced.ByteArray.ConversionSpec
+      Data.Sliced.ByteArray.UnsafeSpec
+      Data.Sliced.ByteArray.UtilSpec
+      Data.Sliced.ByteArraySpec
       EitherSpec
       EnvSpec
       ExceptionSpec
@@ -266,13 +282,16 @@ test-suite spec
     , filepath
     , haskell-base
     , hedgehog
+    , hedgehog-classes
     , hspec ==2.*
     , hspec-core
     , markdown-unlit
     , mockery
+    , primitive >=0.9.1
     , process
     , random
     , silently
+    , simdutf
     , solid-pp
     , splitmix
     , stm

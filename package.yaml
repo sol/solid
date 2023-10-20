@@ -21,6 +21,8 @@ ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace
 
 dependencies:
   - haskell-base
+  - primitive >= 0.9.1
+  - simdutf
   - bytestring
   - text
   - filepath
@@ -77,6 +79,7 @@ tests:
       - hspec == 2.*
 
       - hedgehog
+      - hedgehog-classes
       - hspec-core
       - splitmix
       - QuickCheck

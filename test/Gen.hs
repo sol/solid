@@ -37,8 +37,9 @@ surrogate = Gen.enum '\xD800' '\xDFFF'
 
 enum :: (MonadGen m, Enum a) => a -> a -> m a
 enum lo hi = Gen.choice [
-    enumRange exponential lo hi
-  , enumRange exponential hi lo
+    enumRange Range.exponential lo hi
+  , enumRange Range.exponential hi lo
+  , enumRange Range.constant lo hi
   ]
 
 enumRange :: (MonadGen m, Enum a) => (Int -> Int -> Range Int) -> a -> a -> m a
@@ -50,4 +51,4 @@ bytes :: MonadGen m => Range Int -> m ByteString
 bytes = fmap Haskell.fromByteString . HedgehogGen.bytes
 
 string :: MonadGen m => Range Int -> m Char -> m String
-string range = fmap pack . HedgehogGen.string range
+string range = fmap pack . HedgehogGen.list range
