@@ -2,9 +2,9 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE RecordWildCards #-}
-module Data.Sliced.ByteArraySpec (arbitrary, spec) where
+module Data.Sliced.ByteArraySpec (spec, arbitrary, bytesWith) where
 
-import Helper hiding (pack, unpack, shouldThrow, take, drop, reverse)
+import Helper hiding (pack, unpack, shouldThrow, take, drop, reverse, lines, unlines)
 import Test.Hspec (shouldThrow)
 use Gen
 use Range
@@ -12,7 +12,6 @@ use Range
 use Data.Char
 import Control.Arrow ((&&&))
 import Data.Semigroup
-import GHC.Exts (fromList)
 
 import Data.Sliced.ByteArray as ByteArray
 import Data.Sliced.ByteArray.Unsafe as ByteArray
@@ -34,19 +33,17 @@ word8 :: MonadGen m => m Word8
 word8 = Gen.word8 Range.constantBounded
 
 bytes :: MonadGen m => Range Int -> m ByteArray
-bytes = bytesWith word8
+bytes = bytesWith pack word8
 
 smallBytes :: MonadGen m => Range Int -> m ByteArray
-smallBytes = bytesWith $ Gen.word8 (Range.constant 0 5)
+smallBytes = bytesWith pack $ Gen.word8 (Range.constant 0 5)
 
-bytesWith :: MonadGen m => m Word8 -> Range Int -> m ByteArray
-bytesWith gen range = do
-  size <- Gen.int range
-  off <- Gen.int (Range.constant 0 size)
-  end <- Gen.int (Range.constant off size)
-  let len = end - off
-  arr <- fromList <$> Gen.list (Range.singleton size) gen
-  return ByteArray{..}
+bytesWith :: MonadGen m => ([item] -> ByteArray) -> m item -> Range Int -> m ByteArray
+bytesWith packItems gen range = do
+  prefix <- ByteArray.pack <$> Gen.frequency [(2, pure []), (1, Gen.list (Range.constant 0 5) word8)]
+  suffix <- ByteArray.pack <$> Gen.frequency [(2, pure []), (1, Gen.list (Range.constant 0 5) word8)]
+  thing  <- packItems <$> Gen.list range gen
+  return $ ByteArray (prefix.arr <> thing.arr <> suffix.arr) prefix.len thing.len
 
 arbitrary :: MonadGen m => m ByteArray
 arbitrary = bytes (Range.linear 0 10)
@@ -504,3 +501,16 @@ spec = do
   describe "times" $ do
     it "throws an exception on overflow" $ do
       evaluate (ByteArray.times maxBound "foo") `shouldThrow` errorCall "Data.Sliced.ByteArray.times: size overflow"
+
+  describe "lines" $ do
+    it "is inverse to unlines" $ do
+      input <- List.concatMap lines <$> forAll (Gen.list (Range.linear 0 10) arbitrary)
+      lines (unlines input) === input
+
+  describe "unlines" $ do
+    it "joins lines, appending a terminating newline after each" $ do
+      ByteArray.unlines ["foo", "bar", "baz"] `shouldBe` "foo\nbar\nbaz\n"
+
+  describe "unwords" $ do
+    it "joins a list of words with spaces" $ do
+      ByteArray.unwords ["foo", "bar", "baz"] `shouldBe` "foo bar baz"

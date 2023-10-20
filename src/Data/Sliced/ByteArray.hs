@@ -75,6 +75,11 @@ module Data.Sliced.ByteArray (
 -- ** Breaking into many substrings
 , split
 
+-- ** Breaking into lines and words
+, lines
+, unlines
+, unwords
+
 -- * Predicates
 , isPrefixOf
 , isSuffixOf
@@ -628,3 +633,22 @@ withNonEmpty a f bytes
   | bytes.len <= 0 = a
   | otherwise = f bytes
 {-# INLINE withNonEmpty #-}
+
+lines :: ByteArray -> [ByteArray]
+lines = List.map fromText . Text.lines . unsafeToText
+
+unlines :: [ByteArray] -> ByteArray
+unlines chunks = ByteArray arr 0 len
+  where
+    plus = checkedAdd "unlines"
+    len = List.foldl' (\ acc chunk -> acc `plus` chunk.len `plus` 1) 0 chunks
+    arr = create len $ \ marr -> do
+      foldM_ (copyChunk marr) 0 chunks
+    copyChunk marr i chunk = do
+      copyTo marr i chunk
+      let j = i + chunk.len
+      Array.unsafeWrite marr j 10
+      return j.succ
+
+unwords :: [ByteArray] -> ByteArray
+unwords = intercalate " "

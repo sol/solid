@@ -20,6 +20,7 @@ library
       Data.Sliced.ByteArray
       Data.Sliced.ByteArray.Conversion
       Data.Sliced.ByteArray.Unsafe
+      Data.Sliced.ByteArray.Utf8
       Data.Sliced.ByteArray.Util
       Directory
       Either
@@ -164,6 +165,7 @@ test-suite spec
       Data.Sliced.ByteArray
       Data.Sliced.ByteArray.Conversion
       Data.Sliced.ByteArray.Unsafe
+      Data.Sliced.ByteArray.Utf8
       Data.Sliced.ByteArray.Util
       Directory
       Either
@@ -215,6 +217,7 @@ test-suite spec
       CharSpec
       Data.Sliced.ByteArray.ConversionSpec
       Data.Sliced.ByteArray.UnsafeSpec
+      Data.Sliced.ByteArray.Utf8Spec
       Data.Sliced.ByteArray.UtilSpec
       Data.Sliced.ByteArraySpec
       EitherSpec
