@@ -6,7 +6,7 @@ packages:
   vendor/ghc-bin
 
 package solid
-  ghc-options: -Werror
+  ghc-options: -ddump-simpl -ddump-to-file
 
 package solid-pp
   ghc-options: -Werror
