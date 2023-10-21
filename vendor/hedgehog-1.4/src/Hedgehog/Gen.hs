@@ -1,3 +1,5 @@
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Gen (
   -- ** Shrinking
     shrink

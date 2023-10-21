@@ -13,6 +13,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.State (
   -- * Variables
     Var(..)
@@ -50,6 +52,7 @@ module Hedgehog.Internal.State (
   , executeSequential
   , executeParallel
   ) where
+import           HaskellPrelude
 
 import qualified Control.Concurrent.Async.Lifted as Async
 import           Control.Exception.Safe (MonadCatch)

@@ -24,6 +24,10 @@
 {-# LANGUAGE DerivingVia #-}
 #endif
 
+{-# LANGUAGE NoOverloadedStrings #-}
+
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Gen (
   -- * Transformer
     Gen
@@ -175,9 +179,6 @@ module Hedgehog.Internal.Gen (
   , subtermMVec
   ) where
 
-#if !MIN_VERSION_base(4,18,0)
-import           Control.Applicative (liftA2)
-#endif
 import           Control.Applicative (Alternative(..))
 import           Control.Monad (MonadPlus(..), filterM, guard, replicateM, join)
 import           Control.Monad.Base (MonadBase(..))
@@ -479,14 +480,7 @@ instance (Monad m, Semigroup a) => Semigroup (GenT m a) where
 
 instance (
   Monad m, Monoid a
-#if !MIN_VERSION_base(4,11,0)
-  , Semigroup a
-#endif
          ) => Monoid (GenT m a) where
-#if !MIN_VERSION_base(4,11,0)
-  mappend = (Semigroup.<>)
-#endif
-
   mempty =
     return mempty
 

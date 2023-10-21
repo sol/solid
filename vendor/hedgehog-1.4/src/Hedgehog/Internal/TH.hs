@@ -2,11 +2,15 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.TH (
     TExpQ
   , discover
   , discoverPrefix
   ) where
+
+import           HaskellPrelude
 
 import qualified Data.List as List
 import qualified Data.Map as Map

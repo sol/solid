@@ -1,6 +1,8 @@
 {-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveLift #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 -- |
 -- This is a port of "Fast Splittable Pseudorandom Number Generators" by Steele
 -- et. al. [1].
@@ -48,6 +50,8 @@ module Hedgehog.Internal.Seed (
   , mixGamma
   , global
   ) where
+
+import           HaskellPrelude
 
 import           Control.Monad.IO.Class (MonadIO(..))
 

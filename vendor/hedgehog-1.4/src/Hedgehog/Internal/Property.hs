@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-x-partial #-}
 {-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE BangPatterns #-}
@@ -22,6 +23,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-} -- Distributive
 
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Property (
   -- * Property
     Property(..)

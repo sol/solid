@@ -5,6 +5,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Config (
     UseColor(..)
   , resolveColor
@@ -28,6 +30,8 @@ module Hedgehog.Internal.Config (
   , detectWorkers
   , detectSkip
   ) where
+
+import           HaskellPrelude
 
 import           Control.Monad.IO.Class (MonadIO(..))
 

@@ -1,9 +1,13 @@
 {-# OPTIONS_HADDOCK not-home #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.HTraversable (
     HTraversable(..)
   ) where
+
+import           HaskellPrelude
 
 import Hedgehog.Internal.Barbie (TraversableB)
 

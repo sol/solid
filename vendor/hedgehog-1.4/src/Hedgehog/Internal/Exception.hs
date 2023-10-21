@@ -1,8 +1,12 @@
 {-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Exception (
     tryAll
   , tryEvaluate
   ) where
+
+import           HaskellPrelude
 
 import           Control.Exception (Exception(..), AsyncException, SomeException(..), evaluate)
 import           Control.Exception.Safe (MonadCatch, catch, throwM)

@@ -1,5 +1,7 @@
 {-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 
 -- | For compatibility across different versions of the @barbie@ package.
 --

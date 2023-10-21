@@ -1,4 +1,6 @@
 {-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Region (
     Region(..)
   , newEmptyRegion
@@ -10,6 +12,8 @@ module Hedgehog.Internal.Region (
   , moveToBottom
   , finishRegion
   ) where
+
+import           HaskellPrelude
 
 import           Control.Concurrent.STM (STM, TVar)
 import qualified Control.Concurrent.STM.TMVar as TMVar

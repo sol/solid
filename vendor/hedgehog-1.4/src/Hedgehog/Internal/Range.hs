@@ -1,5 +1,7 @@
 {-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Range (
   -- * Size
     Size(..)
@@ -39,8 +41,6 @@ module Hedgehog.Internal.Range (
   , scaleExponential
   , scaleExponentialFloat
   ) where
-
-import           Data.Bifunctor (bimap)
 
 import           Prelude hiding (minimum, maximum)
 

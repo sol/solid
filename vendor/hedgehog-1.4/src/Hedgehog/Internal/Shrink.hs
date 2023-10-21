@@ -1,4 +1,6 @@
 {-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Shrink (
     towards
   , towardsFloat
@@ -8,6 +10,8 @@ module Hedgehog.Internal.Shrink (
   , removes
   , consNub
   ) where
+
+import           HaskellPrelude
 
 
 -- | Shrink an integral number by edging towards a destination.

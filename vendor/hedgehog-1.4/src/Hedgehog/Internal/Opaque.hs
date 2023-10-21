@@ -1,7 +1,11 @@
 {-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Opaque (
     Opaque(..)
   ) where
+
+import           HaskellPrelude
 
 
 -- | Opaque values.

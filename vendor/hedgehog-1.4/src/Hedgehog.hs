@@ -1,3 +1,5 @@
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 -- |
 -- This module includes almost everything you need to get started writing
 -- property tests with Hedgehog.

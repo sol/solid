@@ -10,6 +10,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
+{-# OPTIONS_GHC -fno-warn-x-partial #-}
 module Hedgehog.Internal.Report (
   -- * Report
     Summary(..)
@@ -46,9 +49,6 @@ import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe (mapMaybe, catMaybes)
-#if !MIN_VERSION_base(4,11,0)
-import qualified Data.Semigroup as Semigroup
-#endif
 import           Data.Traversable (for)
 
 import           Hedgehog.Internal.Config
@@ -142,9 +142,6 @@ data Summary =
     } deriving (Show)
 
 instance Monoid Summary where
-#if !MIN_VERSION_base(4,11,0)
-  mappend = (Semigroup.<>)
-#endif
   mempty =
     Summary 0 0 0 0 0
 

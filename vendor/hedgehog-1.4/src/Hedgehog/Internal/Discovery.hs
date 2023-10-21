@@ -3,6 +3,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Discovery (
     PropertySource(..)
   , readProperties
@@ -12,6 +14,8 @@ module Hedgehog.Internal.Discovery (
   , Pos(..)
   , Position(..)
   ) where
+
+import           HaskellPrelude
 
 import           Control.Exception (IOException, handle)
 import           Control.Monad.IO.Class (MonadIO(..))

@@ -1,6 +1,8 @@
 {-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Queue (
     TaskIndex(..)
   , TasksRemaining(..)
@@ -13,6 +15,8 @@ module Hedgehog.Internal.Queue (
 
   , updateNumCapabilities
   ) where
+
+import           HaskellPrelude
 
 import           Control.Concurrent (rtsSupportsBoundThreads)
 import           Control.Concurrent.Async (forConcurrently)

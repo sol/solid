@@ -1,7 +1,11 @@
 {-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Tripping (
     tripping
   ) where
+
+import           HaskellPrelude
 
 import           Hedgehog.Internal.Property (MonadTest, Diff(..), success, failWith)
 import           Hedgehog.Internal.Show (valueDiff, mkValue, showPretty)

@@ -14,6 +14,9 @@
 #if __GLASGOW_HASKELL__ < 802
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 #endif
+
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Tree (
     Tree
   , pattern Tree
@@ -49,9 +52,6 @@ module Hedgehog.Internal.Tree (
   , renderT
   ) where
 
-#if !MIN_VERSION_base(4,18,0)
-import           Control.Applicative (liftA2)
-#endif
 import           Control.Applicative (Alternative(..))
 import           Control.Exception.Safe (Exception)
 import           Control.Monad (MonadPlus(..), guard, join)
@@ -80,7 +80,7 @@ import qualified Data.Maybe as Maybe
 import           Hedgehog.Internal.Distributive
 import           Control.Monad.Trans.Control (MonadBaseControl (..))
 
-import           Prelude hiding (filter)
+import           HaskellPrelude hiding (filter)
 
 ------------------------------------------------------------------------
 

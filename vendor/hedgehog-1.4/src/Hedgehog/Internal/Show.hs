@@ -1,6 +1,8 @@
 {-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Show (
     Name
   , Value(..)
@@ -21,6 +23,8 @@ module Hedgehog.Internal.Show (
   , takeLeft
   , takeRight
   ) where
+
+import           HaskellPrelude
 
 import           Data.Bifunctor (second)
 

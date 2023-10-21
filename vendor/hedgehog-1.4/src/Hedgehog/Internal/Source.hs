@@ -4,6 +4,8 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Source (
     LineNo(..)
   , ColumnNo(..)
@@ -16,6 +18,8 @@ module Hedgehog.Internal.Source (
   , callStack
   , withFrozenCallStack
   ) where
+
+import           HaskellPrelude
 
 import GHC.Stack (CallStack, HasCallStack, SrcLoc(..))
 import GHC.Stack (callStack, getCallStack, withFrozenCallStack)

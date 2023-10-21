@@ -39,6 +39,25 @@ dependencies:
   - doctest
   - markdown-unlit
 
+  - ansi-terminal
+  - barbies
+  - concurrent-output
+  - deepseq
+  - erf
+  - exceptions
+  - lifted-async
+  - mmorph
+  - monad-control
+  - mtl
+  - pretty-show
+  - primitive
+  - resourcet
+  - safe-exceptions
+  - template-haskell
+  - transformers
+  - transformers-base
+  - wl-pprint-annotated
+
 build-tools: solid-pp
 
 
@@ -46,6 +65,7 @@ library:
   source-dirs:
     - src
     - import
+    - vendor/hedgehog-1.4/src
 
 executable:
   main: Main.hs

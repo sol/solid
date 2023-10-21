@@ -4,9 +4,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FieldSelectors #-}
+{-# LANGUAGE NoDeriveAnyClass #-}
 module Hedgehog.Internal.Distributive (
     MonadTransDistributive(..)
   ) where
+
+import           HaskellPrelude
 
 import           Control.Monad (join)
 import           Control.Monad.Morph (MFunctor(..))
