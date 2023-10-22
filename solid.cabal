@@ -63,9 +63,36 @@ library
       System.Directory.Import
       System.Environment.Import
       System.FilePath.Import
+      Hedgehog
+      Hedgehog.Gen
+      Hedgehog.Internal.Barbie
+      Hedgehog.Internal.Config
+      Hedgehog.Internal.Discovery
+      Hedgehog.Internal.Distributive
+      Hedgehog.Internal.Exception
+      Hedgehog.Internal.Gen
+      Hedgehog.Internal.HTraversable
+      Hedgehog.Internal.Opaque
+      Hedgehog.Internal.Prelude
+      Hedgehog.Internal.Property
+      Hedgehog.Internal.Queue
+      Hedgehog.Internal.Range
+      Hedgehog.Internal.Region
+      Hedgehog.Internal.Report
+      Hedgehog.Internal.Runner
+      Hedgehog.Internal.Seed
+      Hedgehog.Internal.Show
+      Hedgehog.Internal.Shrink
+      Hedgehog.Internal.Source
+      Hedgehog.Internal.State
+      Hedgehog.Internal.TH
+      Hedgehog.Internal.Tree
+      Hedgehog.Internal.Tripping
+      Hedgehog.Range
   hs-source-dirs:
       src
       import
+      vendor/hedgehog-1.4/src
   default-extensions:
       NoImplicitPrelude
       DataKinds
@@ -80,23 +107,41 @@ library
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
-      async
+      ansi-terminal
+    , async
+    , barbies
     , bytestring
+    , concurrent-output
     , containers
+    , deepseq
     , directory
     , doctest
+    , erf
+    , exceptions
     , file-io
     , filepath
     , haskell-base
+    , lifted-async
     , markdown-unlit
+    , mmorph
+    , monad-control
+    , mtl
+    , pretty-show
+    , primitive
     , process
     , random
+    , resourcet
+    , safe-exceptions
     , solid-pp
     , stm
+    , template-haskell
     , text
     , time
+    , transformers
+    , transformers-base
     , unix ==2.8.1.0
     , unliftio-core
+    , wl-pprint-annotated
   default-language: GHC2021
 
 executable solid
@@ -121,30 +166,48 @@ executable solid
       solid-pp:solid-pp
   build-depends:
       Cabal
+    , ansi-terminal
     , async
+    , barbies
     , bytestring
     , cabal-install ==3.10.1.0
+    , concurrent-output
     , containers
+    , deepseq
     , directory
     , doctest
+    , erf
+    , exceptions
     , file-io
     , filepath
     , haskell-base
     , hpack
+    , lifted-async
     , markdown-unlit
+    , mmorph
+    , monad-control
+    , mtl
     , optparse-applicative
     , pantry
+    , pretty-show
+    , primitive
     , process
     , random
+    , resourcet
     , rio
+    , safe-exceptions
     , solid
     , solid-pp
     , stack >=2.13.1
     , stm
+    , template-haskell
     , text
     , time
+    , transformers
+    , transformers-base
     , unix ==2.8.1.0
     , unliftio-core
+    , wl-pprint-annotated
   default-language: GHC2021
 
 test-suite spec
@@ -256,29 +319,47 @@ test-suite spec
     , solid-pp:solid-pp
   build-depends:
       QuickCheck
+    , ansi-terminal
     , async
+    , barbies
     , base64-bytestring
     , bytestring
+    , concurrent-output
     , containers
+    , deepseq
     , directory
     , doctest
+    , erf
+    , exceptions
     , file-io
     , filepath
     , haskell-base
     , hedgehog
     , hspec ==2.*
     , hspec-core
+    , lifted-async
     , markdown-unlit
+    , mmorph
     , mockery
+    , monad-control
+    , mtl
+    , pretty-show
+    , primitive
     , process
     , random
+    , resourcet
+    , safe-exceptions
     , silently
     , solid-pp
     , splitmix
     , stm
+    , template-haskell
     , temporary
     , text
     , time
+    , transformers
+    , transformers-base
     , unix ==2.8.1.0
     , unliftio-core
+    , wl-pprint-annotated
   default-language: GHC2021
