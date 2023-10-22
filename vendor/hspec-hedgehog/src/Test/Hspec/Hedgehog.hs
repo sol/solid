@@ -201,7 +201,7 @@ instance (m ~ IO) => Example (a -> PropertyT m ()) where
                Nothing       -> Seed.random
                Just (rng, _) -> pure (uncurry Seed (unseedSMGen (coerce rng)))
             hedgeResult <- checkReport propConfig size seed (propertyTest prop) cb
-            ppresult <- renderResult EnableColor Nothing hedgeResult
+            ppresult <- renderResultWith (Context 3) EnableColor Nothing hedgeResult
             writeIORef ref $ Result "" $ case reportStatus hedgeResult of
                 Failed FailureReport{..} ->
                     let

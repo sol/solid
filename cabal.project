@@ -45,3 +45,10 @@ source-repository-package
   type: git
   location: https://github.com/haskell/primitive
   tag: 0ea3f6507251a0115db6127e5a65f7c1fcf9479a
+
+source-repository-package
+  type: git
+  location: https://github.com/sol/hedgehog/
+  -- tag: 31088088d846b76f95c8e7f41906ac1c705e1d12
+  tag: 7974a9fa7b75dc98a84b09a968866e3e5cf32008
+  subdir: hedgehog
