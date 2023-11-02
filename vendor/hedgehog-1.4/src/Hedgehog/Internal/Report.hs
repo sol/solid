@@ -23,6 +23,8 @@ module Hedgehog.Internal.Report (
   , Style(..)
   , Markup(..)
 
+  , Config(..)
+  , defaultConfig
   , Context(..)
   , Lines
 
@@ -31,6 +33,11 @@ module Hedgehog.Internal.Report (
   , renderResultWith
   , renderSummary
   , renderDoc
+
+  , ppCoverage
+
+  , ppFailureReport
+  , renderFailureReport
 
   , ppProgress
   , ppResult
@@ -676,8 +683,8 @@ ppTextLines :: String -> [Doc Markup]
 ppTextLines =
   fmap WL.text . List.lines
 
-ppFailureReport :: MonadIO m => Context -> Maybe PropertyName -> TestCount -> DiscardCount -> Seed -> FailureReport -> m [Doc Markup]
-ppFailureReport context name tests discards seed (FailureReport _ shrinkPath mcoverage inputs0 mlocation0 msg mdiff msgs0) = do
+ppFailureReport :: MonadIO m => Config -> Maybe PropertyName -> TestCount -> DiscardCount -> Seed -> FailureReport -> m [Doc Markup]
+ppFailureReport config name tests discards seed (FailureReport _ shrinkPath mcoverage inputs0 mlocation0 msg mdiff msgs0) = do
   let
     basic =
       -- Move the failure message to the end section if we have
@@ -748,11 +755,9 @@ ppFailureReport context name tests discards seed (FailureReport _ shrinkPath mco
       else
         f xs
 
-    bottom =
-      maybe
-        [ppReproduce name seed (SkipToShrink tests discards shrinkPath)]
-        (const [])
-        mcoverage
+    bottom
+      | configPrintReproduceMessage config, Nothing <- mcoverage = [ppReproduce name seed (SkipToShrink tests discards shrinkPath)]
+      | otherwise = []
 
   pure .
     whenSome (mempty :) .
@@ -765,7 +770,7 @@ ppFailureReport context name tests discards seed (FailureReport _ shrinkPath mco
       with args $
         WL.punctuate WL.line
     , with decls $
-        WL.punctuate WL.line . fmap (ppDeclaration . applyContext context)
+        WL.punctuate WL.line . fmap (ppDeclaration . applyContext (configContext config))
     , with msgs1 $
         id
     , with bottom $
@@ -802,13 +807,13 @@ ppProgress name (Report tests discards coverage _ status) =
         ppShrinkDiscard (failureShrinks failure) discards <+>
         "(shrinking)"
 ppResult :: MonadIO m => Maybe PropertyName -> Report Result -> m (Doc Markup)
-ppResult = ppResultWith FullContext
+ppResult = ppResultWith defaultConfig
 
-ppResultWith :: MonadIO m => Context -> Maybe PropertyName -> Report Result -> m (Doc Markup)
-ppResultWith context name (Report tests discards coverage seed result) = do
+ppResultWith :: MonadIO m => Config -> Maybe PropertyName -> Report Result -> m (Doc Markup)
+ppResultWith config name (Report tests discards coverage seed result) = do
   case result of
     Failed failure -> do
-      pfailure <- ppFailureReport context name tests discards seed failure
+      pfailure <- ppFailureReport config name tests discards seed failure
       pure . WL.vsep $ [
           icon FailedIcon '✗' . WL.align . WL.annotate FailedText $
             ppName name <+>
@@ -863,6 +868,10 @@ ppCoverage tests x =
     fmap (ppLabel tests (coverageWidth tests x)) .
     List.sortOn labelLocation $
     Map.elems (coverageLabels x)
+
+renderCoverage :: MonadIO m => UseColor -> TestCount -> Coverage CoverCount -> m String
+renderCoverage color tests x =
+  renderDoc color . WL.vsep $ ppCoverage tests x
 
 data ColumnWidth =
   ColumnWidth {
@@ -1280,11 +1289,23 @@ renderProgress color name x =
   renderDoc color =<< ppProgress name x
 
 renderResult :: MonadIO m => UseColor -> Maybe PropertyName -> Report Result -> m String
-renderResult = renderResultWith FullContext
+renderResult = renderResultWith defaultConfig
 
-renderResultWith :: MonadIO m => Context -> UseColor -> Maybe PropertyName -> Report Result -> m String
-renderResultWith context color name x =
-  renderDoc color =<< ppResultWith context name x
+data Config = Config {
+  configContext :: Context
+, configPrintReproduceMessage :: Bool
+}
+
+defaultConfig :: Config
+defaultConfig = Config FullContext True
+
+renderResultWith :: MonadIO m => Config -> UseColor -> Maybe PropertyName -> Report Result -> m String
+renderResultWith config color name x =
+  renderDoc color =<< ppResultWith config name x
+
+renderFailureReport :: MonadIO m => Config -> UseColor -> Maybe PropertyName -> TestCount -> DiscardCount -> Seed -> FailureReport -> m String
+renderFailureReport config color name tests discards seed failure =
+  renderDoc color . WL.vsep =<< ppFailureReport config name tests discards seed failure
 
 renderSummary :: MonadIO m => UseColor -> Summary -> m String
 renderSummary color x =

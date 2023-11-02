@@ -40,7 +40,28 @@ spec = do
         , (1, pure '\r')
         , (5, Gen.unicodeScalar)
         ]
+      cover 30 "short" (input.length < 10)
       input.lines === map pack (Haskell.lines input.unpack)
+      String.lines input === map pack (Haskell.lines input.unpack)
+
+    it "breaks a string into separate lines" $ do
+      input <- forAll $ Gen.string (Range.linear 0 100) $ Gen.frequency [
+          (1, pure '\n')
+        , (1, pure '\r')
+        , (5, Gen.unicodeScalar)
+        ]
+      _ <- discard
+      input.lines === map pack (Haskell.lines input.unpack)
+      String.lines input === map pack (Haskell.lines input.unpack)
+
+    it "breaks a string into separate lines" $ do
+      input <- forAll $ Gen.string (Range.linear 0 100) $ Gen.frequency [
+          (1, pure '\n')
+        , (1, pure '\r')
+        , (5, Gen.unicodeScalar)
+        ]
+      cover 30 "short" (input.length < 10)
+      input.lines === map pack (drop 1 $ Haskell.lines input.unpack)
       String.lines input === map pack (Haskell.lines input.unpack)
 
   describe "unlines" $ do
