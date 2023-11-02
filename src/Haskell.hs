@@ -6,6 +6,10 @@ module Haskell (
 , asByteString
 , fromByteString
 
+, Haskell.LazyByteString
+, toLazyByteString
+, fromLazyByteString
+
 , Text
 , toText
 , fromText
@@ -35,21 +39,31 @@ import Solid.Bytes.Unsafe (Bytes(..), FilePath(..))
 import Solid.StackTrace (toCallStack, fromCallStack)
 
 import System.IO.Unsafe (unsafePerformIO)
-import Data.String qualified as Haskell
-import Data.ByteString qualified as Haskell
-import System.FilePath qualified as Haskell
-import System.OsPath qualified as Haskell
-import System.OsPath.Types qualified as Haskell
+use Data.String as Haskell
+use Data.ByteString as Haskell
+use Data.ByteString.Lazy as Haskell (LazyByteString)
+use Data.ByteString.Lazy
+use System.FilePath as Haskell
+use System.OsPath as Haskell
+use System.OsPath.Types as Haskell
 import System.OsString.Internal.Types (OsString(..))
 
 import Data.Text (Text)
-import Data.Text.Encoding qualified as Text
+use Data.Text.Encoding as Text
 
 asByteString :: ByteString -> Haskell.ByteString
 asByteString = unBytes
 
 fromByteString :: Haskell.ByteString -> ByteString
 fromByteString = Bytes
+
+toLazyByteString :: Bytes a -> Haskell.LazyByteString
+toLazyByteString = Lazy.fromStrict . unBytes
+{-# INLINE toLazyByteString #-}
+
+fromLazyByteString :: Haskell.LazyByteString -> ByteString
+fromLazyByteString = Bytes . Lazy.toStrict
+{-# INLINE fromLazyByteString #-}
 
 toText :: String -> Text
 toText = Text.decodeUtf8 . unBytes
