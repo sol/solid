@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Process.Config.STDIN (
   inherit
@@ -12,9 +13,9 @@ module Process.Config.STDIN (
 ) where
 
 import Solid hiding (null)
-import Solid.Bytes.Unsafe
 
-import Data.ByteString.Lazy qualified as LB
+use Haskell
+
 import Solid.Process.Typed (Config)
 import Solid.Process.Typed qualified as Haskell
 
@@ -30,7 +31,7 @@ set :: String -> Config stdin stdout stderr -> Config () stdout stderr
 set = setBytes
 
 setBytes :: Bytes a -> Config stdin stdout stderr -> Config () stdout stderr
-setBytes = Haskell.setStdin . Haskell.byteStringInput . LB.fromStrict . unBytes
+setBytes = Haskell.setStdin . Haskell.byteStringInput . Haskell.toLazyByteString
 
 useFile :: FilePath -> Config stdin stdout stderr -> Config () stdout stderr
 useFile = Haskell.setStdin . fileInput

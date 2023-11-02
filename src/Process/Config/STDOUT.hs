@@ -11,10 +11,10 @@ module Process.Config.STDOUT (
 ) where
 
 import Solid hiding (null)
-import Solid.Bytes.Unsafe
+
+use Haskell
 
 import Control.Concurrent.STM qualified as STM
-import Data.ByteString.Lazy qualified as LB
 import Solid.Process.Typed (Config)
 import Solid.Process.Typed qualified as Haskell
 
@@ -27,7 +27,7 @@ null :: Config stdin stdout stderr -> Config stdin () stderr
 null = Haskell.setStdout Haskell.nullStream
 
 capture :: Config stdin stdout stderr -> Config stdin (IO ByteString) stderr
-capture = Haskell.setStdout (STM.atomically <$> fmap (Bytes . LB.toStrict) <$> Haskell.byteStringOutput)
+capture = Haskell.setStdout (STM.atomically <$> fmap Haskell.fromLazyByteString <$> Haskell.byteStringOutput)
 
 useFile :: FilePath -> Config stdin stdout stderr -> Config stdin () stderr
 useFile = Haskell.setStdout . fileOutput
