@@ -7,6 +7,7 @@ import           Solid.PP.IO
 import           Test.Hspec
 import           Test.Mockery.Directory
 import qualified Data.Set as Set
+import qualified Data.List as List
 
 import           Solid.PP.Parser
 
@@ -48,7 +49,7 @@ spec = do
   describe "implicitImports" $ do
     let
       modules :: HasCallStack => Text -> ImplicitImports
-      modules = implicitImports . either error id . parseModule extensions "src.hs" 1
+      modules input = implicitImports . either error id $ parseModule extensions (InputFile "src.hs" input) (InputFile "src.hs" input)
 
     context "with a qualified identifier" $ do
       it "extracts module name" $ do
@@ -145,39 +146,77 @@ spec = do
       desugarExpression "src.hs" 1 "\"foo {23} bar\"" `shouldBe` Right "(\"foo \" <> Solid.ToString.toString ({-# COLUMN 7 #-}23) <> \" bar\"{-# COLUMN 14 #-})"
 
   describe "run" $ around_ inTempDirectory $ do
-    context "on error" $ do
+    context "when lexing fails" $ do
       it "reports error locations" $ do
-        writeFile "cur.hs" $ unlines [
+        writeFile "src.hs" $ unlines [
             "foo :: Int"
           , "  {-"
           , "foo = 23"
           ]
-        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "src.hs:2:3: error: [GHC-21231] unterminated `{-' at end of input"
+        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure "src.hs:2:3: error: [GHC-21231] unterminated `{-' at end of input"
 
       it "takes LINE pragmas into account" $ do
-        writeFile "cur.hs" $ unlines [
+        writeFile "src.hs" $ unlines [
             "{-# LINE 23 \"foo.hs\" #-}"
           , "foo :: Int"
           , "{-"
           , "foo = 23"
           ]
-        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "foo.hs:24:1: error: [GHC-21231] unterminated `{-' at end of input"
+        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure "foo.hs:24:1: error: [GHC-21231] unterminated `{-' at end of input"
 
       it "does not report failures for GHC2021 syntax" $ do
-        writeFile "cur.hs" $ unlines [
+        writeFile "src.hs" $ unlines [
             "foo :: Int"
           , "foo = 23_0"
           , "{-"
           ]
-        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "src.hs:3:1: error: [GHC-21231] unterminated `{-' at end of input"
+        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure "src.hs:3:1: error: [GHC-21231] unterminated `{-' at end of input"
+
+    context "when parsing fails" $ do
+      it "reports error locations" $ do
+        writeFile "src.hs" $ unlines [
+            "module Foo where"
+          , ""
+          , "foo , bar"
+          ]
+        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
+            "src.hs:3:5:"
+          , "  |"
+          , "3 | foo , bar"
+          , "  |     ^"
+          , "unexpected ,"
+          , "expecting end of input"
+          ])
+
+      it "takes LINE pragmas into account" $ do
+        writeFile "src.hs" $ unlines [
+            "module Foo where"
+          , ""
+          , "foo = ("
+          ]
+        writeFile "cur.hs" $ unlines [
+            "module Foo where"
+          , ""
+          , ""
+          , ""
+          , "{-# LINE 3 \"src.hs\" #-}"
+          , "foo = ("
+          ]
+        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
+            "src.hs:3:8:"
+          , "  |"
+          , "3 | foo = ("
+          , "  |        ^"
+          , "unexpected end of input"
+          ])
 
     context "when pre-processing imports" $ do
       it "implicitly imports well-know modules" $ do
-        writeFile "cur.hs" $ unlines [
+        writeFile "src.hs" $ unlines [
             "foo :: String -> Int"
           , "foo = String.length"
           ]
-        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
         readFile "dst.hs" `shouldReturn` unlines [
             "{-# LINE 1 \"src.hs\" #-}"
           , "import qualified String"
@@ -188,12 +227,12 @@ spec = do
 
       context "with existing imports" $ do
         it "places implicit imports before any existing imports" $ do
-          writeFile "cur.hs" $ unlines [
+          writeFile "src.hs" $ unlines [
               "import qualified Foo"
             , "foo :: String -> Int"
             , "foo = String.length"
             ]
-          run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
             , "import qualified String"
@@ -205,7 +244,7 @@ spec = do
 
       context "with LANGUAGE pragmas" $ do
         it "places implicit imports after the last pragma" $ do
-          writeFile "cur.hs" $ unlines [
+          writeFile "src.hs" $ unlines [
               "-- some comment"
             , "{-# LANGUAGE OverloadedStrings #-}"
             , "{-# OPTIONS_GHC -fno-warn-orphans #-}"
@@ -213,7 +252,7 @@ spec = do
             , "{-# INLINE foo #-}"
             , "foo = String.length"
             ]
-          run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
             , "-- some comment"
@@ -228,12 +267,12 @@ spec = do
 
         context "without a module body" $ do
           it "does not implicitly import anything" $ do
-            writeFile "cur.hs" $ unlines [
+            writeFile "src.hs" $ unlines [
                 "-- some comment"
               , "{-# LANGUAGE OverloadedStrings #-}"
               , "{-# OPTIONS_GHC -fno-warn-orphans #-}"
               ]
-            run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+            run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
             readFile "dst.hs" `shouldReturn` unlines [
                 "{-# LINE 1 \"src.hs\" #-}"
               , "-- some comment"
@@ -243,13 +282,13 @@ spec = do
 
       context "with a module header" $ do
         it "places implicit imports after the module header" $ do
-          writeFile "cur.hs" $ unlines [
+          writeFile "src.hs" $ unlines [
               "{-# LANGUAGE OverloadedStrings #-}"
             , "module Foo where"
             , "foo :: String -> Int"
             , "foo = String.length"
             ]
-          run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
             , "{-# LANGUAGE OverloadedStrings #-}"
@@ -262,11 +301,11 @@ spec = do
             ]
 
         it "does not implicitly import itself" $ do
-          writeFile "cur.hs" $ unlines [
+          writeFile "src.hs" $ unlines [
               "module String where"
             , "foo = String.length"
             ]
-          run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
             , "module String where"
@@ -275,12 +314,12 @@ spec = do
 
         context "without any qualified names" $ do
           it "does not modify anything" $ do
-            writeFile "cur.hs" $ unlines [
+            writeFile "src.hs" $ unlines [
                 "module Foo where"
               , "foo :: Int"
               , "foo = 23"
               ]
-            run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+            run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
             readFile "dst.hs" `shouldReturn` unlines [
                 "{-# LINE 1 \"src.hs\" #-}"
               , "module Foo where"
@@ -290,12 +329,12 @@ spec = do
 
         context "with an export list" $ do
           it "places implicit imports after the module header" $ do
-            writeFile "cur.hs" $ unlines [
+            writeFile "src.hs" $ unlines [
                 "module Foo (foo!) where"
               , "foo! :: String -> Int"
               , "foo! = String.length"
               ]
-            run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+            run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
             readFile "dst.hs" `shouldReturn` unlines [
                 "{-# LINE 1 \"src.hs\" #-}"
               , "module Foo (fooᴉ) where"
@@ -308,10 +347,10 @@ spec = do
 
           context "with an empty module body" $ do
             it "places implicit imports after the module header" $ do
-              writeFile "cur.hs" $ unlines [
+              writeFile "src.hs" $ unlines [
                   "module Foo (String.length) where"
                 ]
-              run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Success
+              run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
               readFile "dst.hs" `shouldReturn` unlines [
                   "{-# LINE 1 \"src.hs\" #-}"
                 , "module Foo (String.length) where"

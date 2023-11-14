@@ -21,7 +21,7 @@ import qualified Data.Text as T
 import           Solid.PP (extensions)
 import           Solid.PP.Lexer (Token(..))
 import qualified Solid.PP.Lexer as Lexer
-import           Solid.PP.Parser
+import           Solid.PP.Parser hiding (parseModule)
 import qualified Solid.PP.Parser as Parser
 import           Solid.PP.SrcLoc
 
@@ -86,9 +86,12 @@ token = Token ()
 nameWith :: FastString -> Arguments () -> Node ()
 nameWith n args = MethodChain (Name () n args) []
 
+parseModule :: Text -> Either String (Module BufferSpan)
+parseModule input = Parser.parseModule extensions (InputFile "main.hs" input) (InputFile "main.hs" input)
+
 parse :: HasCallStack => Text -> (Module () -> Expectation) -> Expectation
 parse input action = annotated $ do
-  either assertFailure (return . void) (Parser.parseModule extensions "main.hs" 1 input) >>= action
+  either assertFailure (return . void) (parseModule input) >>= action
   where
     annotated :: IO a -> IO a
     annotated = either (const id) (annotate . formatTokens) $ Lexer.tokenize extensions "main.hs" 1 input
@@ -238,13 +241,13 @@ spec = do
 
       context "on unexpected end of line" $ do
         it "reports an error" $ do
-          Parser.parseModule extensions "main.hs" 1 "\"foo    \n" `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
-          Parser.parseModule extensions "main.hs" 1 "\"foo {  \n" `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
+          parseModule "\"foo    \n" `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
+          parseModule "\"foo {  \n" `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
 
       context "on unexpected end of input" $ do
         it "reports an error" $ do
-          Parser.parseModule extensions "main.hs" 1 "\"foo    " `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
-          let Left err = Parser.parseModule extensions "main.hs" 1 "\"foo {  "
+          parseModule "\"foo    " `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
+          let Left err = parseModule "\"foo {  "
           err `Hspec.shouldBe` (unpack . unlines) [
               "main.hs:1:7:"
             , "  |"
@@ -255,7 +258,7 @@ spec = do
 
       context "unexpected token" $ do
         it "reports an error" $ do
-          let Left err = Parser.parseModule extensions "main.hs" 1 $ unlines [
+          let Left err = parseModule $ unlines [
                   "some tokens"
                 , "bar ].foo"
                 , "some more tokens"
