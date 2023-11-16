@@ -10,7 +10,10 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Parser (
-  parseModule
+  Original
+, Current
+, InputFile(..)
+, parseModule
 , parseExpression
 
 , Module(..)
@@ -40,6 +43,7 @@ import           Solid.PP.IO hiding (try, error, some, many)
 import           Data.Foldable1 (fold1)
 import           Data.List hiding (lines)
 import qualified Data.List.NonEmpty as NonEmpty
+import           Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Text.Megaparsec as P
 import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest, some)
@@ -143,9 +147,9 @@ instance HasField "toSourcePos" SrcLoc SourcePos where
   getField loc = SourcePos loc.file (mkPos loc.line) (mkPos loc.column)
 
 showToken :: Lexer.Token -> String
-showToken = \ case
-  ITcbrack -> "]"
-  t -> show t
+showToken t = case lookup t excludedByAnyToken of
+  Nothing -> show t
+  Just name -> name
 
 instance ShowErrorComponent Error where
   showErrorComponent = \ case
@@ -160,19 +164,27 @@ data Error =
 error :: Error -> Parser a
 error = fancyFailure . Set.singleton . ErrorCustom
 
-parseModule :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String (Module BufferSpan)
-parseModule = parse pModule
+data Original
+data Current
+
+data InputFile a = InputFile {
+  name :: FilePath
+, contents :: Text
+} deriving (Eq, Show)
+
+parseModule :: [LanguageFlag] -> InputFile Original -> InputFile Current -> Either String (Module BufferSpan)
+parseModule extensions = parse pModule extensions 1
 
 parseExpression :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String [Node BufferSpan]
-parseExpression = parse pModuleBody
+parseExpression extensions src line input = parse pModuleBody extensions line (InputFile src input) (InputFile src input)
 
-parse :: Parser a -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String a
-parse parser extensions src line input = do
-  result <- tokenize extensions src line input
+parse :: Parser a -> [LanguageFlag] -> Int -> InputFile Original -> InputFile Current -> Either String a
+parse parser extensions line original current = do
+  result <- tokenize extensions original.name line current.contents
   let
     stream :: TokenStream
-    stream = TokenStream input result.tokens
-  case P.parse parser src stream of
+    stream = TokenStream original.contents result.tokens
+  case P.parse parser original.name stream of
     Left err -> Left $ errorBundlePretty err
     Right r -> Right r
 
@@ -321,14 +333,22 @@ pAnyToken :: Parser (Node BufferSpan)
 pAnyToken = token \ case
   TokenEndBegin {} -> Nothing
   TokenEnd {} -> Nothing
-  L _ ITcomma -> Nothing
-  L _ IToparen -> Nothing
-  L _ ITcparen -> Nothing
-  L _ ITobrack -> Nothing
-  L _ ITcbrack -> Nothing
-  L _ ITocurly -> Nothing
-  L _ ITccurly -> Nothing
+  L _ t | Set.member t excluded -> Nothing
   L loc t -> Just $ Token loc t
+  where
+    excluded :: Set Lexer.Token
+    excluded = Set.fromList (map fst excludedByAnyToken)
+
+excludedByAnyToken :: [(Lexer.Token, String)]
+excludedByAnyToken = [
+    (ITcomma, ",")
+  , (IToparen, "(")
+  , (ITcparen, ")")
+  , (ITobrack, "[")
+  , (ITcbrack, "]")
+  , (ITocurly, "{")
+  , (ITccurly, "}")
+  ]
 
 comma :: Parser BufferSpan
 comma = require ITcomma
