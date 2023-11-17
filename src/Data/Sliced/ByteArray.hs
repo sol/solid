@@ -10,6 +10,8 @@ import Data.Semigroup
 import Data.List.NonEmpty (NonEmpty)
 
 import GHC.Exts
+import GHC.Show (intToDigit)
+import Data.Bits ((.&.), unsafeShiftR)
 use Data.List
 use Data.Text
 use Data.Text.Array
@@ -23,7 +25,27 @@ instance Show ByteArray where
   showsPrec :: Int -> ByteArray -> ShowS
   showsPrec n bytes
     | isValidUtf8 bytes = showsPrec n (unsafeToText bytes)
-    | otherwise = showsPrec n (compact bytes).arr
+    | otherwise = showAsList bytes
+
+showAsList :: ByteArray -> ShowS
+showAsList bytes = showChar '[' . go 0
+  where
+    go i
+      | i < bytes.len = comma . showWord8 (unsafeIndex i bytes) . go (succ i)
+      | otherwise = showChar ']'
+      where
+        comma
+          | i == 0 = id
+          | otherwise = showString ", "
+
+    showWord8 :: Word8 -> [Char] -> [Char]
+    showWord8 !c rest = '0' : 'x' : hi : lo : rest
+      where
+        toDigit :: Word8 -> Char
+        toDigit = intToDigit . fromIntegral
+
+        hi = toDigit (unsafeShiftR c 4)
+        lo = toDigit (c .&. 0x0F)
 
 instance IsString ByteArray where
   fromString = fromText . Text.pack
@@ -119,6 +141,10 @@ unsafeReplicate !n !c = runST $ do
 
 isValidUtf8 :: ByteArray -> Bool
 isValidUtf8 ByteArray{..} = Utf8.isValid arr off len
+
+unsafeIndex :: Int -> ByteArray -> Word8
+unsafeIndex n bytes = Array.unsafeIndex bytes.arr (bytes.off + n)
+{-# INLINE unsafeIndex #-}
 
 unsafeHead :: ByteArray -> Word8
 unsafeHead bytes = Array.unsafeIndex bytes.arr bytes.off
