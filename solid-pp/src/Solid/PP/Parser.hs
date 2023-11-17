@@ -49,13 +49,14 @@ import qualified Text.Megaparsec as P
 import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest, some)
 import           Control.Applicative.Combinators.NonEmpty
 
-import           Solid.PP.Lexer hiding (Token, LexerResult(..))
+import           Solid.PP.Lexer hiding (Token, LexerResult(..), Extension(..))
 import qualified Solid.PP.Lexer as Lexer
 
 import qualified GHC.Types.Basic as GHC
 import qualified GHC.Hs.DocString as GHC
 import qualified GHC.Types.SrcLoc as GHC
 import qualified GHC.Data.FastString as GHC
+import           GHC.Parser.Annotation (HasE(..), IsUnicodeSyntax(..))
 
 deriving instance Eq Lexer.Token
 
@@ -302,6 +303,7 @@ pBracketed =
       bracketed Round <$> oparen <*> pBracketedInner <*> cparen
   <|> bracketed Square <$> obrack <*> pBracketedInner <*> cbrack
   <|> bracketed Curly <$> ocurly <*> pBracketedInner <*> ccurly
+  <|> bracketed Unboxed <$> ounboxed <*> pBracketedInner <*> cunboxed
   where
     bracketed :: BracketStyle -> BufferSpan -> [[Node BufferSpan]] -> BufferSpan -> Subject BufferSpan
     bracketed style start nodes end = Bracketed style (start.merge end) nodes
@@ -348,6 +350,28 @@ excludedByAnyToken = [
   , (ITcbrack, "]")
   , (ITocurly, "{")
   , (ITccurly, "}")
+  , (IToubxparen, "(#")
+  , (ITcubxparen, "#)")
+
+  , (ITopabrack, "[:")
+  , (ITcpabrack, ":]")
+
+  , (ITopenTypQuote, "[t|")
+  , (ITopenDecQuote, "[d|")
+  , (ITopenPatQuote, "[p|")
+  , (ITopenExpQuote NoE NormalSyntax, "[|")
+  , (ITopenExpQuote HasE NormalSyntax, "[e|")
+  , (ITopenExpQuote NoE UnicodeSyntax, "⟦")
+  , (ITcloseQuote NormalSyntax, "|]")
+  , (ITcloseQuote UnicodeSyntax, "⟧")
+  , (ITopenTExpQuote NoE, "[||")
+  , (ITopenTExpQuote HasE, "[e||")
+  , (ITcloseTExpQuote, "||]")
+
+  , (IToparenbar NormalSyntax, "(|")
+  , (IToparenbar UnicodeSyntax, "⦇")
+  , (ITcparenbar NormalSyntax, "|)")
+  , (ITcparenbar UnicodeSyntax, "⦈")
   ]
 
 comma :: Parser BufferSpan
@@ -370,6 +394,12 @@ ocurly = require ITocurly
 
 ccurly :: Parser BufferSpan
 ccurly = require ITccurly
+
+ounboxed :: Parser BufferSpan
+ounboxed = require IToubxparen
+
+cunboxed :: Parser BufferSpan
+cunboxed = require ITcubxparen
 
 pTokenBegin :: Parser (Expression BufferSpan -> Subject BufferSpan)
 pTokenBegin = token \ case
@@ -445,6 +475,7 @@ data BracketStyle =
     Round
   | Square
   | Curly
+  | Unboxed
   deriving (Eq, Show)
 
 data Arguments loc = NoArguments | Arguments loc [Argument loc]
