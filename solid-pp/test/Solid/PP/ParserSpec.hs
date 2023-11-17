@@ -218,6 +218,14 @@ spec = do
       it "accepts an unapplied tuple constructor" $ do
         parse "(,,,)" `shouldBe` [bracketed Round [[],[],[],[]]]
 
+      it "accepts unboxed tuples" $ do
+        let
+          input = unlines [
+              "{-# LANGUAGE UnboxedTuples #-}"
+            , "(# 23, 42 #)"
+            ]
+        parse input `shouldBe` [bracketed Unboxed [[23], [42]]]
+
     context "when parsing string literals" $ do
       it "accepts a literal string" $ do
         parse "\"foo\"" `shouldBe` [
