@@ -4,7 +4,8 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.Sliced.ByteArraySpec (arbitrary, spec) where
 
-import Helper
+import Helper hiding (shouldThrow)
+import Test.Hspec (shouldThrow)
 use Gen
 use Range
 
@@ -46,6 +47,26 @@ spec = do
   arbitrary `satisfies` showLaws
   arbitrary `satisfies` semigroupLaws
   arbitrary `satisfies` monoidLaws
+
+  describe "stimes" $ do
+    it "is defined on 0" $ do
+      stimes @ByteArray (0 :: Integer) "foo" `shouldBe` mempty
+
+    context "when n is negative" $ do
+      it "returns mempty" $ do
+        let n = pred $ toInteger (minBound :: Int)
+        stimes @ByteArray n " " `shouldBe` mempty
+
+    context "when n overflows Int" $ do
+      let n = succ $ toInteger (maxBound :: Int)
+
+      context "with mempty" $ do
+        it "returns mempty" $ do
+          stimes @ByteArray n mempty `shouldBe` mempty
+
+      context "with a subject of non-zero length" $ do
+        it "throws an exception" $ do
+          evaluate (stimes @ByteArray n " ") `shouldThrow` errorCall "size overflow"
 
   describe "show" $ do
     context "with valid UTF-8" $ do
@@ -93,6 +114,6 @@ spec = do
         let input = ByteArray [0, 128] 1 1
         isValidUtf8 input `shouldBe` False
 
-  describe "stimes" $ do
-    it "is defined on 0" $ do
-      stimes @ByteArray (0 :: Integer) "foo" `shouldBe` ""
+  describe "times" $ do
+    it "throws an exception on overflow" $ do
+      evaluate (ByteArray.times maxBound "foo") `shouldThrow` errorCall "size overflow"
