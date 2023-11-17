@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
 module Data.Sliced.ByteArray.Util (
   ST
 , runST
@@ -8,6 +10,7 @@ module Data.Sliced.ByteArray.Util (
 , create
 , checkedAdd
 , checkedSum
+, checkedMultiply
 , overflowError
 ) where
 
@@ -21,6 +24,7 @@ module Data.Sliced.ByteArray.Util (
 import Solid.Common
 import HaskellPrelude (error)
 import GHC.Stack (HasCallStack, withFrozenCallStack)
+import GHC.Exts
 
 import Control.Monad.ST (ST, runST)
 import Data.Text.Array (MArray, Array)
@@ -53,6 +57,12 @@ checkedSum :: HasCallStack => [Int] -> Int
 checkedSum = List.foldl' checkedAdd 0
 #endif
 {-# INLINE checkedSum #-}
+
+checkedMultiply :: HasCallStack => Int -> Int -> Int
+checkedMultiply !(I# x#) !(I# y#) = case timesInt2# x# y# of
+  (# 0#, _, result #) -> I# result
+  _ -> overflowError
+{-# INLINE checkedMultiply #-}
 
 overflowError :: HasCallStack => a
 overflowError = withFrozenCallStack $ error "size overflow"

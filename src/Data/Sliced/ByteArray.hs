@@ -41,7 +41,13 @@ instance Semigroup ByteArray where
   sconcat = concat . toList
 
   stimes :: Integral n => n -> ByteArray -> ByteArray
-  stimes n = concat . List.genericReplicate n
+  stimes (toInteger -> n) bytes
+    | n <= (0 :: Integer) || bytes.len <= 0 = empty
+    | toInteger nInt == n = times nInt bytes
+    | otherwise = overflowError
+    where
+      nInt :: Int
+      nInt = fromInteger n
 
 instance Monoid ByteArray where
   mempty = empty
@@ -87,6 +93,29 @@ concat (discardEmpty -> xs) = case xs of
 discardEmpty :: [ByteArray] -> [ByteArray]
 discardEmpty = List.filter (\ x -> x.len > 0)
 {-# INLINE discardEmpty #-}
+
+times :: Int -> ByteArray -> ByteArray
+times n bytes
+  | n <= 0 || bytes.len <= 0 = empty
+  | n == 1 = bytes
+  | bytes.len == 1 = unsafeReplicate n (unsafeHead bytes)
+  | otherwise = ByteArray arr 0 len
+  where
+    len = n `checkedMultiply` bytes.len
+    arr = create len $ \ marr -> do
+      copyTo marr 0 bytes
+      Array.tile marr bytes.len
+
+replicate :: Int -> Word8 -> ByteArray
+replicate n c
+  | n <= 0 = empty
+  | otherwise = unsafeReplicate n c
+
+unsafeReplicate :: Int -> Word8 -> ByteArray
+unsafeReplicate !n !c = runST $ do
+  marr <- Array.newFilled n (fromIntegral c)
+  arr <- Array.unsafeFreeze marr
+  return $ ByteArray arr 0 n
 
 isValidUtf8 :: ByteArray -> Bool
 isValidUtf8 ByteArray{..} = Utf8.isValid arr off len
