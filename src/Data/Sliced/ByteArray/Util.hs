@@ -16,13 +16,6 @@ module Data.Sliced.ByteArray.Util (
 , withCallStack
 ) where
 
-#ifdef x86_64_HOST_ARCH
-#define MAX_INT_IS_HUGE
-#elif i386_HOST_ARCH
-#else
-#warning untested ARCH, using checkedAdd as a fallback
-#endif
-
 import Solid.Common
 import HaskellPrelude (error)
 import GHC.Stack
@@ -39,25 +32,15 @@ create !len action = Array.run $ do
   return marr
 {-# INLINE create #-}
 
-#ifdef MAX_INT_IS_HUGE
-checkedAdd :: Int -> Int -> Int
-checkedAdd = (+)
-#else
 checkedAdd :: HasCallStack => Int -> Int -> Int
 checkedAdd x y
   | r < 0 = overflowError
   | otherwise = r
   where r = x + y
-#endif
 {-# INLINE checkedAdd #-}
 
-#ifdef MAX_INT_IS_HUGE
-checkedSum :: [Int] -> Int
-checkedSum = sum
-#else
 checkedSum :: HasCallStack => [Int] -> Int
 checkedSum = List.foldl' checkedAdd 0
-#endif
 {-# INLINE checkedSum #-}
 
 checkedMultiply :: HasCallStack => Int -> Int -> Int
