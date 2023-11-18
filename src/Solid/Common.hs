@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -7,6 +8,11 @@ module Solid.Common (
 , (-<)
 , pass
 , with
+
+, pred
+, pred!
+, succ
+, succ!
 ) where
 
 import           HaskellPrelude as Imports hiding (
@@ -25,6 +31,8 @@ import           HaskellPrelude as Imports hiding (
   , getContents
 
   , error
+  , pred
+  , succ
   )
 import           Data.Function as Imports ((&))
 import           Data.Functor as Imports ((<&>))
@@ -45,6 +53,8 @@ import           Data.Tuple (swap)
 import           Data.Bool (bool)
 
 import qualified GHC.Stack as GHC
+
+use GHC.Enum
 
 type WithStackTrace = (?callStack :: GHC.CallStack)
 
@@ -69,6 +79,22 @@ pass = pure ()
 
 with :: HasField "release" resource (IO ()) => IO resource -> (resource -> IO a) -> IO a
 with acquire = bracket acquire (.release)
+
+pred :: Num a => a -> a
+pred n = n - 1
+{-# INLINE pred #-}
+
+pred! :: Enum a => a -> a
+pred! = Enum.pred
+{-# INLINE pred! #-}
+
+succ :: Num a => a -> a
+succ n = n + 1
+{-# INLINE succ #-}
+
+succ! :: Enum a => a -> a
+succ! = Enum.succ
+{-# INLINE succ! #-}
 
 instance HasField "curry" ((a, b) -> c) (a -> b -> c) where
   getField = curry
@@ -98,9 +124,19 @@ instance HasField "fold" Bool (a -> a -> a)
 
 instance HasField "pred" Int Int where
   getField = pred
+  {-# INLINE getField #-}
+
+instance HasField "pred\7433" Int Int where
+  getField = pred!
+  {-# INLINE getField #-}
 
 instance HasField "succ" Int Int where
   getField = succ
+  {-# INLINE getField #-}
+
+instance HasField "succ\7433" Int Int where
+  getField = succ!
+  {-# INLINE getField #-}
 
 instance HasField "max" Int (Int -> Int) where
   getField = max

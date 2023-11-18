@@ -4,7 +4,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.Sliced.ByteArraySpec (arbitrary, spec) where
 
-import Helper hiding (pack, shouldThrow)
+import Helper hiding (pack, unpack, shouldThrow)
 import Test.Hspec (shouldThrow)
 use Gen
 use Range
@@ -103,11 +103,11 @@ spec = do
 
     it "is inverse to unpack" $ do
       input <- forAll arbitrary
-      ByteArray.pack (ByteArray.unpack input) === input
+      pack (unpack input) === input
 
   describe "unpack" $ do
     it "unpacks a list of bytes from a ByteArray" $ do
-      ByteArray.unpack "foobar" `shouldBe` [102, 111, 111, 98, 97, 114]
+      unpack "foobar" `shouldBe` [102, 111, 111, 98, 97, 114]
 
   describe "singleton" $ do
     it "creates a singleton" $ do
@@ -190,6 +190,42 @@ spec = do
   describe "length" $ do
     it "returns the length of a ByteArray" $ do
       ByteArray.length "foo" `shouldBe` 3
+
+  describe "map" $ do
+    it "applies a function to every byte" $ do
+      let f = (+ 1)
+      input <- forAll arbitrary
+      ByteArray.map f input === (pack . List.map f . unpack) input
+
+  describe "reverse" $ do
+    it "reverses a ByteArray" $ do
+      ByteArray.reverse "foobar" `shouldBe` "raboof"
+
+    it "is inverse to itself" $ do
+      input <- forAll arbitrary
+      ByteArray.reverse (ByteArray.reverse input) === input
+
+  describe "intersperse" $ do
+    it "intersperses a byte between the elements of a ByteArray" $ do
+      ByteArray.intersperse (ord8 '-') "foobar" `shouldBe` "f-o-o-b-a-r"
+
+    it "works with arbitrary input" $ do
+      x <- forAll word8
+      xs <- forAll arbitrary
+      ByteArray.intersperse x xs === (pack . List.intersperse x . unpack) xs
+
+  describe "intercalate" $ do
+    it "intersperses a ByteArray between the elements of a list of byte arrays" $ do
+      ByteArray.intercalate " - " ["foo", "bar", "baz"] `shouldBe` "foo - bar - baz"
+
+    it "works with arbitrary input" $ do
+      x <- forAll arbitrary
+      xs <- forAll $ Gen.list (Range.constant 0 10) arbitrary
+      ByteArray.intercalate x xs === mconcat (List.intersperse x xs)
+
+  describe "transpose" $ do
+    it "transposes the rows and columns of its argument" $ do
+      ByteArray.transpose ["123", "456"] `shouldBe` ["14", "25", "36"]
 
   describe "concat" $ do
     it "concatenates a list of byte arrays" $ do

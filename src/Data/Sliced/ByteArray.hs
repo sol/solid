@@ -25,6 +25,13 @@ module Data.Sliced.ByteArray (
 , null
 , length
 
+-- * Transformations
+, map
+, reverse
+, intersperse
+, intercalate
+, transpose
+
 -- * Others
 , concat
 , times
@@ -34,7 +41,7 @@ module Data.Sliced.ByteArray (
 , isValidUtf8
 ) where
 
-import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate)
+import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse)
 import HaskellPrelude (error)
 import GHC.Stack
 import Data.Semigroup
@@ -62,7 +69,7 @@ showAsList :: ByteArray -> ShowS
 showAsList bytes = showChar '[' . go 0
   where
     go i
-      | i < bytes.len = comma . showWord8 (unsafeIndex i bytes) . go (succ i)
+      | i < bytes.len = comma . showWord8 (unsafeIndex i bytes) . go i.succ
       | otherwise = showChar ']'
       where
         comma
@@ -116,7 +123,7 @@ unpack bytes = go bytes.off
 
     go :: Int -> [Word8]
     go !off = if off < done
-      then Array.unsafeIndex bytes.arr off : go (off + 1)
+      then Array.unsafeIndex bytes.arr off : go off.succ
       else []
 
 singleton :: Word8 -> ByteArray
@@ -223,6 +230,69 @@ null bytes = bytes.len == 0
 length :: ByteArray -> Int
 length bytes = bytes.len
 {-# INLINE length #-}
+
+map :: (Word8 -> Word8) -> ByteArray -> ByteArray
+map f bytes = ByteArray arr 0 bytes.len
+  where
+    arr :: Array
+    arr = create bytes.len $ \ marr -> do
+      let
+        go i
+          | i < bytes.len = do
+              Array.unsafeWrite marr i (f $ unsafeIndex i bytes)
+              go i.succ
+          | otherwise = pass
+      go 0
+
+reverse :: ByteArray -> ByteArray
+reverse bytes = ByteArray arr 0 bytes.len
+  where
+    arr :: Array
+    arr = create bytes.len $ \ marr -> do
+      let
+        go from to
+          | to < bytes.len = do
+              Array.unsafeWrite marr to (unsafeIndex from bytes)
+              go from.pred to.succ
+          | otherwise = pass
+      go (bytes.len - 1) 0
+
+intersperse :: Word8 -> ByteArray -> ByteArray
+intersperse c bytes
+  | bytes.len < 2  = bytes
+  | otherwise = ByteArray arr 0 len
+  where
+    len = 2 * bytes.len - 1
+    arr = runST $ do
+      marr <- Array.newFilled len (fromIntegral c)
+      let
+        go i
+          | i < bytes.len = do
+              Array.unsafeWrite marr (i * 2) (unsafeIndex i bytes)
+              go i.succ
+          | otherwise = pass
+      go 0
+      Array.unsafeFreeze marr
+
+intercalate :: ByteArray -> [ByteArray] -> ByteArray
+intercalate _ [] = mempty
+intercalate _ [chunk] = chunk
+intercalate sep (firstChunk : chunks) = ByteArray arr 0 len
+  where
+    len = List.foldl' (\ acc chunk -> acc `checkedAdd` sep.len `checkedAdd` chunk.len) firstChunk.len chunks
+    arr = create len $ \ marr -> do
+      copyTo marr 0 firstChunk
+      let
+        go _ [] = pure ()
+        go i (x : xs) = do
+          copyTo marr i sep
+          let j = i + sep.len
+          copyTo marr j x
+          go (j + x.len) xs
+      go firstChunk.len chunks
+
+transpose :: [ByteArray] -> [ByteArray]
+transpose = List.map pack . List.transpose . List.map unpack
 
 isValidUtf8 :: ByteArray -> Bool
 isValidUtf8 ByteArray{..} = Utf8.isValid arr off len
