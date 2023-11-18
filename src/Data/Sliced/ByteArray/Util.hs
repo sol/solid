@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE ImplicitParams #-}
 module Data.Sliced.ByteArray.Util (
   ST
 , runST
@@ -12,6 +13,7 @@ module Data.Sliced.ByteArray.Util (
 , checkedSum
 , checkedMultiply
 , overflowError
+, withCallStack
 ) where
 
 #ifdef x86_64_HOST_ARCH
@@ -23,7 +25,7 @@ module Data.Sliced.ByteArray.Util (
 
 import Solid.Common
 import HaskellPrelude (error)
-import GHC.Stack (HasCallStack, withFrozenCallStack)
+import GHC.Stack
 import GHC.Exts
 
 import Control.Monad.ST (ST, runST)
@@ -66,3 +68,6 @@ checkedMultiply !(I# x#) !(I# y#) = case timesInt2# x# y# of
 
 overflowError :: HasCallStack => a
 overflowError = withFrozenCallStack $ error "size overflow"
+
+withCallStack :: HasCallStack => (CallStack -> CallStack) -> (HasCallStack => a) -> a
+withCallStack f g = let ?callStack = f (popCallStack callStack) in g
