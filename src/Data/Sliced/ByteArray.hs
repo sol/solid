@@ -3,9 +3,40 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
-module Data.Sliced.ByteArray where
+module Data.Sliced.ByteArray (
+  ByteArray
+
+-- * Creation and elimination
+, pack
+, unpack
+, singleton
+, empty
+
+-- * Basic interface
+, cons
+, snoc
+, append
+, uncons
+, unsnoc
+, head
+, last
+, tail
+, init
+, null
+, length
+
+-- * Others
+, concat
+, times
+, replicate
+, copy
+, compact
+, isValidUtf8
+) where
 
 import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate)
+import HaskellPrelude (error)
+import GHC.Stack
 import Data.Semigroup
 import Data.List.NonEmpty (NonEmpty)
 
@@ -88,6 +119,13 @@ unpack bytes = go bytes.off
       then Array.unsafeIndex bytes.arr off : go (off + 1)
       else []
 
+singleton :: Word8 -> ByteArray
+singleton c = ByteArray arr 0 1
+  where
+    arr :: Array
+    arr = create 1 $ \ marr -> do
+      Array.unsafeWrite marr 0 c
+
 append :: ByteArray -> ByteArray -> ByteArray
 append a b
   | a.len == 0 = b
@@ -139,6 +177,53 @@ unsafeReplicate !n !c = runST $ do
   arr <- Array.unsafeFreeze marr
   return $ ByteArray arr 0 n
 
+infixr 5 `cons`
+infixl 5 `snoc`
+
+cons :: Word8 -> ByteArray -> ByteArray
+cons x xs = ByteArray {..}
+  where
+    off = 0
+    len = succ xs.len
+    arr = create len $ \ marr -> do
+      copyTo marr 1 xs
+      Array.unsafeWrite marr 0 x
+
+snoc :: ByteArray -> Word8 -> ByteArray
+snoc xs x = ByteArray {..}
+  where
+    off = 0
+    len = succ xs.len
+    arr = create len $ \ marr -> do
+      copyTo marr 0 xs
+      Array.unsafeWrite marr xs.len x
+
+uncons :: ByteArray -> Maybe (Word8, ByteArray)
+uncons = nothingOnEmpty $ \ bytes -> (unsafeHead bytes, unsafeTail bytes)
+
+unsnoc :: ByteArray -> Maybe (ByteArray, Word8)
+unsnoc = nothingOnEmpty $ \ bytes -> (unsafeInit bytes, unsafeLast bytes)
+
+head :: HasCallStack => ByteArray -> Word8
+head = errorOnEmpty unsafeHead
+
+last :: HasCallStack => ByteArray -> Word8
+last = errorOnEmpty unsafeLast
+
+tail :: HasCallStack => ByteArray -> ByteArray
+tail = errorOnEmpty unsafeTail
+
+init :: HasCallStack => ByteArray -> ByteArray
+init = errorOnEmpty unsafeInit
+
+null :: ByteArray -> Bool
+null bytes = bytes.len == 0
+{-# INLINE null #-}
+
+length :: ByteArray -> Int
+length bytes = bytes.len
+{-# INLINE length #-}
+
 isValidUtf8 :: ByteArray -> Bool
 isValidUtf8 ByteArray{..} = Utf8.isValid arr off len
 
@@ -153,3 +238,36 @@ unsafeHead bytes = Array.unsafeIndex bytes.arr bytes.off
 unsafeLast :: ByteArray -> Word8
 unsafeLast bytes = Array.unsafeIndex bytes.arr (bytes.off + bytes.len - 1)
 {-# INLINE unsafeLast #-}
+
+unsafeTail :: ByteArray -> ByteArray
+unsafeTail = unsafeDrop 1
+{-# INLINE unsafeTail #-}
+
+unsafeInit :: ByteArray -> ByteArray
+unsafeInit = unsafeDropEnd 1
+{-# INLINE unsafeInit #-}
+
+unsafeDrop :: Int -> ByteArray -> ByteArray
+unsafeDrop n (ByteArray arr off len) = ByteArray arr (off + n) (len - n)
+{-# INLINE unsafeDrop #-}
+
+unsafeDropEnd  :: Int -> ByteArray -> ByteArray
+unsafeDropEnd n (ByteArray arr off len) = ByteArray arr off (len - n)
+{-# INLINE unsafeDropEnd #-}
+
+nothingOnEmpty :: (ByteArray -> a) -> ByteArray -> Maybe a
+nothingOnEmpty f = withNonEmpty Nothing (Just . f)
+{-# INLINE nothingOnEmpty #-}
+
+errorOnEmpty :: HasCallStack => (ByteArray -> a) -> ByteArray -> a
+errorOnEmpty = withNonEmpty $ withCallStack (freezeCallStack . popCallStack) errorEmpty
+{-# INLINE errorOnEmpty #-}
+
+errorEmpty :: HasCallStack => a
+errorEmpty = error "empty ByteArray"
+
+withNonEmpty :: a -> (ByteArray -> a) -> ByteArray -> a
+withNonEmpty a f bytes
+  | bytes.len <= 0 = a
+  | otherwise = f bytes
+{-# INLINE withNonEmpty #-}

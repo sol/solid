@@ -4,7 +4,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.Sliced.ByteArraySpec (arbitrary, spec) where
 
-import Helper hiding (shouldThrow)
+import Helper hiding (pack, shouldThrow)
 import Test.Hspec (shouldThrow)
 use Gen
 use Range
@@ -14,9 +14,13 @@ import GHC.Exts (fromList)
 
 import Data.Sliced.ByteArray as ByteArray
 import Data.Sliced.ByteArray.Unsafe as ByteArray
+import Data.Sliced.ByteArray.Util
 
 import Hedgehog.Classes
 import Hedgehog.Internal.Property
+
+ord8 :: Char -> Word8
+ord8 = fromIntegral . Char.ord
 
 word8 :: MonadGen m => m Word8
 word8 = Gen.word8 Range.constantBounded
@@ -40,6 +44,16 @@ satisfies gen laws = do
       it ("satisfies " <> name) (propertyTest p)
   where
     Laws className properties = laws gen
+
+instance ToString ByteArray where
+
+instance ToString Array where
+
+instance HasField "toString" ByteArray String where
+  getField = toString
+
+instance HasField "toString" Array String where
+  getField = toString
 
 spec :: Spec
 spec = do
@@ -76,7 +90,7 @@ spec = do
 
     context "with invalid UTF-8" $ do
       it "shows a list of bytes" $ do
-        let input = "fo" <> ByteArray.pack [0xf6]
+        let input = "fo" <> pack [0xf6]
         show input `shouldBe` "[0x66, 0x6f, 0xf6]"
 
     it "correctly handles length and offset" $ do
@@ -95,9 +109,87 @@ spec = do
     it "unpacks a list of bytes from a ByteArray" $ do
       ByteArray.unpack "foobar" `shouldBe` [102, 111, 111, 98, 97, 114]
 
+  describe "singleton" $ do
+    it "creates a singleton" $ do
+      c <- forAll word8
+      ByteArray.singleton c === pack [c]
+
+  describe "empty" $ do
+    it "has a length of zero" $ do
+      ByteArray.empty.len `shouldBe` 0
+
+  describe "cons" $ do
+    it "prepends a byte" $ do
+      ByteArray.cons (ord8 'f') "oo" `shouldBe` "foo"
+
+    it "is inverse to uncons" $ do
+      input <- forAll arbitrary
+      maybe mempty (uncurry ByteArray.cons) (ByteArray.uncons input) === input
+
+  describe "snoc" $ do
+    it "appends a byte" $ do
+      ByteArray.snoc "ba" (ord8 'r') `shouldBe` "bar"
+
+    it "is inverse to unsnoc" $ do
+      input <- forAll arbitrary
+      maybe mempty (uncurry ByteArray.snoc) (ByteArray.unsnoc input) === input
+
   describe "append" $ do
     it "appends two byte arrays" $ do
       append "foo" "bar" `shouldBe` "foobar"
+
+  describe "uncons" $ do
+    it "is inverse to cons" $ do
+      x <- forAll word8
+      xs <- forAll arbitrary
+      ByteArray.uncons (ByteArray.cons x xs) === Just (x, xs)
+
+  describe "unsnoc" $ do
+    it "is inverse to snoc" $ do
+      x <- forAll word8
+      xs <- forAll arbitrary
+      ByteArray.unsnoc (ByteArray.snoc xs x) === Just (xs, x)
+
+  describe "head" $ do
+    it "extracts the first element" $ do
+      ByteArray.head "foo" `shouldBe` ord8 'f'
+
+    it "throws on empty" $ do
+      evaluate (ByteArray.head "") `shouldThrow` errorCall "empty ByteArray"
+
+  describe "last" $ do
+    it "extracts the last element" $ do
+      ByteArray.last "bar" `shouldBe` ord8 'r'
+
+    it "throws on empty" $ do
+      evaluate (ByteArray.last "") `shouldThrow` errorCall "empty ByteArray"
+
+  describe "tail" $ do
+    it "drops the first element" $ do
+      ByteArray.tail "bar" `shouldBe` "ar"
+
+    it "throws on empty" $ do
+      evaluate (ByteArray.tail "") `shouldThrow` errorCall "empty ByteArray"
+
+  describe "init" $ do
+    it "drops the last element" $ do
+      ByteArray.init "bar" `shouldBe` "ba"
+
+    it "throws on empty" $ do
+      evaluate (ByteArray.init "") `shouldThrow` errorCall "empty ByteArray"
+
+  describe "null" $ do
+    context "with an empty ByteArray" $ do
+      it "returns True" $ do
+        ByteArray.null "" `shouldBe` True
+
+    context "with a non-empty ByteArray" $ do
+      it "returns False" $ do
+        ByteArray.null "foo" `shouldBe` False
+
+  describe "length" $ do
+    it "returns the length of a ByteArray" $ do
+      ByteArray.length "foo" `shouldBe` 3
 
   describe "concat" $ do
     it "concatenates a list of byte arrays" $ do

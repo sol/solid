@@ -11,10 +11,6 @@ import Data.Sliced.ByteArray.Unsafe
 
 spec :: Spec
 spec = do
-  describe "empty" $ do
-    it "has a length of zero" $ do
-      empty.len `shouldBe` 0
-
   describe "pin" $ do
     it "pins the underlying data" $ do
       input <- forAll arbitrary
