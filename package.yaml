@@ -23,6 +23,7 @@ dependencies:
   - haskell-base
   - primitive >= 0.9.1
   - simdutf
+  - byteslice
   - bytestring
   - text
   - filepath

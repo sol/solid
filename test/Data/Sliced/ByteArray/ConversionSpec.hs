@@ -65,3 +65,12 @@ spec = do
     it "is inverse to toOsPath" $ do
       input <- forAll arbitrary
       fromOsPath (toOsPath input) === input
+
+  describe "toByteSlice" $ do
+    it "converts a ByteArray to a ByteSlice" $ do
+      toByteSlice "foo" `shouldBe` [102, 111, 111]
+
+  describe "fromByteSlice" $ do
+    it "is inverse to toByteSlice" $ do
+      input <- forAll arbitrary
+      fromByteSlice (toByteSlice input) === input

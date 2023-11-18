@@ -86,6 +86,7 @@ library
       solid-pp:solid-pp
   build-depends:
       async
+    , byteslice
     , bytestring
     , containers
     , directory
@@ -129,6 +130,7 @@ executable solid
   build-depends:
       Cabal
     , async
+    , byteslice
     , bytestring
     , cabal-install ==3.10.1.0
     , containers
@@ -277,6 +279,7 @@ test-suite spec
       QuickCheck
     , async
     , base64-bytestring
+    , byteslice
     , bytestring
     , containers
     , directory

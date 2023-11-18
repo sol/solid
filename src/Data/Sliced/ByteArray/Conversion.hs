@@ -16,6 +16,9 @@ module Data.Sliced.ByteArray.Conversion (
 
 , toOsPath
 , fromOsPath
+
+, toByteSlice
+, fromByteSlice
 ) where
 
 import Solid.Common
@@ -41,6 +44,8 @@ import Data.Text.Internal (Text(..))
 
 import System.OsPath (OsPath)
 import System.OsString.Internal.Types (OsString(..), PosixString(..))
+
+use Data.Bytes.Internal as ByteSlice
 
 toByteString :: ByteArray -> ByteString
 toByteString = asByteString . pin
@@ -105,3 +110,13 @@ toOsPath = OsString . PosixString . toShortByteString
 fromOsPath :: OsPath -> ByteArray
 fromOsPath = fromShortByteString . getPosixString . getOsString
 {-# INLINE fromOsPath #-}
+
+type ByteSlice = ByteSlice.Bytes
+
+toByteSlice :: ByteArray -> ByteSlice
+toByteSlice (ByteArray array offset length) = ByteSlice.Bytes{..}
+{-# INLINE toByteSlice #-}
+
+fromByteSlice :: ByteSlice -> ByteArray
+fromByteSlice ByteSlice.Bytes{..} = ByteArray array offset length
+{-# INLINE fromByteSlice #-}
