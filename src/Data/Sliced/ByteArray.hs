@@ -104,7 +104,7 @@ instance Semigroup ByteArray where
   stimes (toInteger -> n) bytes
     | n <= (0 :: Integer) || bytes.len <= 0 = empty
     | toInteger nInt == n = times nInt bytes
-    | otherwise = overflowError
+    | otherwise = overflowError "stimes"
     where
       nInt :: Int
       nInt = fromInteger n
@@ -139,7 +139,7 @@ append a b
   | b.len == 0 = a
   | otherwise = ByteArray arr 0 len
   where
-    len = a.len `checkedAdd` b.len
+    len = checkedAdd "append" a.len b.len
     arr = create len $ \ marr -> do
       copyTo marr 0 a
       copyTo marr a.len b
@@ -150,7 +150,7 @@ concat (discardEmpty -> xs) = case xs of
   [t] -> t
   _ -> ByteArray arr 0 len
   where
-    len = checkedSum $ List.map (.len) xs
+    len = checkedSum "concat" $ List.map (.len) xs
     arr = create len $ \ marr -> do
       foldM_ (\ off bytes -> do
         copyTo marr off bytes
@@ -168,7 +168,7 @@ times n bytes
   | bytes.len == 1 = unsafeReplicate n (unsafeHead bytes)
   | otherwise = ByteArray arr 0 len
   where
-    len = n `checkedMultiply` bytes.len
+    len = checkedMultiply "times" n bytes.len
     arr = create len $ \ marr -> do
       copyTo marr 0 bytes
       Array.tile marr bytes.len
@@ -279,7 +279,8 @@ intercalate _ [] = mempty
 intercalate _ [chunk] = chunk
 intercalate sep (firstChunk : chunks) = ByteArray arr 0 len
   where
-    len = List.foldl' (\ acc chunk -> acc `checkedAdd` sep.len `checkedAdd` chunk.len) firstChunk.len chunks
+    plus = checkedAdd "intercalate"
+    len = List.foldl' (\ acc chunk -> acc `plus` sep.len `plus` chunk.len) firstChunk.len chunks
     arr = create len $ \ marr -> do
       copyTo marr 0 firstChunk
       let
