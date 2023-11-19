@@ -32,6 +32,17 @@ module Data.Sliced.ByteArray (
 , intercalate
 , transpose
 
+-- * Folds
+, foldl
+, foldl'
+, foldl1
+, foldl1'
+
+, foldr
+, foldr'
+, foldr1
+, foldr1'
+
 -- * Others
 , concat
 , times
@@ -41,7 +52,7 @@ module Data.Sliced.ByteArray (
 , isValidUtf8
 ) where
 
-import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse)
+import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1)
 import HaskellPrelude (error)
 import GHC.Stack
 import Data.Semigroup
@@ -294,6 +305,58 @@ intercalate sep (firstChunk : chunks) = ByteArray arr 0 len
 
 transpose :: [ByteArray] -> [ByteArray]
 transpose = List.map pack . List.transpose . List.map unpack
+
+foldl :: (a -> Word8 -> a) -> a -> ByteArray -> a
+foldl f start = \ case -- the lambda is crucial as GHC only inlines functions that are "fully applied"
+  bytes -> go bytes.len.pred
+    where
+      go !i
+        | i < 0 = start
+        | otherwise = let !x = unsafeIndex i bytes in f (go i.pred) x
+{-# INLINE foldl #-}
+
+foldr :: (Word8 -> a -> a) -> a -> ByteArray -> a
+foldr f start = \ case -- the lambda is crucial as GHC only inlines functions that are "fully applied"
+  bytes -> go 0
+    where
+      go !i
+        | i < bytes.len = let !x = unsafeIndex i bytes in f x (go i.succ)
+        | otherwise = start
+{-# INLINE foldr #-}
+
+foldl' :: (a -> Word8 -> a) -> a -> ByteArray -> a
+foldl' f start = \ case -- the lambda is crucial as GHC only inlines functions that are "fully applied"
+  bytes -> go start 0
+    where
+      go !acc !i
+        | i < bytes.len = let !x = unsafeIndex i bytes in go (f acc x) i.succ
+        | otherwise = acc
+{-# INLINE foldl' #-}
+
+foldr' :: (Word8 -> a -> a) -> a -> ByteArray -> a
+foldr' f start = \ case -- the lambda is crucial as GHC only inlines functions that are "fully applied"
+  bytes -> go start bytes.len.pred
+    where
+      go !acc !i
+        | i < 0 = acc
+        | otherwise = let !x = unsafeIndex i bytes in go (f x acc) i.pred
+{-# INLINE foldr' #-}
+
+foldl1 :: HasCallStack => (Word8 -> Word8 -> Word8) -> ByteArray -> Word8
+foldl1 f = errorOnEmpty $ \ bytes -> foldl f (unsafeHead bytes) (unsafeTail bytes)
+{-# INLINE foldl1 #-}
+
+foldl1' :: HasCallStack => (Word8 -> Word8 -> Word8) -> ByteArray -> Word8
+foldl1' f = errorOnEmpty $ \ bytes -> foldl' f (unsafeHead bytes) (unsafeTail bytes)
+{-# INLINE foldl1' #-}
+
+foldr1 :: HasCallStack => (Word8 -> Word8 -> Word8) -> ByteArray -> Word8
+foldr1 f = errorOnEmpty $ \ bytes -> foldr f (unsafeLast bytes) (unsafeInit bytes)
+{-# INLINE foldr1 #-}
+
+foldr1' :: HasCallStack => (Word8 -> Word8 -> Word8) -> ByteArray -> Word8
+foldr1' f = errorOnEmpty $ \ bytes -> foldr' f (unsafeLast bytes) (unsafeInit bytes)
+{-# INLINE foldr1' #-}
 
 isValidUtf8 :: ByteArray -> Bool
 isValidUtf8 ByteArray{..} = Utf8.isValid arr off len
