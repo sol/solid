@@ -227,6 +227,56 @@ spec = do
     it "transposes the rows and columns of its argument" $ do
       ByteArray.transpose ["123", "456"] `shouldBe` ["14", "25", "36"]
 
+  describe "foldl" $ do
+    it "folds from left to right" $ do
+      input <- forAll arbitrary
+      ByteArray.foldl (flip (:)) [] input === List.reverse (unpack input)
+
+    it "is non-strict" $ do
+      _ <- evaluate $ ByteArray.foldl (flip (:)) undefined "foo"
+      pass
+
+  describe "foldl'" $ do
+    it "folds from left to right" $ do
+      input <- forAll arbitrary
+      ByteArray.foldl' (flip (:)) [] input === List.reverse (unpack input)
+
+    it "is strict" $ do
+      evaluate (ByteArray.foldl' (flip (:)) undefined "foo") `shouldThrow` errorCall "Prelude.undefined"
+
+  describe "foldl1" $ do
+    it "folds from left to right" $ do
+      ByteArray.foldl1 (-) [1..10] `shouldBe` 203
+
+  describe "foldl1'" $ do
+    it "folds from left to right" $ do
+      ByteArray.foldl1' (-) [1..10] `shouldBe` 203
+
+  describe "foldr" $ do
+    it "folds from right to left" $ do
+      input <- forAll arbitrary
+      ByteArray.foldr (:) [] input === unpack input
+
+    it "is non-strict" $ do
+      _ <- evaluate $ ByteArray.foldr (:) undefined "foo"
+      pass
+
+  describe "foldr'" $ do
+    it "folds from right to left" $ do
+      input <- forAll arbitrary
+      ByteArray.foldr' (:) [] input === unpack input
+
+    it "is strict" $ do
+      evaluate (ByteArray.foldr' (:) undefined "foo") `shouldThrow` errorCall "Prelude.undefined"
+
+  describe "foldr1" $ do
+    it "folds from right to left" $ do
+      ByteArray.foldr1 (-) [1..10] `shouldBe` 251
+
+  describe "foldr1'" $ do
+    it "folds from right to left" $ do
+      ByteArray.foldr1' (-) [1..10] `shouldBe` 251
+
   describe "concat" $ do
     it "concatenates a list of byte arrays" $ do
       ByteArray.concat ["foo", "bar", "baz"] `shouldBe` "foobarbaz"
