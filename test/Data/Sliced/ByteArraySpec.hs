@@ -80,7 +80,7 @@ spec = do
 
       context "with a subject of non-zero length" $ do
         it "throws an exception" $ do
-          evaluate (stimes @ByteArray n " ") `shouldThrow` errorCall "size overflow"
+          evaluate (stimes @ByteArray n " ") `shouldThrow` errorCall "Data.Sliced.ByteArray.stimes: size overflow"
 
   describe "show" $ do
     context "with valid UTF-8" $ do
@@ -244,4 +244,4 @@ spec = do
 
   describe "times" $ do
     it "throws an exception on overflow" $ do
-      evaluate (ByteArray.times maxBound "foo") `shouldThrow` errorCall "size overflow"
+      evaluate (ByteArray.times maxBound "foo") `shouldThrow` errorCall "Data.Sliced.ByteArray.times: size overflow"

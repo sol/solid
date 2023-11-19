@@ -79,7 +79,7 @@ lazyByteStringLength :: LazyByteString -> Int
 lazyByteStringLength = Lazy.foldlChunks addLength 0
   where
     addLength :: Int -> ByteString -> Int
-    addLength n c = checkedAdd n (ByteString.length c)
+    addLength n c = checkedAdd "Conversion.fromLazyByteString" n (ByteString.length c)
 {-# INLINE lazyByteStringLength #-}
 
 copyChunks :: MArray s -> Int -> LazyByteString -> ST s ()
