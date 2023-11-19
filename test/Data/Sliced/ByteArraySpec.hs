@@ -9,6 +9,7 @@ import Test.Hspec (shouldThrow)
 use Gen
 use Range
 
+use Data.Char
 import Data.Semigroup
 import GHC.Exts (fromList)
 
@@ -21,6 +22,12 @@ import Hedgehog.Internal.Property
 
 ord8 :: Char -> Word8
 ord8 = fromIntegral . Char.ord
+
+chr8 :: Word8 -> Char
+chr8 = Char.chr . fromIntegral
+
+isAlphaNum :: Word8 -> Bool
+isAlphaNum = Char.isAlphaNum . chr8
 
 word8 :: MonadGen m => m Word8
 word8 = Gen.word8 Range.constantBounded
@@ -223,10 +230,6 @@ spec = do
       xs <- forAll $ Gen.list (Range.constant 0 10) arbitrary
       ByteArray.intercalate x xs === mconcat (List.intersperse x xs)
 
-  describe "transpose" $ do
-    it "transposes the rows and columns of its argument" $ do
-      ByteArray.transpose ["123", "456"] `shouldBe` ["14", "25", "36"]
-
   describe "foldl" $ do
     it "folds from left to right" $ do
       input <- forAll arbitrary
@@ -280,6 +283,21 @@ spec = do
   describe "concat" $ do
     it "concatenates a list of byte arrays" $ do
       ByteArray.concat ["foo", "bar", "baz"] `shouldBe` "foobarbaz"
+
+  describe "any" $ do
+    it "tests whether any element of a byte array satisfies a predicate" $ do
+      input <- forAll arbitrary
+      ByteArray.any isAlphaNum input === List.any isAlphaNum (unpack input)
+
+  describe "all" $ do
+    it "tests whether all elements of a byte array satisfy a predicate" $ do
+      input <- forAll arbitrary
+      ByteArray.all isAlphaNum input === List.all isAlphaNum (unpack input)
+
+  describe "isAscii" $ do
+    it "tests whether a byte array contains only ASCII code-points" $ do
+      input <- forAll arbitrary
+      ByteArray.isAscii input === List.all (< 128) (unpack input)
 
   describe "isValidUtf8" $ do
     context "with valid UTF-8" $ do

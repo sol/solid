@@ -25,12 +25,15 @@ module Data.Sliced.ByteArray (
 , null
 , length
 
+-- * Encoding validation
+, isAscii
+, isValidUtf8
+
 -- * Transformations
 , map
 , reverse
 , intersperse
 , intercalate
-, transpose
 
 -- * Folds
 , foldl
@@ -43,16 +46,20 @@ module Data.Sliced.ByteArray (
 , foldr1
 , foldr1'
 
--- * Others
+-- ** Special folds
 , concat
+, any
+, all
+
+-- * Others
 , times
 , replicate
 , copy
 , compact
-, isValidUtf8
 ) where
 
-import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1)
+import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1, concatMap, any, all, maximum, minimum)
+
 import HaskellPrelude (error)
 import GHC.Stack
 import Data.Semigroup
@@ -303,9 +310,6 @@ intercalate sep (firstChunk : chunks) = ByteArray arr 0 len
           go (j + x.len) xs
       go firstChunk.len chunks
 
-transpose :: [ByteArray] -> [ByteArray]
-transpose = List.map pack . List.transpose . List.map unpack
-
 foldl :: (a -> Word8 -> a) -> a -> ByteArray -> a
 foldl f start = \ case -- the lambda is crucial as GHC only inlines functions that are "fully applied"
   bytes -> go bytes.len.pred
@@ -357,6 +361,23 @@ foldr1 f = errorOnEmpty $ \ bytes -> foldr f (unsafeLast bytes) (unsafeInit byte
 foldr1' :: HasCallStack => (Word8 -> Word8 -> Word8) -> ByteArray -> Word8
 foldr1' f = errorOnEmpty $ \ bytes -> foldr' f (unsafeLast bytes) (unsafeInit bytes)
 {-# INLINE foldr1' #-}
+
+any :: (Word8 -> Bool) -> ByteArray -> Bool
+any p bytes = go 0
+  where
+    go i
+      | i < bytes.len = if p (unsafeIndex i bytes) then True else go i.succ
+      | otherwise = False
+
+all :: (Word8 -> Bool) -> ByteArray -> Bool
+all p bytes = go 0
+  where
+    go i
+      | i < bytes.len = if p (unsafeIndex i bytes) then go i.succ else False
+      | otherwise = True
+
+isAscii :: ByteArray -> Bool
+isAscii = Text.isAscii . unsafeToText
 
 isValidUtf8 :: ByteArray -> Bool
 isValidUtf8 ByteArray{..} = Utf8.isValid arr off len
