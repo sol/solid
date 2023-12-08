@@ -57,6 +57,16 @@ module Data.Sliced.ByteArray (
 , drop
 , splitAt
 
+, takeWhile
+, dropWhile
+, span
+, break
+
+, takeWhileEnd
+, dropWhileEnd
+, spanEnd
+, breakEnd
+
 -- * Others
 , times
 , replicate
@@ -64,7 +74,7 @@ module Data.Sliced.ByteArray (
 , compact
 ) where
 
-import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1, concatMap, any, all, maximum, minimum)
+import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, span)
 
 import HaskellPrelude (error)
 import GHC.Stack
@@ -418,6 +428,71 @@ splitAt i bytes
   where
     n = abs i
 {-# INLINE splitAt #-}
+
+takeWhile :: (Word8 -> Bool) -> ByteArray -> ByteArray
+takeWhile p bytes = unsafeTake n bytes
+  where
+    n = countWhile p bytes
+{-# INLINE takeWhile #-}
+
+dropWhile :: (Word8 -> Bool) -> ByteArray -> ByteArray
+dropWhile p bytes = unsafeDrop n bytes
+  where
+    n = countWhile p bytes
+{-# INLINE dropWhile #-}
+
+span :: (Word8 -> Bool) -> ByteArray -> (ByteArray, ByteArray)
+span p bytes = (unsafeTake n bytes, unsafeDrop n bytes)
+  where
+    n = countWhile p bytes
+{-# INLINE span #-}
+
+break :: (Word8 -> Bool) -> ByteArray -> (ByteArray, ByteArray)
+break p = span (not . p)
+{-# INLINE break #-}
+
+takeWhileEnd :: (Word8 -> Bool) -> ByteArray -> ByteArray
+takeWhileEnd p bytes = unsafeTakeEnd n bytes
+  where
+    n = countWhileEnd p bytes
+{-# INLINE takeWhileEnd #-}
+
+dropWhileEnd :: (Word8 -> Bool) -> ByteArray -> ByteArray
+dropWhileEnd p bytes = unsafeDropEnd n bytes
+  where
+    n = countWhileEnd p bytes
+{-# INLINE dropWhileEnd #-}
+
+spanEnd :: (Word8 -> Bool) -> ByteArray -> (ByteArray, ByteArray)
+spanEnd p bytes = (unsafeDropEnd n bytes, unsafeTakeEnd n bytes)
+  where
+    n = countWhileEnd p bytes
+{-# INLINE spanEnd #-}
+
+breakEnd :: (Word8 -> Bool) -> ByteArray -> (ByteArray, ByteArray)
+breakEnd p = spanEnd (not . p)
+{-# INLINE breakEnd #-}
+
+countWhile :: (Word8 -> Bool) -> ByteArray -> Int
+countWhile p bytes = go 0
+  where
+    go i
+      | i < bytes.len = if p (unsafeIndex i bytes ) then go i.succ else done
+      | otherwise = done
+      where
+        done = i
+{-# INLINE countWhile #-}
+
+countWhileEnd :: (Word8 -> Bool) -> ByteArray -> Int
+countWhileEnd p bytes = go start
+  where
+    start = bytes.len.pred
+    go i
+      | i >= 0 = if p (unsafeIndex i bytes ) then go i.pred else done
+      | otherwise = done
+      where
+        done = start - i
+{-# INLINE countWhileEnd #-}
 
 unsafeIndex :: Int -> ByteArray -> Word8
 unsafeIndex n bytes = Array.unsafeIndex bytes.arr (bytes.off + n)

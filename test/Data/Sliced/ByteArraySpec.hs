@@ -10,6 +10,7 @@ use Gen
 use Range
 
 use Data.Char
+import Control.Arrow ((&&&))
 import Data.Semigroup
 import GHC.Exts (fromList)
 
@@ -43,6 +44,16 @@ bytes range = do
 
 arbitrary :: MonadGen m => m ByteArray
 arbitrary = bytes (Range.linear 0 10)
+
+newtype Predicate a = Predicate (a -> Bool)
+
+instance Show (Predicate a) where
+  show _ = "<predicate>"
+
+predicate :: MonadGen m => m (Predicate Word8)
+predicate = do
+  codomain <- Gen.list (Range.singleton 256) Gen.bool
+  return . Predicate $ \ n -> codomain !! (fromIntegral n)
 
 satisfies :: HasCallStack => Gen a -> (Gen a -> Laws) -> Spec
 satisfies gen laws = do
@@ -339,14 +350,72 @@ spec = do
         ByteArray.splitAt 3 "foobarbaz" === ("foo", "barbaz")
         input <- forAll arbitrary
         n <- forAll $ Gen.int (Range.constant 0 20)
-        ByteArray.splitAt n input === (ByteArray.take n input, ByteArray.drop n input)
+        ByteArray.splitAt n input === (ByteArray.take n &&& ByteArray.drop n) input
 
     context "with a negative number" $ do
       it "splits, counting from the end of the list" $ do
         ByteArray.splitAt -3 "foobarbaz" === ("foobar", "baz")
         input <- forAll arbitrary
         n <- forAll $ Gen.int (Range.constant -20 -1)
-        ByteArray.splitAt n input === (ByteArray.drop n input, ByteArray.take n input)
+        ByteArray.splitAt n input === (ByteArray.drop n &&& ByteArray.take n) input
+
+  describe "takeWhile" $ do
+    it "takes while a predicate holds" $ do
+      ByteArray.takeWhile (< 5) [1..10] `shouldBe` [1..4]
+
+    context "with a predicate that always holds" $ do
+      it "is the identity" $ do
+        input <- forAll arbitrary
+        ByteArray.takeWhile (const True) input === input
+
+  describe "dropWhile" $ do
+    it "drops while a predicate holds" $ do
+      ByteArray.dropWhile (< 5) [1..10] `shouldBe` [5..10]
+
+  describe "span" $ do
+    it "takes / drops while a predicate holds" $ do
+      ByteArray.span (< 5) [1..10] === ([1..4], [5..10])
+      input <- forAll arbitrary
+      Predicate p <- forAll predicate
+      ByteArray.span p input === (ByteArray.takeWhile p &&& ByteArray.dropWhile p) input
+
+    it "is reversed by (<>)" $ do
+      input <- forAll arbitrary
+      Predicate p <- forAll predicate
+      uncurry (<>) (ByteArray.span p input) === input
+
+  describe "break" $ do
+    it "takes / drops while a predicate does not hold" $ do
+      ByteArray.break (> 4) [1..10] `shouldBe` ([1..4], [5..10])
+
+  describe "takeWhileEnd" $ do
+    it "takes from the end while a predicate holds" $ do
+      ByteArray.takeWhileEnd (> 5) [1..10] `shouldBe` [6..10]
+
+    context "with a predicate that always holds" $ do
+      it "is the identity" $ do
+        input <- forAll arbitrary
+        ByteArray.takeWhileEnd (const True) input === input
+
+  describe "dropWhileEnd" $ do
+    it "drops from the end while a predicate holds" $ do
+      ByteArray.dropWhileEnd (> 5) [1..10] `shouldBe` [1..5]
+
+  describe "spanEnd" $ do
+    it "takes / drops from the end while a predicate holds" $ do
+      ByteArray.spanEnd (> 5) [1..10] === ([1..5], [6..10])
+      input <- forAll arbitrary
+      Predicate p <- forAll predicate
+      ByteArray.spanEnd p input === (ByteArray.dropWhileEnd p &&& ByteArray.takeWhileEnd p) input
+
+    it "is reversed by (<>)" $ do
+      input <- forAll arbitrary
+      Predicate p <- forAll predicate
+      uncurry (<>) (ByteArray.spanEnd p input) === input
+
+  describe "breakEnd" $ do
+    it "takes / drops from the end while a predicate does not hold" $ do
+      ByteArray.breakEnd (< 6) [1..10] `shouldBe` ([1..5], [6..10])
 
   describe "times" $ do
     it "throws an exception on overflow" $ do
