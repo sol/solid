@@ -51,6 +51,12 @@ module Data.Sliced.ByteArray (
 , any
 , all
 
+-- * Substrings
+-- ** Breaking strings
+, take
+, drop
+, splitAt
+
 -- * Others
 , times
 , replicate
@@ -382,6 +388,37 @@ isAscii = Text.isAscii . unsafeToText
 isValidUtf8 :: ByteArray -> Bool
 isValidUtf8 ByteArray{..} = Utf8.isValid arr off len
 
+take :: Int -> ByteArray -> ByteArray
+take i bytes
+  | n >= bytes.len = bytes
+  | n == 0 = empty
+  | i > 0 = unsafeTake n bytes
+  | otherwise = unsafeTakeEnd n bytes
+  where
+    n = abs i
+{-# INLINE take #-}
+
+drop  :: Int -> ByteArray -> ByteArray
+drop i bytes
+  | n >= bytes.len = empty
+  | n == 0 = bytes
+  | i > 0 = unsafeDrop n bytes
+  | otherwise = unsafeDropEnd n bytes
+  where
+    n = abs i
+{-# INLINE drop #-}
+
+splitAt :: Int -> ByteArray -> (ByteArray, ByteArray)
+splitAt i bytes
+  | i == 0 = (empty, bytes)
+  | i >= bytes.len  = (bytes, empty)
+  | i > 0 = (unsafeTake i bytes, unsafeDrop i bytes)
+  | n >= bytes.len = (empty, bytes)
+  | otherwise = (unsafeDropEnd n bytes, unsafeTakeEnd n bytes)
+  where
+    n = abs i
+{-# INLINE splitAt #-}
+
 unsafeIndex :: Int -> ByteArray -> Word8
 unsafeIndex n bytes = Array.unsafeIndex bytes.arr (bytes.off + n)
 {-# INLINE unsafeIndex #-}
@@ -401,6 +438,14 @@ unsafeTail = unsafeDrop 1
 unsafeInit :: ByteArray -> ByteArray
 unsafeInit = unsafeDropEnd 1
 {-# INLINE unsafeInit #-}
+
+unsafeTake :: Int -> ByteArray -> ByteArray
+unsafeTake n (ByteArray arr off _) = ByteArray arr off n
+{-# INLINE unsafeTake #-}
+
+unsafeTakeEnd :: Int -> ByteArray -> ByteArray
+unsafeTakeEnd n (ByteArray arr off len) = ByteArray arr (off + len - n) n
+{-# INLINE unsafeTakeEnd #-}
 
 unsafeDrop :: Int -> ByteArray -> ByteArray
 unsafeDrop n (ByteArray arr off len) = ByteArray arr (off + n) (len - n)

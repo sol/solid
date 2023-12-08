@@ -310,6 +310,44 @@ spec = do
         let input = ByteArray [0, 128] 1 1
         isValidUtf8 input `shouldBe` False
 
+  describe "take" $ do
+    context "with a non-negative number" $ do
+      it "takes from the beginning of the list" $ do
+        ByteArray.take 3 "foobarbaz" `shouldBe` "foo"
+
+    context "with a negative number" $ do
+      it "takes from the end of the list" $ do
+        ByteArray.take -3 "foobarbaz" `shouldBe` "baz"
+
+  describe "drop" $ do
+    context "with a non-negative number" $ do
+      it "drops from the beginning of the list" $ do
+        ByteArray.drop 3 "foobarbaz" `shouldBe` "barbaz"
+
+    context "with a negative number" $ do
+      it "drops from the end of the list" $ do
+        ByteArray.drop -3 "foobarbaz" `shouldBe` "foobar"
+
+  describe "splitAt" $ do
+    it "is reversed by (<>)" $ do
+      input <- forAll arbitrary
+      n <- forAll $ Gen.int (Range.constant -20 20)
+      uncurry (<>) (ByteArray.splitAt n input) === input
+
+    context "with a non-negative number" $ do
+      it "splits, counting from the beginning of the list" $ do
+        ByteArray.splitAt 3 "foobarbaz" === ("foo", "barbaz")
+        input <- forAll arbitrary
+        n <- forAll $ Gen.int (Range.constant 0 20)
+        ByteArray.splitAt n input === (ByteArray.take n input, ByteArray.drop n input)
+
+    context "with a negative number" $ do
+      it "splits, counting from the end of the list" $ do
+        ByteArray.splitAt -3 "foobarbaz" === ("foobar", "baz")
+        input <- forAll arbitrary
+        n <- forAll $ Gen.int (Range.constant -20 -1)
+        ByteArray.splitAt n input === (ByteArray.drop n input, ByteArray.take n input)
+
   describe "times" $ do
     it "throws an exception on overflow" $ do
       evaluate (ByteArray.times maxBound "foo") `shouldThrow` errorCall "Data.Sliced.ByteArray.times: size overflow"
