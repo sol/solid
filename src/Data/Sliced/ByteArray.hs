@@ -3,6 +3,8 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnliftedFFITypes #-}
 module Data.Sliced.ByteArray (
   ByteArray
 
@@ -70,9 +72,16 @@ module Data.Sliced.ByteArray (
 , stripPrefix
 , stripSuffix
 
+-- ** Breaking into many substrings
+, split
+
 -- * Predicates
 , isPrefixOf
 , isSuffixOf
+, isInfixOf
+
+-- * Searching
+, elem
 
 -- * Others
 , times
@@ -81,7 +90,7 @@ module Data.Sliced.ByteArray (
 , compact
 ) where
 
-import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, span)
+import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, span, elem)
 
 import HaskellPrelude (error)
 import GHC.Stack
@@ -91,9 +100,12 @@ import Data.List.NonEmpty (NonEmpty)
 import GHC.Exts
 import GHC.Show (intToDigit)
 import Data.Bits ((.&.), unsafeShiftR)
+import Foreign.C.Types
+import System.Posix.Types (CSsize(..))
 use Data.List
 use Data.Text
 use Data.Text.Array
+use Data.Text.Internal.Search
 use Simd.Utf8
 
 import Data.Sliced.ByteArray.Util
@@ -513,6 +525,24 @@ stripSuffix suffix bytes
   | otherwise = Nothing
 {-# INLINE stripSuffix #-}
 
+split :: ByteArray -> ByteArray -> [ByteArray]
+split needle bytes
+  | bytes.len == 0 = [""]
+  | needle.len == 0 = elements bytes
+  | otherwise = go 0 $ Search.indices (unsafeToText needle) (unsafeToText bytes)
+  where
+    go off = \ case
+      [] -> [unsafeDrop off bytes]
+      n : xs -> unsafeSlice off n bytes : go (n + needle.len) xs
+
+elements :: ByteArray -> [ByteArray]
+elements bytes = go 0
+  where
+    go n
+      | n < bytes.len = unsafeSlice n m bytes : go m
+      | otherwise = []
+      where m = n.succ
+
 isPrefixOf :: ByteArray -> ByteArray -> Bool
 isPrefixOf prefix bytes
   | prefix.len == 0 = True
@@ -526,6 +556,21 @@ isSuffixOf suffix bytes
   | otherwise = Array.equal suffix.arr suffix.off bytes.arr off suffix.len
   where
     off = bytes.off + bytes.len - suffix.len
+
+isInfixOf :: ByteArray -> ByteArray -> Bool
+isInfixOf needle haystack
+  | needle.len == 0 = True
+  | needle.len == 1 = elem (unsafeHead needle) haystack
+  | otherwise = not . List.null $ Search.indices (unsafeToText needle) (unsafeToText haystack)
+
+elem :: Word8 -> ByteArray -> Bool
+elem c bytes = memchr bytes.arr bytes.off bytes.len c >= 0
+
+memchr :: Array -> Int -> Int -> Word8 -> CSsize
+memchr (Array.ByteArray bytes) off len = c_memchr bytes (fromIntegral off) (fromIntegral len)
+
+foreign import ccall unsafe "_hs_text_memchr" c_memchr
+  :: ByteArray# -> CSize -> CSize -> Word8 -> CSsize
 
 unsafeIndex :: Int -> ByteArray -> Word8
 unsafeIndex n bytes = Array.unsafeIndex bytes.arr (bytes.off + n)
@@ -562,6 +607,10 @@ unsafeDrop n (ByteArray arr off len) = ByteArray arr (off + n) (len - n)
 unsafeDropEnd  :: Int -> ByteArray -> ByteArray
 unsafeDropEnd n (ByteArray arr off len) = ByteArray arr off (len - n)
 {-# INLINE unsafeDropEnd #-}
+
+unsafeSlice :: Int -> Int -> ByteArray -> ByteArray
+unsafeSlice start end (ByteArray arr off _) = ByteArray arr (off + start) (end - start)
+{-# INLINE unsafeSlice #-}
 
 nothingOnEmpty :: (ByteArray -> a) -> ByteArray -> Maybe a
 nothingOnEmpty f = withNonEmpty Nothing (Just . f)

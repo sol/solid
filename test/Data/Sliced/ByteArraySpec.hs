@@ -434,6 +434,33 @@ spec = do
     it "strips a suffix" $ do
       ByteArray.stripSuffix "baz" "foobarbaz" `shouldBe` (Just "foobar")
 
+  describe "split" $ do
+    it "splits a byte array" $ do
+      ByteArray.split ", " "foo, bar, baz" `shouldBe` ["foo", "bar", "baz"]
+
+    it "is reversed by intercalate" $ do
+      needle <- forAll $ smallBytes (Range.linear 0 10)
+      input  <- forAll $ smallBytes (Range.linear 0 100)
+      ByteArray.intercalate needle (ByteArray.split needle input) === input
+
+    it "works on invalid UTF-8" $ do
+      let input = [223, 242, 223]
+      isValidUtf8 input `shouldBe` False
+      ByteArray.split [242] input `shouldBe` [[223], [223]]
+
+    context "when the separator is repeated n times in the input" $ do
+      it "creates n+1 empty chunks" $ do
+        ByteArray.split "foo" "foofoofoo" `shouldBe` ["", "", "", ""]
+
+    context "when pattern does not match" $ do
+      it "returns a singleton list" $ do
+        ByteArray.split undefined "" `shouldBe` [""]
+        ByteArray.split "foo" "bar" `shouldBe` ["bar"]
+
+    context "with an empty separator" $ do
+      it "splits into chunks of size one" $ do
+        ByteArray.split "" "foo" `shouldBe` ["f", "o", "o"]
+
   describe "isPrefixOf" $ do
     it "tests whether a byte array starts with a given prefix" $ do
       isPrefixOf "foo" "foobarbaz" `shouldBe` True
@@ -461,6 +488,18 @@ spec = do
       suffix <- forAll $ smallBytes (Range.linear 0 10)
       input <- forAll $ smallBytes (Range.linear 0 100)
       isSuffixOf suffix input === isPrefixOf (reverse suffix) (reverse input)
+
+  describe "isInfixOf" $ do
+    it "tests whether a byte array contains given pattern" $ do
+      needle <- forAll $ smallBytes (Range.linear 0 10)
+      input <- forAll $ smallBytes (Range.linear 0 100)
+      isInfixOf needle input === List.isInfixOf (unpack needle) (unpack input)
+
+  describe "elem" $ do
+    it "tests whether a byte array contains a given byte" $ do
+      c <- forAll word8
+      input <- forAll arbitrary
+      ByteArray.elem c input === List.elem c (unpack input)
 
   describe "times" $ do
     it "throws an exception on overflow" $ do
