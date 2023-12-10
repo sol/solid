@@ -4,7 +4,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.Sliced.ByteArraySpec (arbitrary, spec) where
 
-import Helper hiding (pack, unpack, shouldThrow)
+import Helper hiding (pack, unpack, shouldThrow, take, drop, reverse)
 import Test.Hspec (shouldThrow)
 use Gen
 use Range
@@ -34,12 +34,18 @@ word8 :: MonadGen m => m Word8
 word8 = Gen.word8 Range.constantBounded
 
 bytes :: MonadGen m => Range Int -> m ByteArray
-bytes range = do
+bytes = bytesWith word8
+
+smallBytes :: MonadGen m => Range Int -> m ByteArray
+smallBytes = bytesWith $ Gen.word8 (Range.constant 0 5)
+
+bytesWith :: MonadGen m => m Word8 -> Range Int -> m ByteArray
+bytesWith gen range = do
   size <- Gen.int range
   off <- Gen.int (Range.constant 0 size)
   end <- Gen.int (Range.constant off size)
   let len = end - off
-  arr <- fromList <$> Gen.list (Range.singleton size) word8
+  arr <- fromList <$> Gen.list (Range.singleton size) gen
   return ByteArray{..}
 
 arbitrary :: MonadGen m => m ByteArray
@@ -72,6 +78,9 @@ instance HasField "toString" ByteArray String where
 
 instance HasField "toString" Array String where
   getField = toString
+
+prop :: HasCallStack => [Char] -> PropertyT IO () -> Spec
+prop s = it s . hedgehog
 
 spec :: Spec
 spec = do
@@ -416,6 +425,42 @@ spec = do
   describe "breakEnd" $ do
     it "takes / drops from the end while a predicate does not hold" $ do
       ByteArray.breakEnd (< 6) [1..10] `shouldBe` ([1..5], [6..10])
+
+  describe "stripPrefix" $ do
+    it "strips a prefix" $ do
+      ByteArray.stripPrefix "foo" "foobarbaz" `shouldBe` (Just "barbaz")
+
+  describe "stripSuffix" $ do
+    it "strips a suffix" $ do
+      ByteArray.stripSuffix "baz" "foobarbaz" `shouldBe` (Just "foobar")
+
+  describe "isPrefixOf" $ do
+    it "tests whether a byte array starts with a given prefix" $ do
+      isPrefixOf "foo" "foobarbaz" `shouldBe` True
+
+    prop "isPrefixOf (take n input) input == True" $ do
+      input <- forAll arbitrary
+      n <- forAll $ Gen.int (Range.constant 0 input.len)
+      isPrefixOf (take n input) input === True
+
+    prop "isPrefixOf prefix input == isSuffixOf (reverse prefix) (reverse input)" $ do
+      prefix <- forAll $ smallBytes (Range.linear 0 10)
+      input <- forAll $ smallBytes (Range.linear 0 100)
+      isPrefixOf prefix input === isSuffixOf (reverse prefix) (reverse input)
+
+  describe "isSuffixOf" $ do
+    it "tests whether a byte array ends with a given suffix" $ do
+      isSuffixOf "baz" "foobarbaz" `shouldBe` True
+
+    prop "isSuffixOf (take -n input) input == True" $ do
+      input <- forAll arbitrary
+      n <- forAll $ Gen.int (Range.constant 0 input.len)
+      isSuffixOf (take -n input) input === True
+
+    prop "isSuffixOf suffix input == isPrefixOf (reverse suffix) (reverse input)" $ do
+      suffix <- forAll $ smallBytes (Range.linear 0 10)
+      input <- forAll $ smallBytes (Range.linear 0 100)
+      isSuffixOf suffix input === isPrefixOf (reverse suffix) (reverse input)
 
   describe "times" $ do
     it "throws an exception on overflow" $ do

@@ -67,6 +67,13 @@ module Data.Sliced.ByteArray (
 , spanEnd
 , breakEnd
 
+, stripPrefix
+, stripSuffix
+
+-- * Predicates
+, isPrefixOf
+, isSuffixOf
+
 -- * Others
 , times
 , replicate
@@ -493,6 +500,32 @@ countWhileEnd p bytes = go start
       where
         done = start - i
 {-# INLINE countWhileEnd #-}
+
+stripPrefix :: ByteArray -> ByteArray -> Maybe ByteArray
+stripPrefix prefix bytes
+  | isPrefixOf prefix bytes = Just (unsafeDrop prefix.len bytes)
+  | otherwise = Nothing
+{-# INLINE stripPrefix #-}
+
+stripSuffix :: ByteArray -> ByteArray -> Maybe ByteArray
+stripSuffix suffix bytes
+  | isSuffixOf suffix bytes = Just (unsafeDropEnd suffix.len bytes)
+  | otherwise = Nothing
+{-# INLINE stripSuffix #-}
+
+isPrefixOf :: ByteArray -> ByteArray -> Bool
+isPrefixOf prefix bytes
+  | prefix.len == 0 = True
+  | prefix.len > bytes.len = False
+  | otherwise = Array.equal prefix.arr prefix.off bytes.arr bytes.off prefix.len
+
+isSuffixOf :: ByteArray -> ByteArray -> Bool
+isSuffixOf suffix bytes
+  | suffix.len == 0 = True
+  | suffix.len > bytes.len = False
+  | otherwise = Array.equal suffix.arr suffix.off bytes.arr off suffix.len
+  where
+    off = bytes.off + bytes.len - suffix.len
 
 unsafeIndex :: Int -> ByteArray -> Word8
 unsafeIndex n bytes = Array.unsafeIndex bytes.arr (bytes.off + n)
