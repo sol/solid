@@ -47,13 +47,15 @@ import           Solid.ToString
 import           GHC.IO.Handle.Types (Handle(..))
 import           Control.Concurrent.MVar (withMVar)
 
+use Haskell
+
 type Mode = Haskell.IOMode
 
 print :: ToString a => Handle -> a -> IO ()
 print h = writeLine h . toString
 
 write :: Handle -> String -> IO ()
-write = coerce B.hPut
+write h = B.hPut h . Haskell.asByteString
 
 writeLine :: Handle -> String -> IO ()
 writeLine self str = do
@@ -91,7 +93,7 @@ setBuffering :: BufferMode -> Handle -> IO ()
 setBuffering = flip Haskell.hSetBuffering
 
 getContents :: Handle -> IO ByteString
-getContents = fmap Bytes . B.hGetContents
+getContents = fmap Haskell.fromByteString . B.hGetContents
 
 withLock :: IO a -> Handle -> IO a
 withLock action h = withMVar handle__ $ \ _ -> action

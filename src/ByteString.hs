@@ -15,10 +15,9 @@ use Solid.Bytes
 use Solid.String
 use String
 use Solid.StackTrace
+use Data.Sliced.ByteArray
 
 import Data.Coerce (coerce)
-import Data.ByteString qualified as Haskell
-import Data.ByteString.Char8 qualified as Char8
 import Data.ByteString.Internal (isSpaceWord8)
 
 instance Show ByteString where
@@ -31,7 +30,7 @@ asString :: ByteString -> Maybe String
 asString = String.asString
 
 asString! :: WithStackTrace => ByteString -> String
-asString! (Bytes string) = if Haskell.isValidUtf8 string then Bytes string else throw! UnicodeDecodeError
+asString! (Bytes string) = if ByteArray.isValidUtf8 string then Bytes string else throw! UnicodeDecodeError
 
 decodeUtf8 :: ByteString -> String
 decodeUtf8 = String.decodeUtf8
@@ -46,46 +45,43 @@ instance HasField "decodeUtf8" ByteString String where
   getField = decodeUtf8
 
 length :: ByteString -> Int
-length = coerce Haskell.length
+length = coerce ByteArray.length
 
 pack :: [Word8] -> ByteString
-pack = Bytes . Haskell.pack
+pack = Bytes . ByteArray.pack
 
 unpack :: ByteString -> [Word8]
-unpack = Haskell.unpack . unBytes
+unpack = ByteArray.unpack . unBytes
 
 take :: Int -> ByteString -> ByteString
-take = coerce Haskell.take
+take = coerce ByteArray.take
 
 takeWhile :: (Word8 -> Bool) -> ByteString -> ByteString
-takeWhile = coerce Haskell.takeWhile
+takeWhile = coerce ByteArray.takeWhile
 
 takeWhileEnd :: (Word8 -> Bool) -> ByteString -> ByteString
-takeWhileEnd = coerce Haskell.takeWhileEnd
+takeWhileEnd = coerce ByteArray.takeWhileEnd
 
 drop :: Int -> ByteString -> ByteString
-drop = coerce Haskell.drop
+drop = coerce ByteArray.drop
 
 dropWhile :: (Word8 -> Bool) -> ByteString -> ByteString
-dropWhile = coerce Haskell.dropWhile
+dropWhile = coerce ByteArray.dropWhile
 
 dropWhileEnd :: (Word8 -> Bool) -> ByteString -> ByteString
-dropWhileEnd = coerce Haskell.dropWhileEnd
+dropWhileEnd = coerce ByteArray.dropWhileEnd
 
 splitAt :: Int -> ByteString -> (ByteString, ByteString)
-splitAt = coerce Haskell.splitAt
-
-words :: ByteString -> [ByteString]
-words = coerce Char8.words
+splitAt = coerce ByteArray.splitAt
 
 unwords :: [ByteString] -> ByteString
-unwords = coerce Char8.unwords
+unwords = coerce ByteArray.unwords
 
 lines :: ByteString -> [ByteString]
-lines = coerce Char8.lines
+lines = coerce ByteArray.lines
 
 unlines :: [ByteString] -> ByteString
-unlines = coerce Char8.unlines
+unlines = coerce ByteArray.unlines
 
 strip :: ByteString -> ByteString
 strip = dropWhile asciiSpace? . dropWhileEnd asciiSpace?
@@ -93,7 +89,7 @@ strip = dropWhile asciiSpace? . dropWhileEnd asciiSpace?
     asciiSpace? c = c < 128 && isSpaceWord8 c
 
 inits :: ByteString -> [ByteString]
-inits = coerce Haskell.inits
+inits = coerce ByteArray.inits
 
 isPrefixOf :: ByteString -> ByteString -> Bool
 isPrefixOf = Bytes.isPrefixOf
@@ -102,13 +98,13 @@ isSuffixOf :: ByteString -> ByteString -> Bool
 isSuffixOf = Bytes.isSuffixOf
 
 isInfixOf :: ByteString -> ByteString -> Bool
-isInfixOf = coerce Haskell.isInfixOf
+isInfixOf = coerce ByteArray.isInfixOf
 
 stripPrefix :: ByteString -> ByteString -> Maybe ByteString
-stripPrefix = coerce Haskell.stripPrefix
+stripPrefix = coerce ByteArray.stripPrefix
 
 stripSuffix :: ByteString -> ByteString -> Maybe ByteString
-stripSuffix = coerce Haskell.stripSuffix
+stripSuffix = coerce ByteArray.stripSuffix
 
 startsWith :: ByteString -> ByteString -> Bool
 startsWith = Bytes.startsWith
@@ -159,9 +155,6 @@ instance HasField "dropWhileEnd" ByteString ((Word8 -> Bool) -> ByteString) wher
 
 instance HasField "splitAt" ByteString (Int -> (ByteString, ByteString)) where
   getField = flip splitAt
-
-instance HasField "words" ByteString [ByteString] where
-  getField = words
 
 instance HasField "unwords" [ByteString] ByteString where
   getField = unwords

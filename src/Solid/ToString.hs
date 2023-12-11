@@ -9,12 +9,12 @@ import Solid.Common
 import Solid.String
 import Solid.Bytes.Unsafe
 
-import qualified Data.ByteString.Builder as Builder
-import qualified Data.ByteString.Lazy as LB
-import           Data.Text.Encoding (encodeUtf8)
 import           Data.Text (Text)
 import           Data.Typeable (TypeRep)
 import           System.Exit (ExitCode(..))
+
+use Data.Sliced.ByteArray.Conversion
+import Data.Coerce
 
 class Show a => ToString a where
   toString :: a -> String
@@ -30,11 +30,11 @@ instance ToString String where
   toString = id
 
 instance ToString Char where
-  toString = Bytes . LB.toStrict . Builder.toLazyByteString . Builder.charUtf8
+  toString = singleton
   listToString = pack
 
 instance ToString Text where
-  toString = Bytes . encodeUtf8
+  toString = coerce Conversion.fromText
 
 instance ToString ()
 instance ToString Bool

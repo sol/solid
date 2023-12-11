@@ -32,12 +32,12 @@ import Solid.Common hiding (IsString(..))
 import Solid.FilePath
 import Solid.ToString qualified as Solid
 import Solid.Bytes.Unsafe
-import Solid.Foreign.C qualified as C
 import Data.Coerce (coerce)
 import System.OsString.Internal.Types (OsString(..), PosixString(..))
 import System.Posix.Files.PosixString qualified as Posix
 import System.Posix.Directory.PosixPath qualified as Posix
 
+use Solid.Foreign.C
 use System.FilePath.Import
 use System.Directory.Import
 

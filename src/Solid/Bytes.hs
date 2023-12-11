@@ -10,19 +10,18 @@ import Solid.Bytes.Unsafe
 import Solid.ByteString
 
 import Data.Coerce (coerce)
-import Data.ByteString qualified as Haskell
 
-import Data.ByteString.Short (toShort)
-import System.OsString.Internal.Types (OsString(..), PosixString(..))
+use Data.Sliced.ByteArray
+use Data.Sliced.ByteArray.Conversion
 
 intercalate :: Bytes a -> [Bytes a] -> Bytes a
-intercalate = coerce Haskell.intercalate
+intercalate = coerce ByteArray.intercalate
 
 isPrefixOf :: Bytes a -> Bytes a -> Bool
-isPrefixOf = coerce Haskell.isPrefixOf
+isPrefixOf = coerce ByteArray.isPrefixOf
 
 isSuffixOf :: Bytes a -> Bytes a -> Bool
-isSuffixOf = coerce Haskell.isSuffixOf
+isSuffixOf = coerce ByteArray.isSuffixOf
 
 startsWith :: Bytes a -> Bytes a -> Bool
 startsWith = isPrefixOf
@@ -31,7 +30,7 @@ endsWith :: Bytes a -> Bytes a -> Bool
 endsWith = isSuffixOf
 
 asFilePath :: Bytes a -> FilePath
-asFilePath = FilePath . OsString . PosixString . toShort . unBytes
+asFilePath = FilePath . coerce Conversion.toOsPath
 
 asByteString :: Bytes a -> ByteString
 asByteString = Bytes . unBytes

@@ -12,7 +12,12 @@ module Haskell (
 
 , Text
 , toText
+, unsafeToText
 , fromText
+
+, Haskell.PosixString
+, toPosixString
+, fromPosixString
 
 , Haskell.OsPath
 , asOsPath
@@ -35,41 +40,51 @@ module Haskell (
 import Solid.Common
 import Solid.String (String)
 import Solid.ByteString (ByteString)
-import Solid.Bytes.Unsafe (Bytes(..), FilePath(..))
 import Solid.StackTrace (toCallStack, fromCallStack)
 
 import System.IO.Unsafe (unsafePerformIO)
 use Data.String as Haskell
 use Data.ByteString as Haskell
 use Data.ByteString.Lazy as Haskell (LazyByteString)
-use Data.ByteString.Lazy
 use System.FilePath as Haskell
 use System.OsPath as Haskell
 use System.OsPath.Types as Haskell
 import System.OsString.Internal.Types (OsString(..))
 
 import Data.Text (Text)
-use Data.Text.Encoding as Text
 
-asByteString :: ByteString -> Haskell.ByteString
-asByteString = unBytes
+use Data.Sliced.ByteArray.Conversion
+import Data.Coerce (coerce)
+import Solid.Bytes.Unsafe
+
+asByteString :: Bytes a -> Haskell.ByteString
+asByteString = coerce Conversion.toByteString
 
 fromByteString :: Haskell.ByteString -> ByteString
-fromByteString = Bytes
+fromByteString = coerce Conversion.fromByteString
 
 toLazyByteString :: Bytes a -> Haskell.LazyByteString
-toLazyByteString = Lazy.fromStrict . unBytes
+toLazyByteString = coerce Conversion.toLazyByteString
 {-# INLINE toLazyByteString #-}
 
 fromLazyByteString :: Haskell.LazyByteString -> ByteString
-fromLazyByteString = Bytes . Lazy.toStrict
+fromLazyByteString = coerce Conversion.fromLazyByteString
 {-# INLINE fromLazyByteString #-}
 
 toText :: String -> Text
-toText = Text.decodeUtf8 . unBytes
+toText = coerce Conversion.unsafeToText
+
+unsafeToText :: Bytes a -> Text
+unsafeToText = coerce Conversion.unsafeToText
 
 fromText :: Text -> String
-fromText = Bytes . Text.encodeUtf8
+fromText = coerce Conversion.fromText
+
+toPosixString :: ByteString -> Haskell.PosixString
+toPosixString = coerce Conversion.toPosixString
+
+fromPosixString :: Haskell.PosixString -> ByteString
+fromPosixString = coerce Conversion.fromPosixString
 
 asOsPath :: FilePath -> Haskell.OsPath
 asOsPath = unFilePath

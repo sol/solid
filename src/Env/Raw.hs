@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE CPP #-}
 module Env.Raw (
   get
@@ -16,18 +17,18 @@ module Env.Raw (
 ) where
 
 import Solid hiding (all)
-import Solid.Bytes.Unsafe
-import Data.Coerce (coerce)
 import System.Posix.Env.ByteString qualified as Haskell
 
+use Haskell
+
 get :: ByteString -> IO (Maybe ByteString)
-get = coerce Haskell.getEnv
+get = fmap (fmap Haskell.fromByteString) . Haskell.getEnv . Haskell.asByteString
 
 set :: ByteString -> ByteString -> IO ()
-set name value = Haskell.setEnv (unBytes name) (unBytes value) True
+set name value = Haskell.setEnv (Haskell.asByteString name) (Haskell.asByteString value) True
 
 unset :: ByteString -> IO ()
-unset = coerce Haskell.unsetEnv
+unset = Haskell.unsetEnv . Haskell.asByteString
 
 without :: ByteString -> IO a -> IO a
 without name action = bracket (get name) (maybe pass (set name)) $ \ _ -> do
@@ -35,10 +36,10 @@ without name action = bracket (get name) (maybe pass (set name)) $ \ _ -> do
   action
 
 all :: IO [(ByteString, ByteString)]
-all = coerce Haskell.getEnvironment
+all = fromHaskellEnvironment <$> Haskell.getEnvironment
 
 ensure :: [(ByteString, ByteString)] -> IO ()
-ensure = Haskell.setEnvironment . reverse . coerce
+ensure = Haskell.setEnvironment . reverse . toHaskellEnvironment
 
 clear :: IO ()
 clear = Haskell.clearEnv
@@ -51,5 +52,11 @@ extend values = modify (values ++)
 
 modify :: ([(ByteString, ByteString)] -> [(ByteString, ByteString)]) -> IO a -> IO a
 modify f action = bracket Haskell.getEnvironment Haskell.setEnvironment $ \ env -> do
-  ensure (f $ coerce env)
+  ensure (f $ fromHaskellEnvironment env)
   action
+
+toHaskellEnvironment :: [(ByteString, ByteString)] -> [(Haskell.ByteString, Haskell.ByteString)]
+toHaskellEnvironment = map (bimap Haskell.asByteString Haskell.asByteString)
+
+fromHaskellEnvironment :: [(Haskell.ByteString, Haskell.ByteString)] -> [(ByteString, ByteString)]
+fromHaskellEnvironment = map (bimap Haskell.fromByteString Haskell.fromByteString)

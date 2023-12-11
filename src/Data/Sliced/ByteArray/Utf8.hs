@@ -19,6 +19,9 @@ module Data.Sliced.ByteArray.Utf8 (
 , ByteArray.stripPrefix
 , ByteArray.stripSuffix
 
+-- ** Breaking into many substrings
+, ByteArray.split
+
 -- ** Breaking into lines and words
 , ByteArray.lines
 , words

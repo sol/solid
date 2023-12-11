@@ -9,12 +9,13 @@ module Solid.FilePath (
 
 import Solid.Common hiding (IsString(..))
 use Solid.Common
+
 import Solid.Bytes.Unsafe
 import Solid.String
 import Solid.ByteString (ByteString)
+
 use Solid.Bytes
-import Data.ByteString.Short (fromShort)
-import System.OsString.Internal.Types (OsString(..), PosixString(..))
+use Data.Sliced.ByteArray.Conversion
 
 fromString :: String -> FilePath
 fromString = Bytes.asFilePath
@@ -23,7 +24,7 @@ toString :: FilePath -> String
 toString = decodeUtf8 . asByteString
 
 asByteString :: FilePath -> ByteString
-asByteString = Bytes . fromShort . getPosixString . getOsString . unFilePath
+asByteString = Bytes . Conversion.fromOsPath . unFilePath
 
 instance Common.IsString FilePath where
   fromString = fromString . String.pack
