@@ -18,51 +18,35 @@ use Solid.StackTrace
 import Solid.Ansi.Types (Ansi(..))
 use Solid.Ansi.Types as Ansi
 
-import Data.Bits ((.&.))
 import Data.Coerce (coerce)
 import Data.Semigroup
-use Data.ByteString as Haskell
-use Data.ByteString.Char8
-import Data.Text (Text)
-use Data.Text
-use Data.Text.Encoding as Text
 import Text.Read (readMaybe)
+
+use Data.Sliced.ByteArray.Utf8
 
 asByteString :: String -> ByteString
 asByteString = Bytes.asByteString
-
-toText :: String -> Text
-toText = Text.decodeUtf8 . unBytes
-
-fromText :: Text -> String
-fromText = Bytes . Text.encodeUtf8
 
 empty :: String
 empty = mempty
 
 empty? :: Bytes a -> Bool
-empty? = coerce Haskell.null
+empty? = coerce Utf8.null
 
 length :: String -> Int
-length = utf8length . unBytes
-  where
-    utf8length :: Haskell.ByteString -> Int
-    utf8length = Haskell.foldl' (\ n c -> n + f c ) 0
-      where
-        f :: Word8 -> Int
-        f c = if c .&. 0b11000000 == 0b10000000 then 0 else 1
+length = coerce Utf8.length
 
 words :: String -> [String]
-words = coerce Char8.words
+words = coerce Utf8.words
 
 unwords :: [String] -> String
-unwords = coerce Char8.unwords
+unwords = coerce Utf8.unwords
 
 lines :: String -> [String]
-lines = coerce Char8.lines
+lines = coerce Utf8.lines
 
 unlines :: [String] -> String
-unlines = coerce Char8.unlines
+unlines = coerce Utf8.unlines
 
 -- |
 -- >>> let input = "hey-there" :: String
@@ -73,8 +57,7 @@ unlines = coerce Char8.unlines
 -- >>> input.split ""
 -- ["h","e","y","-","t","h","e","r","e"]
 split :: String -> String -> [String]
-split separator | separator.empty? = map (pack . return) . unpack
-split separator = map fromText . Text.splitOn (toText separator) . toText
+split = coerce Utf8.split
 
 ljust :: Int -> String -> String
 ljust n string = string <> times (n - length string) " "
@@ -86,7 +69,7 @@ times :: Int -> String -> String
 times n string = if n < 0 then empty else stimes n string
 
 strip :: String -> String
-strip = fromText . Text.strip . toText
+strip = coerce Utf8.strip
 
 isPrefixOf :: String -> String -> Bool
 isPrefixOf = Bytes.isPrefixOf
@@ -95,13 +78,13 @@ isSuffixOf :: String -> String -> Bool
 isSuffixOf = Bytes.isSuffixOf
 
 isInfixOf :: String -> String -> Bool
-isInfixOf = coerce Haskell.isInfixOf
+isInfixOf = coerce Utf8.isInfixOf
 
 stripPrefix :: String -> String -> Maybe String
-stripPrefix = coerce Haskell.stripPrefix
+stripPrefix = coerce Utf8.stripPrefix
 
 stripSuffix :: String -> String -> Maybe String
-stripSuffix = coerce Haskell.stripSuffix
+stripSuffix = coerce Utf8.stripSuffix
 
 startsWith :: String -> String -> Bool
 startsWith = Bytes.startsWith

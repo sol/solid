@@ -39,11 +39,12 @@ import Foreign.C hiding (
   , withCStringLen
   )
 import Foreign.Ptr
-import Data.Coerce (coerce)
 import System.Posix.PosixPath.FilePath qualified as Posix
-import Data.ByteString qualified as B
 
 import Haskell (asPlatformPath)
+
+use Haskell
+use Data.Text.Foreign as Text
 
 type Int = CInt
 type Char = CChar
@@ -80,10 +81,10 @@ withCStringLen :: Solid.String -> (StringLen -> IO a) -> IO a
 withCStringLen = withBytesAsCStringLen
 
 withBytesAsCString :: Bytes c -> (String -> IO a) -> IO a
-withBytesAsCString = B.useAsCString . coerce
+withBytesAsCString = Text.withCString . Haskell.unsafeToText
 
 withBytesAsCStringLen :: Bytes c -> (StringLen -> IO a) -> IO a
-withBytesAsCStringLen = B.useAsCStringLen . coerce
+withBytesAsCStringLen = Text.withCStringLen . Haskell.unsafeToText
 
 withFilePath :: FilePath -> (String -> IO a) -> IO a
 withFilePath = Posix.withFilePath . asPlatformPath

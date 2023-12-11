@@ -63,8 +63,6 @@ library
       String
       Temp
       Word8
-      Data.ByteString.Import
-      Data.Text.Import
       System.Directory.Import
       System.Environment.Import
       System.FilePath.Import
@@ -208,8 +206,6 @@ test-suite spec
       String
       Temp
       Word8
-      Data.ByteString.Import
-      Data.Text.Import
       System.Directory.Import
       System.Environment.Import
       System.FilePath.Import

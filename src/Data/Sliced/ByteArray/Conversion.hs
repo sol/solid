@@ -14,6 +14,9 @@ module Data.Sliced.ByteArray.Conversion (
 , unsafeToText
 , fromText
 
+, toPosixString
+, fromPosixString
+
 , toOsPath
 , fromOsPath
 ) where
@@ -98,10 +101,18 @@ fromText :: Text -> ByteArray
 fromText (Text arr off len) = ByteArray{..}
 {-# INLINE fromText #-}
 
+toPosixString :: ByteArray -> PosixString
+toPosixString = PosixString . toShortByteString
+{-# INLINE toPosixString #-}
+
+fromPosixString :: PosixString -> ByteArray
+fromPosixString = fromShortByteString . getPosixString
+{-# INLINE fromPosixString #-}
+
 toOsPath :: ByteArray -> OsPath
-toOsPath = OsString . PosixString . toShortByteString
+toOsPath = OsString . toPosixString
 {-# INLINE toOsPath #-}
 
 fromOsPath :: OsPath -> ByteArray
-fromOsPath = fromShortByteString . getPosixString . getOsString
+fromOsPath = fromPosixString . getOsString
 {-# INLINE fromOsPath #-}

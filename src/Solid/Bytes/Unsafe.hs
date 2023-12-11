@@ -1,15 +1,22 @@
+{-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE FieldSelectors #-}
 module Solid.Bytes.Unsafe where
 
 import Solid.Common
 
-import Data.ByteString qualified as Haskell
 import System.OsPath (OsPath)
 import System.OsString.Internal.Types (OsString(..), PosixString(..))
 
-newtype Bytes a = Bytes { unBytes :: Haskell.ByteString }
+import Data.Sliced.ByteArray (ByteArray)
+
+newtype Bytes a = Bytes ByteArray
   deriving newtype (Eq, Ord)
+
+unBytes :: Bytes a -> ByteArray
+unBytes (Bytes bytes) = bytes
 
 newtype FilePath = FilePath { unFilePath :: OsPath }
   deriving newtype (Eq, Ord, Show, Semigroup, Monoid)
+
+unFilePath :: FilePath -> OsPath
+unFilePath (FilePath bytes) = bytes
