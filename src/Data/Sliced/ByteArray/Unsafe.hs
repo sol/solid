@@ -21,6 +21,10 @@ instance Eq ByteArray where
     | otherwise = False
   {-# INLINE (==) #-}
 
+instance Ord ByteArray where
+  compare :: ByteArray -> ByteArray -> Ordering
+  compare a b = Array.compare a.arr a.off b.arr b.off (min a.len b.len) <> compare a.len b.len
+
 empty :: ByteArray
 empty = ByteArray mempty 0 0
 

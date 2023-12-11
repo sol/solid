@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-module Data.Sliced.ByteArray.Utf8Spec (spec) where
+module Data.Sliced.ByteArray.Utf8Spec (spec, arbitrary) where
 
 import Helper hiding (pack, Bytes, lines, unlines, words, unwords)
 

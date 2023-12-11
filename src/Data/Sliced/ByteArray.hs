@@ -69,6 +69,8 @@ module Data.Sliced.ByteArray (
 , spanEnd
 , breakEnd
 
+, inits
+
 , stripPrefix
 , stripSuffix
 
@@ -496,6 +498,10 @@ spanEnd p bytes = (unsafeDropEnd n bytes, unsafeTakeEnd n bytes)
 breakEnd :: (Word8 -> Bool) -> ByteArray -> (ByteArray, ByteArray)
 breakEnd p = spanEnd (not . p)
 {-# INLINE breakEnd #-}
+
+inits :: ByteArray -> [ByteArray]
+inits bytes = empty : [unsafeTake n bytes | n <- [1.. bytes.len]]
+{-# INLINE inits #-}
 
 countWhile :: (Word8 -> Bool) -> ByteArray -> Int
 countWhile p bytes = go 0
