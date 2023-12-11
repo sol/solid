@@ -1,0 +1,82 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           arcade
+version:        0.0.0
+copyright:      (c) 2023 Simon Hengel
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+
+executable arcade
+  main-is: Arcade.hs
+  other-modules:
+      Annotated
+      Rope
+      Syntax
+      Syntax.Vim
+      Terminal
+  hs-source-dirs:
+      src
+  default-extensions:
+      DataKinds
+      DeriveAnyClass
+      DuplicateRecordFields
+      LambdaCase
+      LexicalNegation
+      OverloadedRecordDot
+      OverloadedStrings
+      NoFieldSelectors
+  ghc-options: -F -pgmF=solid-pp -Werror=operator-whitespace -Wall -main-is Arcade.main
+  build-tool-depends:
+      solid-pp:solid-pp
+  build-depends:
+      containers
+    , haskell-base
+    , solid
+    , solid-pp
+    , text-rope
+    , unix
+  default-language: GHC2021
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Annotated
+      Arcade
+      Rope
+      Syntax
+      Syntax.Vim
+      Terminal
+      AnnotatedSpec
+      SyntaxSpec
+  hs-source-dirs:
+      src
+      test
+  default-extensions:
+      DataKinds
+      DeriveAnyClass
+      DuplicateRecordFields
+      LambdaCase
+      LexicalNegation
+      OverloadedRecordDot
+      OverloadedStrings
+      NoFieldSelectors
+  ghc-options: -F -pgmF=solid-pp -Werror=operator-whitespace -Wall
+  build-tool-depends:
+      hspec-discover:hspec-discover
+    , solid-pp:solid-pp
+  build-depends:
+      QuickCheck
+    , containers
+    , haskell-base
+    , hspec ==2.*
+    , solid
+    , solid-pp
+    , text-rope
+    , unix
+  default-language: GHC2021

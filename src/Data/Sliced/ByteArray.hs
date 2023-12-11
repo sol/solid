@@ -27,6 +27,11 @@ module Data.Sliced.ByteArray (
 , null
 , length
 
+, safeHead
+, safeTail
+, safeLast
+, safeInit
+
 -- * Encoding validation
 , isAscii
 , isValidUtf8
@@ -279,14 +284,26 @@ unsnoc = nothingOnEmpty $ \ bytes -> (unsafeInit bytes, unsafeLast bytes)
 head :: HasCallStack => ByteArray -> Word8
 head = errorOnEmpty unsafeHead
 
+safeHead :: ByteArray -> Maybe Word8
+safeHead = nothingOnEmpty unsafeHead
+
 last :: HasCallStack => ByteArray -> Word8
 last = errorOnEmpty unsafeLast
+
+safeLast :: ByteArray -> Maybe Word8
+safeLast = nothingOnEmpty unsafeLast
 
 tail :: HasCallStack => ByteArray -> ByteArray
 tail = errorOnEmpty unsafeTail
 
+safeTail :: ByteArray -> Maybe ByteArray
+safeTail = nothingOnEmpty unsafeTail
+
 init :: HasCallStack => ByteArray -> ByteArray
 init = errorOnEmpty unsafeInit
+
+safeInit :: ByteArray -> Maybe ByteArray
+safeInit = nothingOnEmpty unsafeInit
 
 null :: ByteArray -> Bool
 null bytes = bytes.len == 0

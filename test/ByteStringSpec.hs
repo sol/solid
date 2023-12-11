@@ -46,6 +46,18 @@ spec = do
       input.length === input.unpack.length
       ByteString.length input === input.unpack.length
 
+  describe "head!" $ do
+    it "extracts the first element" $ do
+      let input = "foobar" :: ByteString
+      input.head! `shouldBe` 102
+      ByteString.head! input `shouldBe` 102
+
+    context "with empty" $ do
+      it "throws an exception" $ do
+        let input = ByteString.empty
+        evaluate input.head! `shouldThrow?` invalidValue ["ByteString.head!"] "empty ByteString"
+        evaluate (ByteString.head! input) `shouldThrow?` invalidValue ["head!"] "empty ByteString"
+
   describe "strip" $ do
     it "removes leading and trailing whitespace" $ do
       let input = "  foo\n \r" :: ByteString

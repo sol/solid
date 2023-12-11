@@ -6,7 +6,7 @@ module ByteString (
 , module ByteString
 ) where
 
-import Solid.Common hiding (read, take, drop, takeWhile, dropWhile, splitAt)
+import Solid.Common hiding (read, head, take, drop, takeWhile, dropWhile, splitAt)
 import Solid.String (String)
 import Solid.ByteString
 import Solid.Bytes.Unsafe
@@ -16,6 +16,7 @@ use Solid.String
 use String
 use Solid.StackTrace
 use Data.Sliced.ByteArray
+use Data.Sliced.ByteArray.Unsafe as ByteArray
 
 import Data.Coerce (coerce)
 import Data.ByteString.Internal (isSpaceWord8)
@@ -55,6 +56,17 @@ null = coerce ByteArray.null
 
 .unpack :: ByteString -> [Word8]
 .unpack = ByteArray.unpack . unBytes
+
+-- |
+-- >>> ByteString.head "foobar"
+-- Just 102
+.head :: ByteString -> Maybe Word8
+.head = coerce ByteArray.safeHead
+
+.head! :: WithStackTrace => ByteString -> Word8
+.head! (Bytes bytes)
+  | bytes.len == 0 = StackTrace.suppress Exception.invalidValue! "empty ByteString"
+  | otherwise = ByteArray.unsafeHead bytes
 
 -- |
 -- >>> ByteString.take 2 "foobar"
