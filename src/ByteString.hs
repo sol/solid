@@ -6,7 +6,7 @@ module ByteString (
 , module ByteString
 ) where
 
-import Solid.Common hiding (read, take, drop, splitAt)
+import Solid.Common hiding (read, take, drop, takeWhile, dropWhile, splitAt)
 import Solid.String (String)
 import Solid.ByteString
 import Solid.Bytes.Unsafe
@@ -19,6 +19,7 @@ use Solid.StackTrace
 import Data.Coerce (coerce)
 import Data.ByteString qualified as Haskell
 import Data.ByteString.Char8 qualified as Char8
+import Data.ByteString.Internal (isSpaceWord8)
 
 instance Show ByteString where
   showsPrec n = showsPrec n . unBytes
@@ -56,8 +57,20 @@ unpack = Haskell.unpack . unBytes
 take :: Int -> ByteString -> ByteString
 take = coerce Haskell.take
 
+takeWhile :: (Word8 -> Bool) -> ByteString -> ByteString
+takeWhile = coerce Haskell.takeWhile
+
+takeWhileEnd :: (Word8 -> Bool) -> ByteString -> ByteString
+takeWhileEnd = coerce Haskell.takeWhileEnd
+
 drop :: Int -> ByteString -> ByteString
 drop = coerce Haskell.drop
+
+dropWhile :: (Word8 -> Bool) -> ByteString -> ByteString
+dropWhile = coerce Haskell.dropWhile
+
+dropWhileEnd :: (Word8 -> Bool) -> ByteString -> ByteString
+dropWhileEnd = coerce Haskell.dropWhileEnd
 
 splitAt :: Int -> ByteString -> (ByteString, ByteString)
 splitAt = coerce Haskell.splitAt
@@ -75,7 +88,9 @@ unlines :: [ByteString] -> ByteString
 unlines = coerce Char8.unlines
 
 strip :: ByteString -> ByteString
-strip = coerce Char8.strip
+strip = dropWhile asciiSpace? . dropWhileEnd asciiSpace?
+  where
+    asciiSpace? c = c < 128 && isSpaceWord8 c
 
 inits :: ByteString -> [ByteString]
 inits = coerce Haskell.inits
@@ -127,8 +142,20 @@ instance HasField "unpack" ByteString [Word8] where
 instance HasField "take" ByteString (Int -> ByteString) where
   getField = flip take
 
+instance HasField "takeWhile" ByteString ((Word8 -> Bool) -> ByteString) where
+  getField = flip takeWhile
+
+instance HasField "takeWhileEnd" ByteString ((Word8 -> Bool) -> ByteString) where
+  getField = flip takeWhileEnd
+
 instance HasField "drop" ByteString (Int -> ByteString) where
   getField = flip drop
+
+instance HasField "dropWhile" ByteString ((Word8 -> Bool) -> ByteString) where
+  getField = flip dropWhile
+
+instance HasField "dropWhileEnd" ByteString ((Word8 -> Bool) -> ByteString) where
+  getField = flip dropWhileEnd
 
 instance HasField "splitAt" ByteString (Int -> (ByteString, ByteString)) where
   getField = flip splitAt

@@ -13,11 +13,23 @@ module Data.Sliced.ByteArray.Utf8 (
 , length
 
 -- * Substrings
+
+-- ** Breaking strings
+, strip
+, ByteArray.stripPrefix
+, ByteArray.stripSuffix
+
 -- ** Breaking into lines and words
 , ByteArray.lines
 , words
 , ByteArray.unlines
 , ByteArray.unwords
+
+-- * Predicates
+, ByteArray.isPrefixOf
+, ByteArray.isSuffixOf
+, ByteArray.isInfixOf
+
 ) where
 
 import Solid.Common
@@ -43,3 +55,6 @@ length bytes = Utf8.length bytes.arr bytes.off bytes.len
 
 words :: ByteArray -> [ByteArray]
 words = map fromText . Text.words . unsafeToText
+
+strip :: ByteArray -> ByteArray
+strip = fromText . Text.strip . unsafeToText

@@ -22,6 +22,7 @@ import GHC.Exts
 
 import Control.Monad.ST (ST, runST)
 import Data.Text.Array (MArray, Array)
+use Data.List
 use Data.Text.Array
 
 create :: Int -> (forall s. MArray s -> ST s ()) -> Array

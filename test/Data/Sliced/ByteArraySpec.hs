@@ -10,12 +10,14 @@ use Gen
 use Range
 
 use Data.Char
+use Data.ByteString
 import Control.Arrow ((&&&))
 import Data.Semigroup
 
 import Data.Sliced.ByteArray as ByteArray
 import Data.Sliced.ByteArray.Unsafe as ByteArray
 import Data.Sliced.ByteArray.Util
+import Data.Sliced.ByteArray.Conversion
 
 import Hedgehog.Classes
 import Hedgehog.Internal.Property
@@ -423,6 +425,18 @@ spec = do
     it "takes / drops from the end while a predicate does not hold" $ do
       ByteArray.breakEnd (< 6) [1..10] `shouldBe` ([1..5], [6..10])
 
+  describe "inits" $ do
+    it "returns all initial segments of the given byte array" $ do
+      ByteArray.inits "foo" `shouldBe` ["","f","fo","foo"]
+
+    prop "each element of the result list is a prefix of the input" $ do
+      input <- forAll arbitrary
+      List.all (`isPrefixOf` input) (ByteArray.inits input) === True
+
+    it "behaves like Data.ByteString.inits" $ do
+      input <- forAll arbitrary
+      ByteArray.inits input === List.map fromByteString (ByteString.inits $ toByteString input)
+
   describe "stripPrefix" $ do
     it "strips a prefix" $ do
       ByteArray.stripPrefix "foo" "foobarbaz" `shouldBe` (Just "barbaz")
@@ -457,6 +471,19 @@ spec = do
     context "with an empty separator" $ do
       it "splits into chunks of size one" $ do
         ByteArray.split "" "foo" `shouldBe` ["f", "o", "o"]
+
+  describe "lines" $ do
+    it "is inverse to unlines" $ do
+      input <- List.concatMap lines <$> forAll (Gen.list (Range.linear 0 10) arbitrary)
+      lines (unlines input) === input
+
+  describe "unlines" $ do
+    it "joins lines, appending a terminating newline after each" $ do
+      ByteArray.unlines ["foo", "bar", "baz"] `shouldBe` "foo\nbar\nbaz\n"
+
+  describe "unwords" $ do
+    it "joins a list of words with spaces" $ do
+      ByteArray.unwords ["foo", "bar", "baz"] `shouldBe` "foo bar baz"
 
   describe "isPrefixOf" $ do
     it "tests whether a byte array starts with a given prefix" $ do
@@ -501,16 +528,3 @@ spec = do
   describe "times" $ do
     it "throws an exception on overflow" $ do
       evaluate (ByteArray.times maxBound "foo") `shouldThrow` errorCall "Data.Sliced.ByteArray.times: size overflow"
-
-  describe "lines" $ do
-    it "is inverse to unlines" $ do
-      input <- List.concatMap lines <$> forAll (Gen.list (Range.linear 0 10) arbitrary)
-      lines (unlines input) === input
-
-  describe "unlines" $ do
-    it "joins lines, appending a terminating newline after each" $ do
-      ByteArray.unlines ["foo", "bar", "baz"] `shouldBe` "foo\nbar\nbaz\n"
-
-  describe "unwords" $ do
-    it "joins a list of words with spaces" $ do
-      ByteArray.unwords ["foo", "bar", "baz"] `shouldBe` "foo bar baz"
