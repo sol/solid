@@ -18,6 +18,7 @@ module Solid.PP.Lexer (
 , Token(.., InfixProjection, PrefixProjection)
 , SourceError
 , tokenize
+, tokenizeWithComments
 
 , StringBuffer
 , stringToStringBuffer
@@ -69,8 +70,8 @@ showExtension = \ case
 lookupExtension :: String -> Maybe Extension
 lookupExtension = (`Map.lookup` allExtensions)
 
-makeOpts :: EnumSet Extension -> ParserOpts
-makeOpts extensions = mkParserOpts extensions diagOpts allowedExtensions False False False True
+makeOpts :: Bool -> Bool -> EnumSet Extension -> ParserOpts
+makeOpts keepComments interpretLinePragmas extensions = mkParserOpts extensions diagOpts allowedExtensions False keepComments keepComments interpretLinePragmas
   where
     allowedExtensions = Map.keys allExtensions ++ map ("No" <>) (Map.keys allExtensions)
 
@@ -95,7 +96,7 @@ readLanguageFlag input =
 applyLanguagePragmas :: EnumSet Extension -> FilePath -> StringBuffer -> EnumSet Extension
 applyLanguagePragmas extensions src buffer = applyLanguageFlags extensions languageFlags
   where
-    opts = makeOpts extensions
+    opts = makeOpts False True extensions
     (_, map unLoc -> options) = ModuleHeader.getOptions opts buffer src
 
     languageFlags :: [LanguageFlag]
@@ -113,7 +114,7 @@ data LexerResult = LexerResult {
   tokens :: [WithBufferSpan Token]
 , end :: SrcLoc
 , errors :: String
-}
+} deriving Show
 
 language :: Language
 language = GHC2021
@@ -134,7 +135,13 @@ change_any_projections_after_a_trailing_bang_to_infix = fix $ \ rec -> \ case
   [] -> []
 
 tokenize :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
-tokenize languageFlags src line input = do
+tokenize = tokenize_ False
+
+tokenizeWithComments :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
+tokenizeWithComments = tokenize_ True
+
+tokenize_ :: Bool -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
+tokenize_ keepComments languageFlags src line input = do
   case lexTokenStream opts buffer loc of
     POk state tokens -> return LexerResult {
       tokens = change_any_projections_after_a_trailing_bang_to_infix tokens
@@ -147,7 +154,7 @@ tokenize languageFlags src line input = do
     errors :: PState -> String
     errors = show . getErrors
 
-    opts = makeOpts (applyLanguagePragmas extensions src buffer)
+    opts = makeOpts keepComments (not keepComments) (applyLanguagePragmas extensions src buffer)
 
     extensions :: EnumSet Extension
     extensions = applyLanguageFlags defaultExtensions languageFlags
