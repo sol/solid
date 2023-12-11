@@ -33,6 +33,7 @@ module Data.Sliced.ByteArray.Utf8 (
 , ByteArray.isSuffixOf
 , ByteArray.isInfixOf
 
+, chunksOf
 ) where
 
 import Solid.Common
@@ -61,3 +62,6 @@ words = map fromText . Text.words . unsafeToText
 
 strip :: ByteArray -> ByteArray
 strip = fromText . Text.strip . unsafeToText
+
+chunksOf :: Int -> ByteArray -> [ByteArray]
+chunksOf n = map fromText . Text.chunksOf n . unsafeToText

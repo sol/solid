@@ -6,8 +6,6 @@ import System.Posix.Terminal.ByteString
 import System.Posix.IO.ByteString (stdInput)
 import Data.Bits
 
-use Data.Text.Import
-
 data Buffer = Buffer {
   lines :: [String]
 , row :: Int
@@ -29,7 +27,7 @@ renderBuffer width height buffer = take height $ (<> repeat EmptyLine) . concatM
     chunks :: (Int, String) -> [Line]
     chunks = \ case
       (n, "") -> [Line n ""]
-      (n, line) -> List.zipWith ($) (Line n : repeat LineContinuation) Import.chunksOf(width, line) 
+      (n, line) -> List.zipWith ($) (Line n : repeat LineContinuation) line.chunksOf(width) 
 
 openBuffer :: FilePath -> IO Buffer
 openBuffer name = do

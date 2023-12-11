@@ -170,3 +170,9 @@ instance (HasField "read\7433" String a, Read a)
 
 instance HasField "ansi" String (Ansi String) where
   getField = ansi
+
+instance HasField "chunksOf" String (Int -> [String]) where
+  getField = flip chunksOf
+
+chunksOf :: Int -> String -> [String]
+chunksOf = coerce Utf8.chunksOf
