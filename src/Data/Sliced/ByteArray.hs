@@ -99,17 +99,30 @@ module Data.Sliced.ByteArray (
 , elem
 , indices
 
+-- * I\/O with 'ByteString's
+-- ** Files
+, readFile
+, writeFile
+
+-- ** Handles
+, hGetLine
+, hGetContents
+, hPut
+
 -- * Others
 , times
 , replicate
 , copy
 , compact
+
+, errorEmpty -- FIXME: remove
 ) where
 
 import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl', foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, span, elem)
 import Int ()
 
 import HaskellPrelude (error)
+import System.IO (FilePath)
 import GHC.Stack
 import Data.Semigroup
 import Data.List.NonEmpty (NonEmpty)
@@ -128,6 +141,12 @@ use Simd.Utf8
 import Data.Sliced.ByteArray.Util
 import Data.Sliced.ByteArray.Unsafe
 import Data.Sliced.ByteArray.Conversion
+
+use Data.ByteString.Char8
+use Data.ByteString
+
+use Data.Bytes as ByteSlice
+use Data.Text.IO.Utf8 as TextIO
 
 instance Show ByteArray where
   showsPrec :: Int -> ByteArray -> ShowS
@@ -675,3 +694,77 @@ unlines chunks = ByteArray arr 0 len
 
 unwords :: [ByteArray] -> ByteArray
 unwords = intercalate " "
+
+hGetContents :: Handle -> IO ByteArray
+hGetContents = fmap fromByteString . ByteString.hGetContents
+
+hPut :: Handle -> ByteArray -> IO ()
+hPut h = TextIO.hPutStr h . unsafeToText
+
+readFile :: FilePath -> IO ByteArray
+readFile = fmap fromText . TextIO.readFile -- FIXME
+
+writeFile :: FilePath -> ByteArray -> IO ()
+writeFile name = TextIO.writeFile name . unsafeToText
+
+hGetLine :: Handle -> IO ByteArray
+hGetLine = fmap fromByteString . Char8.hGetLine
+
+{-
+(!?) :: ByteArray -> Int -> Maybe Word8
+breakSubstring :: ByteArray -> ByteArray -> (ByteArray, ByteArray)
+count :: Word8 -> ByteArray -> Int
+elemIndex :: Word8 -> ByteArray -> Maybe Int
+elemIndexEnd :: Word8 -> ByteArray -> Maybe Int
+elemIndices :: Word8 -> ByteArray -> [Int]
+filter :: (Word8 -> Bool) -> ByteArray -> ByteArray
+find :: (Word8 -> Bool) -> ByteArray -> Maybe Word8
+findIndex :: (Word8 -> Bool) -> ByteArray -> Maybe Int
+findIndexEnd :: (Word8 -> Bool) -> ByteArray -> Maybe Int
+findIndices :: (Word8 -> Bool) -> ByteArray -> [Int]
+fromFilePath :: FilePath -> IO ByteArray
+getContents :: IO ByteArray
+getLine :: IO ByteArray
+group :: ByteArray -> [ByteArray]
+groupBy :: (Word8 -> Word8 -> Bool) -> ByteArray -> [ByteArray]
+hGet :: GHC.IO.Handle.Types.Handle -> Int -> IO ByteArray
+hGetNonBlocking :: GHC.IO.Handle.Types.Handle -> Int -> IO ByteArray
+hGetSome :: GHC.IO.Handle.Types.Handle -> Int -> IO ByteArray
+hPutNonBlocking :: GHC.IO.Handle.Types.Handle -> ByteArray -> IO ByteArray
+hPutStr :: GHC.IO.Handle.Types.Handle -> ByteArray -> IO ()
+index :: HasCallStack => ByteArray -> Int -> Word8
+indexMaybe :: ByteArray -> Int -> Maybe Word8
+initsNE :: ByteArray -> GHC.Base.NonEmpty ByteArray
+interact :: (ByteArray -> ByteArray) -> IO ()
+mapAccumL :: (acc -> Word8 -> (acc, Word8)) -> acc -> ByteArray -> (acc, ByteArray)
+mapAccumR :: (acc -> Word8 -> (acc, Word8)) -> acc -> ByteArray -> (acc, ByteArray)
+notElem :: Word8 -> ByteArray -> Bool
+packCString :: base:GHC.Foreign.Internal.CString -> IO ByteArray
+packCStringLen :: base:GHC.Foreign.Internal.CStringLen -> IO ByteArray
+packZipWith :: (Word8 -> Word8 -> Word8) -> ByteArray -> ByteArray -> ByteArray
+partition :: (Word8 -> Bool) -> ByteArray -> (ByteArray, ByteArray)
+putStr :: ByteArray -> IO ()
+scanl :: (Word8 -> Word8 -> Word8) -> Word8 -> ByteArray -> ByteArray
+scanl1 :: (Word8 -> Word8 -> Word8) -> ByteArray -> ByteArray
+scanr :: (Word8 -> Word8 -> Word8) -> Word8 -> ByteArray -> ByteArray
+scanr1 :: (Word8 -> Word8 -> Word8) -> ByteArray -> ByteArray
+sort :: ByteArray -> ByteArray
+tails :: ByteArray -> [ByteArray]
+tailsNE :: ByteArray -> GHC.Base.NonEmpty ByteArray
+toFilePath :: ByteArray -> IO FilePath
+unfoldr :: (a -> Maybe (Word8, a)) -> a -> ByteArray
+unfoldrN :: Int -> (a -> Maybe (Word8, a)) -> a -> (ByteArray, Maybe a)
+unsnoc :: ByteArray -> Maybe (ByteArray, Word8)
+unzip :: [(Word8, Word8)] -> (ByteArray, ByteArray)
+useAsCString :: ByteArray -> (base:GHC.Foreign.Internal.CString -> IO a) -> IO a
+useAsCStringLen :: ByteArray -> (base:GHC.Foreign.Internal.CStringLen -> IO a) -> IO a
+zip :: ByteArray -> ByteArray -> [(Word8, Word8)]
+zipWith :: (Word8 -> Word8 -> a) -> ByteArray -> ByteArray -> [a]
+type ByteArray :: *
+data ByteArray = bytestring:Data.Sliced.ByteArray.Internal.Type.BS {-# UNPACK #-}(GHC.ForeignPtr.ForeignPtr Word8) {-# UNPACK #-}Int
+type StrictBytes :: *
+type StrictBytes = ByteArray
+empty :: ByteArray
+fromStrict :: ByteArray -> Data.Sliced.ByteArray.Lazy.Internal.ByteArray
+toStrict :: Data.Sliced.ByteArray.Lazy.Internal.ByteArray -> ByteArray
+-}

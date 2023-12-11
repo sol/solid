@@ -7,6 +7,7 @@ import Data.Sliced.ByteArray.Unsafe
 
 use Gen
 use Range
+use Hedgehog.Internal.Gen as Org
 
 import Data.Sliced.ByteArray.Conversion (unsafeToText, fromText)
 import Data.Sliced.ByteArray.Utf8 as Utf8
@@ -51,6 +52,14 @@ spec = do
     it "behaves like Data.Text.null" $ do
       input <- forAll arbitrary
       Utf8.null input === Text.null (unsafeToText input)
+
+    xit "foo" $ do
+      -- input :: [Char] <- forAll $ Gen.list (Range.constant 0 (1024 * 10)) Gen.unicodeAny
+      -- input :: [Char] <- forAll $ Gen.list (Range.constant 0 (1024 * 10)) (Gen.enum minBound maxBound)
+      -- input :: [Char] <- forAll $ Gen.list (Range.singleton (1024 * 10)) (Gen.enum'fast minBound maxBound)
+      let n = 256 * 2
+      input :: [Char] <- forAll $ Gen.list (Range.singleton n) (Org.fastEnumShrink minBound maxBound)
+      List.length input === 1
 
   describe "length" $ do
     it "behaves like Data.Text.length" $ do
