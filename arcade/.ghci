@@ -1,0 +1,12 @@
+:set -isrc -itest -DTEST
+
+:set -F -pgmF=solid-pp
+:set -hide-package base
+
+:set -XDataKinds
+:set -XDeriveAnyClass
+:set -XDuplicateRecordFields
+:set -XLambdaCase
+:set -XOverloadedRecordDot
+:set -XOverloadedStrings
+:set -XNoFieldSelectors
