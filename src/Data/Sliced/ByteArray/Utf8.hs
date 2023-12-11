@@ -62,6 +62,9 @@ module Data.Sliced.ByteArray.Utf8 (
 
 -- * Searching
 , elem
+
+, ByteArray.indices -- FIXME: unsafe
+
 ) where
 
 import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, span, elem)

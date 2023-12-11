@@ -29,6 +29,7 @@ import           HaskellPrelude as Imports hiding (
   , readFile
   , writeFile
   , getContents
+  , getChar
 
   , error
   , pred

@@ -6,7 +6,7 @@ module ByteString (
 , module ByteString
 ) where
 
-import Solid.Common hiding (read, take, drop, takeWhile, dropWhile, splitAt)
+import Solid.Common hiding (read, head, take, drop, takeWhile, dropWhile, splitAt)
 import Solid.String (String)
 import Solid.ByteString
 import Solid.Bytes.Unsafe
@@ -55,6 +55,12 @@ null = coerce ByteArray.null
 
 .unpack :: ByteString -> [Word8]
 .unpack = ByteArray.unpack . unBytes
+
+.head :: ByteString -> Maybe Word8
+.head = fmap fst . ByteArray.uncons . coerce
+
+.head! :: ByteString -> Word8
+.head! = coerce ByteArray.head
 
 -- |
 -- >>> ByteString.take 2 "foobar"

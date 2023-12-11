@@ -24,8 +24,12 @@ module IO.Handle (
 , seek
 , rewind
 , setEcho
+, getBuffering
 , setBuffering
 , getContents
+, get
+, getByte
+, getChar
 , withLock
 ) where
 
@@ -40,8 +44,9 @@ import qualified System.File.OsPath as OsPath
 
 import           Data.Coerce
 import qualified Data.ByteString as B
+import Data.Text.Internal.Encoding.Utf8 (DecoderResult(..))
+use Data.Text.Internal.Encoding.Utf8 as Text
 
-import           ByteString ()
 import           Solid.ToString
 
 import           GHC.IO.Handle.Types (Handle(..))
@@ -89,11 +94,34 @@ open = OsPath.openFile . coerce
 .setEcho :: Bool -> Handle -> IO ()
 .setEcho = flip Haskell.hSetEcho
 
+.getBuffering :: Handle -> IO BufferMode
+.getBuffering = Haskell.hGetBuffering
+
 .setBuffering :: BufferMode -> Handle -> IO ()
 .setBuffering = flip Haskell.hSetBuffering
 
 .getContents :: Handle -> IO ByteString
 .getContents = fmap Haskell.fromByteString . B.hGetContents
+
+.get :: Int -> Handle -> IO ByteString
+.get n h = Haskell.fromByteString <$> B.hGet h n
+
+.getByte :: Handle -> IO (Maybe Word8)
+.getByte h = ByteString.head <$> get 1 h
+
+.getChar :: Handle -> IO (Maybe Char)
+.getChar h = getByte h >>= \ case
+  Nothing -> return Nothing
+  Just c -> go (Text.utf8DecodeStart c)
+  where
+    go :: DecoderResult -> IO (Maybe Char)
+    go = \ case
+      Accept c -> return (Just c)
+      Incomplete state r -> do
+        getByte h >>= \ case
+          Nothing -> Exception.throwIO Exception.UnicodeDecodeError
+          Just c -> go (Text.utf8DecodeContinue c state r)
+      Reject -> Exception.throwIO Exception.UnicodeDecodeError
 
 .withLock :: IO a -> Handle -> IO a
 .withLock action h = withMVar handle__ $ \ _ -> action

@@ -1,11 +1,15 @@
 packages:
   .
+  arcade
   solid-pp
   haskell-base
   solid-doctest
   vendor/ghc-bin
 
 package solid
+  ghc-options: -Werror
+
+package arcade
   ghc-options: -Werror
 
 package solid-pp
