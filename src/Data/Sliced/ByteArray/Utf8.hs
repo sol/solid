@@ -34,9 +34,12 @@ module Data.Sliced.ByteArray.Utf8 (
 , ByteArray.isInfixOf
 
 , chunksOf
+, take
+, drop
+, splitAt
 ) where
 
-import Solid.Common
+import Solid.Common hiding (take, drop, splitAt)
 
 import Data.Sliced.ByteArray.Unsafe (ByteArray(..))
 import Data.Sliced.ByteArray.Conversion (unsafeToText, fromText)
@@ -65,3 +68,12 @@ strip = fromText . Text.strip . unsafeToText
 
 chunksOf :: Int -> ByteArray -> [ByteArray]
 chunksOf n = map fromText . Text.chunksOf n . unsafeToText
+
+take :: Int -> ByteArray -> ByteArray
+take n = fromText . Text.take n . unsafeToText
+
+drop :: Int -> ByteArray -> ByteArray
+drop n = fromText . Text.drop n . unsafeToText
+
+splitAt :: Int -> ByteArray -> (ByteArray, ByteArray)
+splitAt n = bimap fromText fromText . Text.splitAt n . unsafeToText

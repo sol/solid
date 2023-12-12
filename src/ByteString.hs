@@ -6,7 +6,7 @@ module ByteString (
 , module ByteString
 ) where
 
-import Solid.Common hiding (read, take, drop, takeWhile, dropWhile, splitAt)
+import Solid.Common hiding (read, head, take, drop, takeWhile, dropWhile, splitAt)
 import Solid.String (String)
 import Solid.ByteString
 import Solid.Bytes.Unsafe
@@ -190,3 +190,15 @@ instance (HasField "read" ByteString (Maybe a), Read a)
 instance (HasField "read\7433" ByteString a, Read a)
        => HasField "read\7433" ByteString a where
   getField = StackTrace.suppressForMethod "ByteString.read!" ByteString.read!
+
+head :: ByteString -> Maybe Word8
+head = fmap fst . ByteArray.uncons . coerce
+
+head! :: ByteString -> Word8
+head! = coerce ByteArray.head
+
+instance HasField "head" ByteString (Maybe Word8) where
+  getField = head
+
+instance HasField "head!" ByteString Word8 where
+  getField = head!

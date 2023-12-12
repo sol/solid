@@ -2,7 +2,7 @@ module ArcadeSpec (spec) where
 
 import           Test.Hspec
 
-import           Arcade
+import           Arcade ()
 
 spec :: Spec
 spec = do

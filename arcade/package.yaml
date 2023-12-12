@@ -1,8 +1,8 @@
 name: arcade
 copyright: (c) 2023 Simon Hengel
-license: MIT
 
-defaults: sol/solid@1fe7673
+defaults:
+  local: ../.hpack/defaults.yaml
 
 ghc-options: -Wall
 
@@ -11,6 +11,7 @@ dependencies:
   - haskell-base
   - containers
   - unix
+  - text-rope
 
 source-dirs: src
 

@@ -24,12 +24,13 @@ module IO.Handle (
 , seek
 , rewind
 , setEcho
+, getBuffering
 , setBuffering
 , getContents
 , withLock
 ) where
 
-import Solid.Common
+import Solid.Common hiding (getChar)
 import Solid.String
 import Solid.ByteString
 import Solid.Bytes.Unsafe
@@ -41,13 +42,13 @@ import qualified System.File.OsPath as OsPath
 import           Data.Coerce
 import qualified Data.ByteString as B
 
-import           ByteString ()
 import           Solid.ToString
 
 import           GHC.IO.Handle.Types (Handle(..))
 import           Control.Concurrent.MVar (withMVar)
 
 use Haskell
+import           Data.Text.Internal.Encoding.Utf8
 
 type Mode = Haskell.IOMode
 
@@ -89,11 +90,40 @@ rewind = seek AbsoluteSeek 0
 setEcho :: Bool -> Handle -> IO ()
 setEcho = flip Haskell.hSetEcho
 
+getBuffering :: Handle -> IO BufferMode
+getBuffering = Haskell.hGetBuffering
+
 setBuffering :: BufferMode -> Handle -> IO ()
 setBuffering = flip Haskell.hSetBuffering
 
 getContents :: Handle -> IO ByteString
 getContents = fmap Haskell.fromByteString . B.hGetContents
+
+get :: Int -> Handle -> IO ByteString
+get n h = Haskell.fromByteString <$> B.hGet h n
+
+getByte :: Handle -> IO (Maybe Word8)
+getByte h = ByteString.head <$> get 1 h
+
+getChar :: Handle -> IO (Maybe Char)
+getChar h = getByte h >>= \ case
+  Nothing -> return Nothing
+  Just c -> go (utf8DecodeStart c)
+  where
+    go :: DecoderResult -> IO (Maybe Char)
+    go = \ case
+      Accept c -> return (Just c)
+      Incomplete state r -> do
+        getByte h >>= \ case
+          Nothing -> Exception.throwIO Exception.UnicodeDecodeError
+          Just c -> go (utf8DecodeContinue c state r)
+      Reject -> Exception.throwIO Exception.UnicodeDecodeError
+
+instance HasField "getByte" Handle (IO (Maybe Word8)) where
+  getField = getByte
+
+instance HasField "getChar" Handle (IO (Maybe Char)) where
+  getField = getChar
 
 withLock :: IO a -> Handle -> IO a
 withLock action h = withMVar handle__ $ \ _ -> action
@@ -138,6 +168,9 @@ instance HasField "rewind" Handle (IO ()) where
 
 instance HasField "setEcho" Handle (Bool -> IO ()) where
   getField = Haskell.hSetEcho
+
+instance HasField "getBuffering" Handle (IO BufferMode) where
+  getField = getBuffering
 
 instance HasField "setBuffering" Handle (BufferMode -> IO ()) where
   getField = Haskell.hSetBuffering
