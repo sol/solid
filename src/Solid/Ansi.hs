@@ -8,6 +8,10 @@ module Solid.Ansi (
 , underline
 , inverse
 
+, Color(..)
+, foreground
+, background
+
 , black
 , red
 , green
@@ -189,6 +193,12 @@ on_white = background White
 
 on_rgb :: Word8 -> Word8 -> Word8 -> Ansi a -> Ansi a
 on_rgb r g b = background (RGB r g b)
+
+instance HasField "foreground" (Ansi a) (Color -> Ansi a) where
+  getField = flip foreground
+
+instance HasField "background" (Ansi a) (Color -> Ansi a) where
+  getField = flip background
 
 instance HasField "black" (Ansi a) (Ansi a) where
   getField = black
