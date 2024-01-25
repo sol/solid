@@ -203,3 +203,10 @@ slice start end = String.drop start . String.take end -- FIXME: Add to String mo
 
 instance HasField "slice" String (Int -> Int -> String) where
   getField self start end = slice start end self
+
+breakOn :: String -> String -> (String, String)
+breakOn = coerce Utf8.breakOn
+{-# INLINE breakOn #-}
+
+instance HasField "breakOn" String (String -> (String, String)) where
+  getField = flip breakOn

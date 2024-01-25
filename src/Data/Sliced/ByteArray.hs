@@ -63,6 +63,7 @@ module Data.Sliced.ByteArray (
 , dropWhile
 , span
 , break
+, breakOn
 
 , takeWhileEnd
 , dropWhileEnd
@@ -89,6 +90,7 @@ module Data.Sliced.ByteArray (
 
 -- * Searching
 , elem
+, indices -- not sure
 
 -- * Others
 , times
@@ -538,9 +540,9 @@ stripSuffix suffix bytes
 
 split :: ByteArray -> ByteArray -> [ByteArray]
 split needle bytes
-  | bytes.len == 0 = [""]
   | needle.len == 0 = elements bytes
-  | otherwise = go 0 $ Search.indices (unsafeToText needle) (unsafeToText bytes)
+  | bytes.len == 0 = [empty]
+  | otherwise = go 0 $ indices needle bytes
   where
     go off = \ case
       [] -> [unsafeDrop off bytes]
@@ -553,6 +555,14 @@ elements bytes = go 0
       | n < bytes.len = unsafeSlice n m bytes : go m
       | otherwise = []
       where m = n.succ
+
+breakOn :: ByteArray -> ByteArray -> (ByteArray, ByteArray)
+breakOn needle bytes
+  | null needle  = (empty, bytes)
+  | otherwise = case indices needle bytes of
+      []    -> (bytes, empty)
+      (x:_) -> (unsafeTake x bytes, unsafeDrop x bytes)
+{-# INLINE breakOn #-}
 
 isPrefixOf :: ByteArray -> ByteArray -> Bool
 isPrefixOf prefix bytes
@@ -572,7 +582,10 @@ isInfixOf :: ByteArray -> ByteArray -> Bool
 isInfixOf needle haystack
   | needle.len == 0 = True
   | needle.len == 1 = elem (unsafeHead needle) haystack
-  | otherwise = not . List.null $ Search.indices (unsafeToText needle) (unsafeToText haystack)
+  | otherwise = not . List.null $ indices needle haystack
+
+indices :: ByteArray -> ByteArray -> [Int]
+indices needle haystack = Search.indices (unsafeToText needle) (unsafeToText haystack)
 
 elem :: Word8 -> ByteArray -> Bool
 elem c bytes = memchr bytes.arr bytes.off bytes.len c >= 0

@@ -76,3 +76,7 @@ spec = do
     it "behaves like Data.Text.unwords" $ do
       xs <- forAll $ Gen.list (Range.linear 0 10) arbitrary
       unwords xs === fromText (Text.unwords $ map unsafeToText xs)
+
+  describe "split" $ do
+    it "" $ do
+      Utf8.split "" "\955\955\955" `shouldBe` ["\955", "\955", "\955"]

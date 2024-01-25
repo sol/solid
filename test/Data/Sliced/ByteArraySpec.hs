@@ -465,12 +465,16 @@ spec = do
 
     context "when pattern does not match" $ do
       it "returns a singleton list" $ do
-        ByteArray.split undefined "" `shouldBe` [""]
+        ByteArray.split "foo" "" `shouldBe` [""]
         ByteArray.split "foo" "bar" `shouldBe` ["bar"]
 
     context "with an empty separator" $ do
       it "splits into chunks of size one" $ do
         ByteArray.split "" "foo" `shouldBe` ["f", "o", "o"]
+
+      it "splits into chunks of size one" $ do
+        input <- forAll arbitrary
+        ByteArray.split "" input === List.map ByteArray.singleton (ByteArray.unpack input)
 
   describe "lines" $ do
     it "is inverse to unlines" $ do
@@ -528,3 +532,13 @@ spec = do
   describe "times" $ do
     it "throws an exception on overflow" $ do
       evaluate (ByteArray.times maxBound "foo") `shouldThrow` errorCall "Data.Sliced.ByteArray.times: size overflow"
+
+  describe "breakOn" $ do
+    it "" $ do
+      breakOn "ba" "foobarbaz" `shouldBe` ("foo", "barbaz")
+
+    it "" $ do
+      breakOn "" "foobarbaz" `shouldBe` ("","foobarbaz")
+
+    it "" $ do
+      breakOn "xxx" "foobarbaz" `shouldBe` ("foobarbaz", "")

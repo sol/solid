@@ -158,3 +158,9 @@ spec = do
     it "styles a string with ANSI escape sequences" $ do
       ("foo" :: String).ansi.red.toString `shouldBe` "\ESC[31mfoo\ESC[39m"
       (String.ansi "foo").red.toString `shouldBe` "\ESC[31mfoo\ESC[39m"
+
+  describe "breakOn" $ do
+    it "styles a string with ANSI escape sequences" $ do
+      let input = "foobarbaz" :: String
+      input.breakOn "bar" `shouldBe` ("foo", "barbaz")
+      String.breakOn "bar" input `shouldBe` ("foo", "barbaz")

@@ -17,6 +17,7 @@ executable arcade
       Annotated
       Rope
       Syntax
+      Syntax.Vim
       Terminal
   hs-source-dirs:
       src
@@ -49,9 +50,9 @@ test-suite spec
       Arcade
       Rope
       Syntax
+      Syntax.Vim
       Terminal
       AnnotatedSpec
-      ArcadeSpec
       SyntaxSpec
   hs-source-dirs:
       src

@@ -118,7 +118,7 @@ data LexerResult = LexerResult {
   tokens :: [WithBufferSpan Token]
 , end :: SrcLoc
 , errors :: String
-}
+} deriving Show
 
 language :: Language
 language = GHC2021

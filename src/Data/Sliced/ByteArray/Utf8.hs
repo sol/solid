@@ -20,7 +20,7 @@ module Data.Sliced.ByteArray.Utf8 (
 , ByteArray.stripSuffix
 
 -- ** Breaking into many substrings
-, ByteArray.split
+, split
 
 -- ** Breaking into lines and words
 , ByteArray.lines
@@ -33,13 +33,18 @@ module Data.Sliced.ByteArray.Utf8 (
 , ByteArray.isSuffixOf
 , ByteArray.isInfixOf
 
+-- * Searching
+, elem
+, ByteArray.indices -- FIXME: unsafe
+
 , chunksOf
 , take
 , drop
 , splitAt
+, ByteArray.breakOn
 ) where
 
-import Solid.Common hiding (take, drop, splitAt)
+import Solid.Common hiding (take, drop, splitAt, elem)
 
 import Data.Sliced.ByteArray.Unsafe (ByteArray(..))
 import Data.Sliced.ByteArray.Conversion (unsafeToText, fromText)
@@ -77,3 +82,24 @@ drop n = fromText . Text.drop n . unsafeToText
 
 splitAt :: Int -> ByteArray -> (ByteArray, ByteArray)
 splitAt n = bimap fromText fromText . Text.splitAt n . unsafeToText
+
+elem :: Char -> ByteArray -> Bool
+elem c = Text.elem c . unsafeToText
+
+split :: ByteArray -> ByteArray -> [ByteArray]
+split needle bytes
+  | needle.len == 0 = elements bytes
+  | otherwise = ByteArray.split needle bytes
+
+elements :: ByteArray -> [ByteArray]
+elements = map singleton . unsafeUnpack -- TODO: implement via measureOff
+{-
+elements bytes = go 0
+  where
+    go n
+      | n < bytes.len = ByteArray.unsafeSlice n m bytes : go m
+      | otherwise = []
+      where m = n.succ
+      -}
+
+-- measureOff = undefined
