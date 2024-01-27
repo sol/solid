@@ -46,6 +46,8 @@ empty = []
 empty? :: [a] -> Bool
 empty? = null
 
+-- null !!!
+
 nub :: Ord a => [a] -> [a]
 nub = nubOn id
 

@@ -18,13 +18,16 @@ data Modifier =
 data Color =
     Black
   | Red
+  | LightRed
   | Green
   | Yellow
   | Blue
   | Magenta
+  | BrightMagenta
   | Cyan
   | White
   | RGB Word8 Word8 Word8
+  | PaletteColor Word8
   deriving (Eq, Show)
 
 ansi :: a -> Ansi a
