@@ -8,6 +8,10 @@ module Solid.Ansi (
 , underline
 , inverse
 
+, Color(..)
+, foreground
+, background
+
 , black
 , red
 , green
@@ -64,6 +68,7 @@ modifierSet = \ case
   Foreground Cyan -> "36"
   Foreground White -> "37"
   Foreground (RGB r g b) -> "38;2;{r};{g};{b}"
+  Foreground (PaletteColor n) -> "38;5;{n}"
 
   Background Black -> "40"
   Background Red -> "41"
@@ -74,6 +79,7 @@ modifierSet = \ case
   Background Cyan -> "46"
   Background White -> "47"
   Background (RGB r g b) -> "48;2;{r};{g};{b}"
+  Background (PaletteColor n) -> "48;5;{n}"
 
 instance ToString Modifier where
   toString m = "\ESC[{modifierSet m}m"
@@ -189,6 +195,12 @@ on_white = background White
 
 on_rgb :: Word8 -> Word8 -> Word8 -> Ansi a -> Ansi a
 on_rgb r g b = background (RGB r g b)
+
+instance HasField "foreground" (Ansi a) (Color -> Ansi a) where
+  getField = flip foreground
+
+instance HasField "background" (Ansi a) (Color -> Ansi a) where
+  getField = flip background
 
 instance HasField "black" (Ansi a) (Ansi a) where
   getField = black
