@@ -1,6 +1,6 @@
 cabal-version: 1.22
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -8,7 +8,7 @@ name:           haskell-base
 version:        0.0.0
 author:         Simon Hengel <sol@typeful.net>
 maintainer:     Simon Hengel <sol@typeful.net>
-copyright:      (c) 2023 Simon Hengel
+copyright:      (c) 2023-2024 Simon Hengel
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
