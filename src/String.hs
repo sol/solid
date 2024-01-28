@@ -30,8 +30,11 @@ asByteString = Bytes.asByteString
 empty :: String
 empty = mempty
 
-empty? :: Bytes a -> Bool
+empty? :: String -> Bool
 empty? = coerce Utf8.null
+
+null :: String -> Bool
+null = coerce Utf8.null
 
 length :: String -> Int
 length = coerce Utf8.length

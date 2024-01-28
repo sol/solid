@@ -44,6 +44,15 @@ instance HasField "asString\7433" ByteString String where
 instance HasField "decodeUtf8" ByteString String where
   getField = decodeUtf8
 
+empty :: ByteString
+empty = mempty
+
+empty? :: ByteString -> Bool
+empty? = coerce ByteArray.null
+
+null :: ByteString -> Bool
+null = coerce ByteArray.null
+
 length :: ByteString -> Int
 length = coerce ByteArray.length
 
@@ -125,6 +134,9 @@ read! :: WithStackTrace => Read a => ByteString -> a
 read! input = case read input of
   Nothing -> StackTrace.suppress Exception.invalidValue! "no parse"
   Just a -> a
+
+instance HasField "empty\660" ByteString Bool where
+  getField = empty?
 
 instance HasField "length" ByteString Int where
   getField = length
