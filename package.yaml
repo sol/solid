@@ -1,7 +1,7 @@
 spec-version: 0.36.0
 name: solid
 
-copyright: (c) 2022-2023 Simon Hengel
+copyright: (c) 2022-2024 Simon Hengel
 author: Simon Hengel <sol@typeful.net>
 
 language: GHC2021

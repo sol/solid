@@ -3,6 +3,8 @@ module Data.Sliced.ByteArray.Utf8Spec (spec, arbitrary) where
 
 import Helper hiding (pack, Bytes, lines, unlines, words, unwords)
 
+import Control.Arrow ((&&&))
+
 import Data.Sliced.ByteArray.Unsafe
 
 use Gen
@@ -76,3 +78,68 @@ spec = do
     it "behaves like Data.Text.unwords" $ do
       xs <- forAll $ Gen.list (Range.linear 0 10) arbitrary
       unwords xs === fromText (Text.unwords $ map unsafeToText xs)
+
+  describe "take" $ do
+    context "with a non-negative number" $ do
+      it "takes from the beginning of the list" $ do
+        Utf8.take 3 "fλλbλrbλz" `shouldBe` "fλλ"
+
+    context "with a negative number" $ do
+      it "takes from the end of the list" $ do
+        Utf8.take -3 "fλλbλrbλz" `shouldBe` "bλz"
+
+  describe "drop" $ do
+    context "with a non-negative number" $ do
+      it "drops from the beginning of the list" $ do
+        Utf8.drop 3 "fλλbλrbλz" `shouldBe` "bλrbλz"
+
+    context "with a negative number" $ do
+      it "drops from the end of the list" $ do
+        Utf8.drop -3 "fλλbλrbλz" `shouldBe` "fλλbλr"
+
+  describe "splitAt" $ do
+    it "is reversed by (<>)" $ do
+      input <- forAll arbitrary
+      n <- forAll $ Gen.int (Range.constant -20 20)
+      uncurry (<>) (Utf8.splitAt n input) === input
+
+    context "with a non-negative number" $ do
+      it "splits, counting from the beginning of the list" $ do
+        Utf8.splitAt 3 "foobarbaz" === ("foo", "barbaz")
+        input <- forAll arbitrary
+        n <- forAll $ Gen.int (Range.constant 0 20)
+        Utf8.splitAt n input === (Utf8.take n &&& Utf8.drop n) input
+
+    context "with a negative number" $ do
+      it "splits, counting from the end of the list" $ do
+        Utf8.splitAt -3 "foobarbaz" === ("foobar", "baz")
+        input <- forAll arbitrary
+        n <- forAll $ Gen.int (Range.constant -20 -1)
+        Utf8.splitAt n input === (Utf8.drop n &&& Utf8.take n) input
+
+  describe "split" $ do
+    context "with an empty separator" $ do
+      it "splits into chunks of size one" $ do
+        Utf8.split "" "fλλbλrbλz" `shouldBe` ["f", "λ", "λ", "b", "λ", "r", "b", "λ", "z"]
+
+  describe "chunksOf" $ do
+    it "splits a byte array into chunks of a specified size" $ do
+      Utf8.chunksOf 2 "fλλbλrbλz" `shouldBe` ["fλ", "λb", "λr", "bλ", "z"]
+
+    context "with an empty byte array" $ do
+      it "returns the empty list" $ do
+        Utf8.chunksOf 2 "" `shouldBe` []
+
+    context "with a positive chunk size" $ do
+      it "is reversed by mconcat" $ do
+        input <- forAll arbitrary
+        n <- forAll $ Gen.int (Range.constant 1 10)
+        mconcat (Utf8.chunksOf n input) === input
+
+    context "with a chunk size of 0" $ do
+      it "returns the empty list" $ do
+        Utf8.chunksOf 0 "fλλbλrbλz" `shouldBe` []
+
+    context "with a negative chunk size" $ do
+      it "returns the empty list" $ do
+        Utf8.chunksOf -3 "fλλbλrbλz" `shouldBe` []

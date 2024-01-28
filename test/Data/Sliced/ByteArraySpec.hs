@@ -396,6 +396,22 @@ spec = do
     it "takes / drops while a predicate does not hold" $ do
       ByteArray.break (> 4) [1..10] `shouldBe` ([1..4], [5..10])
 
+  describe "breakOn" $ do
+    it "breaks a byte array at a specified pattern" $ do
+      breakOn "ba" "foobarbaz" `shouldBe` ("foo", "barbaz")
+
+    context "with the empty pattern" $ do
+      it "returns a tuple of the empty byte array and the original input" $ do
+        breakOn "" "foobar" `shouldBe` ("", "foobar")
+
+    context "when the pattern is a prefix of the input" $ do
+      it "returns a tuple of the empty byte array and the original input" $ do
+        breakOn "foo" "foobar" `shouldBe` ("", "foobar")
+
+    context "with a non-matching pattern" $ do
+      it "returns a tuple of the original input and the empty byte array" $ do
+        breakOn "foo" "barbaz" `shouldBe` ("barbaz", "")
+
   describe "takeWhileEnd" $ do
     it "takes from the end while a predicate holds" $ do
       ByteArray.takeWhileEnd (> 5) [1..10] `shouldBe` [6..10]
@@ -427,7 +443,7 @@ spec = do
 
   describe "inits" $ do
     it "returns all initial segments of the given byte array" $ do
-      ByteArray.inits "foo" `shouldBe` ["","f","fo","foo"]
+      ByteArray.inits "foo" `shouldBe` ["", "f", "fo", "foo"]
 
     prop "each element of the result list is a prefix of the input" $ do
       input <- forAll arbitrary
@@ -465,12 +481,35 @@ spec = do
 
     context "when pattern does not match" $ do
       it "returns a singleton list" $ do
-        ByteArray.split undefined "" `shouldBe` [""]
+        ByteArray.split "foo" "" `shouldBe` [""]
         ByteArray.split "foo" "bar" `shouldBe` ["bar"]
 
     context "with an empty separator" $ do
       it "splits into chunks of size one" $ do
-        ByteArray.split "" "foo" `shouldBe` ["f", "o", "o"]
+        input <- forAll arbitrary
+        ByteArray.split "" input === List.map ByteArray.singleton (ByteArray.unpack input)
+
+  describe "chunksOf" $ do
+    it "splits a byte array into chunks of a specified size" $ do
+      ByteArray.chunksOf 2 "foobarbaz" `shouldBe` ["fo", "ob", "ar", "ba", "z"]
+
+    context "with an empty byte array" $ do
+      it "returns the empty list" $ do
+        ByteArray.chunksOf 2 "" `shouldBe` []
+
+    context "with a positive chunk size" $ do
+      it "is reversed by mconcat" $ do
+        input <- forAll arbitrary
+        n <- forAll $ Gen.int (Range.constant 1 10)
+        mconcat (ByteArray.chunksOf n input) === input
+
+    context "with a chunk size of 0" $ do
+      it "returns the empty list" $ do
+        ByteArray.chunksOf 0 "foobarbaz" `shouldBe` []
+
+    context "with a negative chunk size" $ do
+      it "returns the empty list" $ do
+        ByteArray.chunksOf -3 "foobarbaz" `shouldBe` []
 
   describe "lines" $ do
     it "is inverse to unlines" $ do
