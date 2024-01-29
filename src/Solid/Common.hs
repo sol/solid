@@ -138,8 +138,34 @@ instance HasField "succ\7433" Int Int where
   getField = succ!
   {-# INLINE getField #-}
 
+instance HasField "plus" Int (Int -> Int) where
+  getField = (+)
+  {-# INLINE getField #-}
+
+instance HasField "minus" Int (Int -> Int) where
+  getField = (-)
+  {-# INLINE getField #-}
+
+instance HasField "times" Int (Int -> Int) where
+  getField = (*)
+  {-# INLINE getField #-}
+
+instance HasField "div" Int (Int -> Int) where
+  getField = div
+  {-# INLINE getField #-}
+
+instance HasField "negate" Int Int where
+  getField = negate
+  {-# INLINE getField #-}
+
 instance HasField "max" Int (Int -> Int) where
   getField = max
+  {-# INLINE getField #-}
 
 instance HasField "min" Int (Int -> Int) where
   getField = min
+  {-# INLINE getField #-}
+
+instance HasField "clamp" Int (Int -> Int -> Int) where
+  getField n smallest largest = n.min(largest).max(smallest)
+  {-# INLINE getField #-}
