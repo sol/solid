@@ -102,7 +102,7 @@ data Result = Failure String | Success
   deriving (Eq, Show)
 
 desugarExpression :: FilePath -> Int -> Text -> Either String Text
-desugarExpression src line input = execWriter . edit tell input . (.build) . pp <$> parseExpression extensions src line input
+desugarExpression src line input = execWriter . edit tell input . (.build) . pp Nothing <$> parseExpression extensions src line input
 
 main :: String -> String -> String -> IO ()
 main src cur dst = run src cur dst >>= \ case
@@ -320,7 +320,13 @@ unescapeStringLiteral loc (unpackFS -> old)
     new = unescapeString old
 
 ppModule :: Module BufferSpan -> DList Edit
-ppModule (Module header imports nodes) = ppHeader header <> concatMap ppImport imports <> pp nodes
+ppModule (Module header imports nodes) = ppHeader header <> concatMap ppImport imports <> pp (Just moduleName) nodes
+  where
+    moduleName :: Builder
+    moduleName = case header of
+      NoModuleHeader -> "Main"
+      ModuleHeader _ (ModuleName _ Nothing name) _ -> Builder.fastString name
+      ModuleHeader _ (ModuleName _ (Just qualified) name) _ -> Builder.fastString qualified <> "." <> Builder.fastString name
 
 ppImport :: Import BufferSpan -> DList Edit
 ppImport = \ case
@@ -336,8 +342,8 @@ ppImport = \ case
     ppImportList :: ImportList BufferSpan -> DList Edit
     ppImportList = \ case
       NoImportList -> mempty
-      ImportList names -> concatMap pp names
-      HidingList names -> concatMap pp names
+      ImportList names -> concatMap (pp Nothing) names
+      HidingList names -> concatMap (pp Nothing) names
 
 ppHeader :: ModuleHeader BufferSpan -> DList Edit
 ppHeader = \ case
@@ -347,10 +353,10 @@ ppHeader = \ case
 ppExportList :: ExportList BufferSpan -> DList Edit
 ppExportList = \ case
   NoExportList -> mempty
-  ExportList nodes -> concatMap pp nodes
+  ExportList nodes -> concatMap (pp Nothing) nodes
 
-pp :: [Node BufferSpan] -> DList Edit
-pp = ppNodes
+pp :: Maybe Builder -> [Node BufferSpan] -> DList Edit
+pp moduleName = ppNodes
   where
     ppNodes :: Foldable sequence_of => sequence_of (Node BufferSpan) -> DList Edit
     ppNodes = concatMap ppNode
@@ -394,18 +400,25 @@ pp = ppNodes
         name = desugarMethodName method.name
 
         instanceBody :: Builder
-        instanceBody = case length method.arguments of
-          0 -> " where getField = " <> Builder.fromText name <> "\n"
-          n -> " where getField _subject" <> args <> " = " <> Builder.fromText name <> args <> " _subject\n"
-            where
-              args :: Builder
-              args = mconcat (take n ids)
+        instanceBody =
+          let
+            implementation = Edit.formatColumnPragma method.name.loc.startColumn <> case moduleName of
+              Nothing ->
+                Builder.fromText name
+              Just m ->
+                m <> "." <> Builder.fromText name
+          in case length method.arguments of
+            0 -> " where getField = " <> implementation <> "\n"
+            n -> " where getField _subject" <> args <> " = " <> implementation <> args <> " _subject\n"
+              where
+                args :: Builder
+                args = mconcat (take n ids)
 
-              ids :: [Builder]
-              ids = map (fromString . (" _" ++)) names
-                where
-                  names :: [String]
-                  names = [x : xs | xs <- "" : names, x <- ['a' .. 'z']]
+                ids :: [Builder]
+                ids = map (fromString . (" _" ++)) names
+                  where
+                    names :: [String]
+                    names = [x : xs | xs <- "" : names, x <- ['a' .. 'z']]
 
     desugarMethodName :: MethodName loc -> Text
     desugarMethodName (MethodName _ name) = fromMaybe (pack $ unpackFS name) $ desugarIdentifierMaybe name

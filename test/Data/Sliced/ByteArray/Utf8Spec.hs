@@ -1,9 +1,7 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Data.Sliced.ByteArray.Utf8Spec (spec, arbitrary) where
 
-import Helper hiding (pack, Bytes, lines, unlines, words, unwords)
-
-import Control.Arrow ((&&&))
+import Helper hiding (pack, Bytes, lines, unlines, words, unwords, take, drop)
 
 import Data.Sliced.ByteArray.Unsafe
 
@@ -96,6 +94,34 @@ spec = do
     context "with a negative number" $ do
       it "drops from the end of the list" $ do
         Utf8.drop -3 "fλλbλrbλz" `shouldBe` "fλλbλr"
+
+  describe "slice" $ do
+    it "slices a byte array" $ do
+      start <- forAll $ Gen.int (Range.constant 0 20)
+      end <- forAll $ Gen.int (Range.constant 0 20)
+      input <- forAll arbitrary
+      slice start end input === drop start (take end input)
+
+    context "with a negative start index" $ do
+      it "slices a byte array" $ do
+        start <- forAll $ Gen.int (Range.constant -20 -1)
+        end <- forAll $ Gen.int (Range.constant 0 20)
+        input <- forAll arbitrary
+        slice start end input === drop (Utf8.length input + start).max(0) (take end input)
+
+    context "with a negative end index" $ do
+      it "slices a byte array" $ do
+        start <- forAll $ Gen.int (Range.constant 0 20)
+        end <- forAll $ Gen.int (Range.constant -20 -1)
+        input <- forAll arbitrary
+        slice start end input === drop start (drop end input)
+
+    context "with a negative start index and a negative end index" $ do
+      it "slices a byte array" $ do
+        start <- forAll $ Gen.int (Range.constant -20 -1)
+        end <- forAll $ Gen.int (Range.constant -20 -1)
+        input <- forAll arbitrary
+        slice start end input === drop end (take start input)
 
   describe "splitAt" $ do
     it "is reversed by (<>)" $ do

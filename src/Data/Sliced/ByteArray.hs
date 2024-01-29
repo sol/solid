@@ -57,6 +57,7 @@ module Data.Sliced.ByteArray (
 -- ** Breaking strings
 , take
 , drop
+, slice
 , splitAt
 
 , takeWhile
@@ -101,6 +102,7 @@ module Data.Sliced.ByteArray (
 ) where
 
 import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, span, elem)
+import Int ()
 
 import HaskellPrelude (error)
 import GHC.Stack
@@ -446,6 +448,20 @@ drop i bytes
   where
     n = abs i
 {-# INLINE drop #-}
+
+slice :: Int -> Int -> ByteArray -> ByteArray
+slice a b bytes
+  | start >= end = empty
+  | start >= bytes.len = empty
+  | end >= bytes.len = unsafeDrop start bytes
+  | otherwise = unsafeSlice start end bytes
+  where
+    start = off a
+    end = off b
+
+    off n
+      | n < 0 = max 0 (bytes.len + n)
+      | otherwise = n
 
 splitAt :: Int -> ByteArray -> (ByteArray, ByteArray)
 splitAt i bytes

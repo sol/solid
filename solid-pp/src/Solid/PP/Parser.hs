@@ -332,8 +332,10 @@ atStartOfLine expected = do
     L loc t : _ | t == expected && loc.startColumn /= 1 -> indentationError pos1 loc
     _ -> require expected
 
-data MethodName loc = MethodName loc FastString
-  deriving (Eq, Show, Functor)
+data MethodName loc = MethodName {
+  loc :: loc
+, name :: FastString
+} deriving (Eq, Show, Functor)
 
 pMethodName :: Parser (MethodName BufferSpan)
 pMethodName = uncurry MethodName <$> varid

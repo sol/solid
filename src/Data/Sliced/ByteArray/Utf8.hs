@@ -28,8 +28,17 @@ module Data.Sliced.ByteArray.Utf8 (
 -- ** Breaking strings
 , take
 , drop
+, slice
 , splitAt
+
+, takeWhile
+, dropWhile
+, span
+, break
 , ByteArray.breakOn
+
+, takeWhileEnd
+, dropWhileEnd
 
 , ByteArray.stripPrefix
 , ByteArray.stripSuffix
@@ -55,13 +64,16 @@ module Data.Sliced.ByteArray.Utf8 (
 , elem
 ) where
 
-import Solid.Common hiding (take, drop, splitAt, elem, any, all, empty)
+import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, span, elem)
+
+use Data.List
 
 import Data.Sliced.ByteArray.Unsafe
 import Data.Sliced.ByteArray.Conversion (unsafeToText, fromText)
 
 use Data.Sliced.ByteArray
 use Data.Text
+import Data.Text.Unsafe (reverseIter_)
 use Simd.Utf8
 
 pack :: [Char] -> ByteArray
@@ -98,7 +110,7 @@ all :: (Char -> Bool) -> ByteArray -> Bool
 all p = Text.all p . unsafeToText
 
 words :: ByteArray -> [ByteArray]
-words = map fromText . Text.words . unsafeToText
+words = List.map fromText . Text.words . unsafeToText
 
 strip :: ByteArray -> ByteArray
 strip = fromText . Text.strip . unsafeToText
@@ -112,6 +124,18 @@ drop :: Int -> ByteArray -> ByteArray
 drop n
   | n < 0 = dropEnd -n
   | otherwise = fromText . Text.drop n . unsafeToText
+
+slice :: Int -> Int -> ByteArray -> ByteArray
+slice a b bytes
+  | start >= end = empty
+  | otherwise = unsafeSlice start end bytes
+  where
+    start = off a
+    end = off b
+
+    off n
+      | n < 0 = iterNEnd (negate n) bytes
+      | otherwise = let m = measureOff n bytes in if m < 0 then bytes.len else m
 
 takeEnd :: Int -> ByteArray -> ByteArray
 takeEnd n = fromText . Text.takeEnd n . unsafeToText
@@ -127,6 +151,24 @@ splitAt n bytes
   | otherwise = (unsafeTake off bytes, unsafeDrop off bytes)
   where
     off = measureOff n bytes
+
+takeWhile :: (Char -> Bool) -> ByteArray -> ByteArray
+takeWhile p = fromText . Text.takeWhile p . unsafeToText
+
+dropWhile :: (Char -> Bool) -> ByteArray -> ByteArray
+dropWhile p = fromText . Text.dropWhile p . unsafeToText
+
+span :: (Char -> Bool) -> ByteArray -> (ByteArray, ByteArray)
+span p = bimap fromText fromText . Text.span p . unsafeToText
+
+break :: (Char -> Bool) -> ByteArray -> (ByteArray, ByteArray)
+break p = bimap fromText fromText . Text.break p . unsafeToText
+
+takeWhileEnd :: (Char -> Bool) -> ByteArray -> ByteArray
+takeWhileEnd p = fromText . Text.takeWhileEnd p . unsafeToText
+
+dropWhileEnd :: (Char -> Bool) -> ByteArray -> ByteArray
+dropWhileEnd p = fromText . Text.dropWhileEnd p . unsafeToText
 
 elem :: Char -> ByteArray -> Bool
 elem c = Text.elem c . unsafeToText
@@ -148,4 +190,15 @@ measureOff :: Int -> ByteArray -> Int
 measureOff n = Text.measureOff n . unsafeToText
 
 chunksOf :: Int -> ByteArray -> [ByteArray]
-chunksOf n = map fromText . Text.chunksOf n . unsafeToText
+chunksOf n = List.map fromText . Text.chunksOf n . unsafeToText
+
+-- copy of Data.Text.iterNEnd
+iterNEnd :: Int -> ByteArray -> Int
+iterNEnd n bs@(ByteArray _arr _off len) = loop (len - 1) n
+  where
+    t = unsafeToText bs
+    loop i !m
+          | m <= 0    = i + 1
+          | i <= 0    = 0
+          | otherwise = loop (i + d) (m - 1)
+          where d = reverseIter_ t i
