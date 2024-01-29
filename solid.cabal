@@ -29,6 +29,7 @@ library
       Exception
       FilePath
       Haskell
+      Int
       IO
       IO.Handle
       List
@@ -170,6 +171,7 @@ test-suite spec
       Exception
       FilePath
       Haskell
+      Int
       IO
       IO.Handle
       List

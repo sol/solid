@@ -20,6 +20,9 @@ use Data.Sliced.ByteArray
 import Data.Coerce (coerce)
 import Data.ByteString.Internal (isSpaceWord8)
 
+-- $setup
+-- >>> import Solid
+
 instance Show ByteString where
   showsPrec n = showsPrec n . unBytes
 
@@ -56,27 +59,69 @@ null = coerce ByteArray.null
 .unpack :: ByteString -> [Word8]
 .unpack = ByteArray.unpack . unBytes
 
+-- |
+-- >>> ByteString.take 2 "foobar"
+-- "fo"
 .take :: Int -> ByteString -> ByteString
 .take = coerce ByteArray.take
 
-.takeWhile :: (Word8 -> Bool) -> ByteString -> ByteString
-.takeWhile = coerce ByteArray.takeWhile
-
-.takeWhileEnd :: (Word8 -> Bool) -> ByteString -> ByteString
-.takeWhileEnd = coerce ByteArray.takeWhileEnd
-
+-- |
+-- >>> ByteString.drop 2 "foobar"
+-- "obar"
 .drop :: Int -> ByteString -> ByteString
 .drop = coerce ByteArray.drop
 
+-- |
+-- >>> ByteString.takeWhile (/= fromIntegral 'b'.ord) "foobar"
+-- "foo"
+.takeWhile :: (Word8 -> Bool) -> ByteString -> ByteString
+.takeWhile = coerce ByteArray.takeWhile
+
+-- |
+-- >>> ByteString.dropWhile (/= fromIntegral 'b'.ord) "foobar"
+-- "bar"
 .dropWhile :: (Word8 -> Bool) -> ByteString -> ByteString
 .dropWhile = coerce ByteArray.dropWhile
 
+-- |
+-- >>> ByteString.takeWhileEnd (/= fromIntegral 'b'.ord) "foobar"
+-- "ar"
+.takeWhileEnd :: (Word8 -> Bool) -> ByteString -> ByteString
+.takeWhileEnd = coerce ByteArray.takeWhileEnd
+
+-- |
+-- >>> ByteString.dropWhileEnd (/= fromIntegral 'b'.ord) "foobar"
+-- "foob"
 .dropWhileEnd :: (Word8 -> Bool) -> ByteString -> ByteString
 .dropWhileEnd = coerce ByteArray.dropWhileEnd
 
+-- |
+-- >>> ByteString.splitAt 3 "foobar"
+-- ("foo","bar")
 .splitAt :: Int -> ByteString -> (ByteString, ByteString)
 .splitAt = coerce ByteArray.splitAt
 
+-- |
+-- >>> ByteString.slice 3 5 "foobar"
+-- "ba"
+.slice :: Int -> Int -> ByteString -> ByteString
+.slice = coerce ByteArray.slice
+
+-- |
+-- >>> ByteString.chunksOf 2 "foobarbaz"
+-- ["fo","ob","ar","ba","z"]
+.chunksOf :: Int -> ByteString -> [ByteString]
+.chunksOf = coerce ByteArray.chunksOf
+
+-- |
+-- >>> ByteString.breakOn "ba" "foobarbaz"
+-- ("foo","barbaz")
+.breakOn :: ByteString -> ByteString -> (ByteString, ByteString)
+.breakOn = coerce ByteArray.breakOn
+
+-- |
+-- >>> ByteString.unwords ["foo", "bar", "baz"]
+-- "foo bar baz"
 .unwords :: [ByteString] -> ByteString
 .unwords = coerce ByteArray.unwords
 
@@ -85,6 +130,17 @@ null = coerce ByteArray.null
 
 .unlines :: [ByteString] -> ByteString
 .unlines = coerce ByteArray.unlines
+
+-- |
+-- >>> let input = "hey-there" :: ByteString
+--
+-- >>> input.split "-"
+-- ["hey","there"]
+--
+-- >>> input.split ""
+-- ["h","e","y","-","t","h","e","r","e"]
+.split :: ByteString -> ByteString -> [ByteString]
+.split = coerce ByteArray.split
 
 .strip :: ByteString -> ByteString
 .strip = dropWhile asciiSpace? . dropWhileEnd asciiSpace?

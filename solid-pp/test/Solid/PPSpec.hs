@@ -387,7 +387,7 @@ spec = do
             ".length :: String -> Int"
           , ".length = coerce Utf8.length"
           ] `shouldDesugarTo_` unlines [
-            "instance HasField \"length\" String Int where getField = length"
+            "instance HasField \"length\" String Int where getField = Main.length"
           , "length :: String -> Int"
           , "length = coerce Utf8.length"
           ]
@@ -397,7 +397,7 @@ spec = do
             ".empty? :: String -> Bool"
           , ".empty? = coerce Utf8.null"
           ] `shouldDesugarTo_` unlines [
-            "instance HasField \"empty\\660\" String Bool where getField = emptyʔ"
+            "instance HasField \"empty\\660\" String Bool where getField = Main.emptyʔ"
           , "emptyʔ :: String -> Bool"
           , "emptyʔ = coerce Utf8.null"
           ]
@@ -407,7 +407,7 @@ spec = do
             ".foo :: A -> B -> S -> R"
           , ".foo = undefined"
           ] `shouldDesugarTo_` unlines [
-            "instance HasField \"foo\" S (A -> B -> R) where getField _subject _a _b = foo _a _b _subject"
+            "instance HasField \"foo\" S (A -> B -> R) where getField _subject _a _b = Main.foo _a _b _subject"
           , "foo :: A -> B -> S -> R"
           , "foo = undefined"
           ]
@@ -417,7 +417,7 @@ spec = do
             ".foo :: String -> Maybe Int"
           , ".foo = undefined"
           ] `shouldDesugarTo_` unlines [
-            "instance HasField \"foo\" String (Maybe Int) where getField = foo"
+            "instance HasField \"foo\" String (Maybe Int) where getField = Main.foo"
           , "foo :: String -> Maybe Int"
           , "foo = undefined"
           ]
@@ -427,7 +427,7 @@ spec = do
             ".stdin :: Config stdin stdout stderr -> STDIN stdin stdout stderr"
           , ".stdin = STDIN"
           ] `shouldDesugarTo_` unlines [
-            "instance HasField \"stdin\" (Config stdin stdout stderr) (STDIN stdin stdout stderr) where getField = stdin"
+            "instance HasField \"stdin\" (Config stdin stdout stderr) (STDIN stdin stdout stderr) where getField = Main.stdin"
           , "stdin :: Config stdin stdout stderr -> STDIN stdin stdout stderr"
           , "stdin = STDIN"
           ]
@@ -438,7 +438,7 @@ spec = do
           , ".open = undefined"
           ] `shouldDesugarTo_` unlines [
             "import qualified IO"
-          , "instance HasField \"open\" FilePath (IO.Mode -> Handle) where getField _subject _a = open _a _subject"
+          , "instance HasField \"open\" FilePath (IO.Mode -> Handle) where getField _subject _a = Main.open _a _subject"
           , "open :: IO.Mode -> FilePath -> Handle"
           , "open = undefined"
           ]
@@ -448,7 +448,7 @@ spec = do
             ".nub :: Eq a => [a] -> [a]"
           , ".nub = undefined"
           ] `shouldDesugarTo_` unlines [
-            "instance Eq a => HasField \"nub\" [a] [a] where getField = nub"
+            "instance Eq a => HasField \"nub\" [a] [a] where getField = Main.nub"
           , "nub :: Eq a => [a] -> [a]"
           , "nub = undefined"
           ]
@@ -460,7 +460,7 @@ spec = do
           ] `shouldDesugarTo` unlines [
             "import qualified IO"
           , "{-# LINE 1 \"main.hs\" #-}"
-          , "instance {-# COLUMN 1 #-}HasField \"open\" {-# COLUMN 21 #-}FilePath ({-# COLUMN 10 #-}IO.Mode -> {-# COLUMN 33 #-}Handle) where getField _subject _a = open _a _subject"
+          , "instance {-# COLUMN 1 #-}HasField \"open\" {-# COLUMN 21 #-}FilePath ({-# COLUMN 10 #-}IO.Mode -> {-# COLUMN 33 #-}Handle) where getField _subject _a = {-# COLUMN 2 #-}Main.open _a _subject"
           , "{-# LINE 1 \"main.hs\" #-}"
           , "{-# COLUMN 2 #-}open :: IO.Mode -> FilePath -> Handle"
           , "{-# COLUMN 2 #-}open = undefined"
@@ -471,7 +471,7 @@ spec = do
             ".nub :: Eq a => [a] -> [a]"
           , ".nub = undefined"
           ] `shouldDesugarTo` unlines [
-            "instance {-# COLUMN 9 #-}Eq a => {-# COLUMN 1 #-}HasField \"nub\" [a] [a] where getField = nub"
+            "instance {-# COLUMN 9 #-}Eq a => {-# COLUMN 1 #-}HasField \"nub\" [a] [a] where getField = {-# COLUMN 2 #-}Main.nub"
           , "{-# LINE 1 \"main.hs\" #-}"
           , "{-# COLUMN 2 #-}nub :: Eq a => [a] -> [a]"
           , "{-# COLUMN 2 #-}nub = undefined"

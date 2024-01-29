@@ -17,6 +17,7 @@ import Solid.Ansi ()
 import Maybe ()
 import Either ()
 import List ()
+import Int ()
 import Word8 ()
 
 import Numeric qualified

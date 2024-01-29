@@ -46,7 +46,7 @@ import           GHC.Generics as Imports (Generic)
 import           Control.Exception (bracket)
 import           Control.Monad as Imports
 import           Control.Monad.IO.Class as Imports
-import           Control.Arrow as Imports ((>>>))
+import           Control.Arrow as Imports ((>>>), (&&&))
 import           Control.Applicative as Imports
 
 import           Data.Tuple (swap)
@@ -121,25 +121,3 @@ instance HasField "bimap" (a, b) ((a -> c) -> (b -> d) -> (c, d))
 instance HasField "fold" Bool (a -> a -> a)
       => HasField "fold" Bool (a -> a -> a) where
   getField value t f = bool t f value
-
-instance HasField "pred" Int Int where
-  getField = pred
-  {-# INLINE getField #-}
-
-instance HasField "pred\7433" Int Int where
-  getField = pred!
-  {-# INLINE getField #-}
-
-instance HasField "succ" Int Int where
-  getField = succ
-  {-# INLINE getField #-}
-
-instance HasField "succ\7433" Int Int where
-  getField = succ!
-  {-# INLINE getField #-}
-
-instance HasField "max" Int (Int -> Int) where
-  getField = max
-
-instance HasField "min" Int (Int -> Int) where
-  getField = min
