@@ -22,26 +22,13 @@ package ghc-bin
   ghc-options: -Werror
   executable-dynamic: true
 
-allow-newer: *:base
-allow-newer: *:bytestring
-allow-newer: *:deepseq
-allow-newer: *:ghc-prim
 allow-newer: *:primitive
-allow-newer: *:resolv
-allow-newer: *:template-haskell
-allow-newer: *:text
 allow-newer: *:unix
-allow-newer: *:hedgehog
 
 tests: True
 
 source-repository-package
-  type: git
-  location: https://github.com/haskell/aeson
-  tag: 397b9893cab8d298a537abbe49b436af704cebde
-  subdir: attoparsec-aeson
-
-source-repository-package
+  -- for byteArrayAsForeignPtr
   type: git
   location: https://github.com/haskell/primitive
   tag: 0ea3f6507251a0115db6127e5a65f7c1fcf9479a

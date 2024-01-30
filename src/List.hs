@@ -78,6 +78,12 @@ enumerate = zip [0..]
 enumerateFrom :: Int -> [a] -> [(Int, a)]
 enumerateFrom n = zip [n..]
 
+select :: (a -> Bool) -> [a] -> [a]
+select = filter
+
+discard :: (a -> Bool) -> [a] -> [a]
+discard p = filter (not . p)
+
 -- | Join a list of strings.
 --
 -- Examples:
@@ -171,6 +177,12 @@ instance HasField "enumerateFrom" [a] (Int -> [(Int, a)]) where
 
 instance HasField "filter" [a] ((a -> Bool) -> [a]) where
   getField = flip filter
+
+instance HasField "select" [a] ((a -> Bool) -> [a]) where
+  getField = flip select
+
+instance HasField "discard" [a] ((a -> Bool) -> [a]) where
+  getField = flip discard
 
 instance HasField "join" [String] (String -> String) where
   getField = flip List.join
