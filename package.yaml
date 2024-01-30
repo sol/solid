@@ -53,11 +53,10 @@ executable:
   main: Main.hs
   source-dirs:
     - driver
-    - vendor/cabal-install
   dependencies:
     - solid
     - Cabal
-    - cabal-install == 3.10.1.0 # update / remove vendor/Distribution/Client/Main.hs
+    - cabal-install >= 3.10.2.1
     - stack >= 2.13.1
     - hpack
     - rio

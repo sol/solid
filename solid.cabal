@@ -106,11 +106,8 @@ library
 
 executable solid
   main-is: Main.hs
-  other-modules:
-      Distribution.Client.Main
   hs-source-dirs:
       driver
-      vendor/cabal-install
   default-extensions:
       NoImplicitPrelude
       DataKinds
@@ -128,7 +125,7 @@ executable solid
       Cabal
     , async
     , bytestring
-    , cabal-install ==3.10.1.0
+    , cabal-install >=3.10.2.1
     , containers
     , directory
     , doctest

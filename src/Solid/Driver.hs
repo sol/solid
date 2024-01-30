@@ -197,6 +197,7 @@ createPackageEnv console store self paths = do
         git ["checkout", "FETCH_HEAD", "-q"]
         cabal $ "install" : "--package-env={paths.package_env}" : "--lib" : libraries
         cabal $ "install" : "--installdir={paths.bindir}" : "--install-method=copy" : executables
+        remove_base_package paths.package_env
   where
     git :: [String] -> IO ()
     git args = (console.command "git" args).run
@@ -206,3 +207,8 @@ createPackageEnv console store self paths = do
 
     cabal :: [String] -> IO ()
     cabal args = (console.command self ("cabal" : "--store-dir" : store.toString : verbosity args)).run
+
+    remove_base_package :: FilePath -> IO ()
+    remove_base_package env = do
+      xs <- readBinaryFile env
+      writeBinaryFile env xs.lines.discard(ByteString.startsWith "package-id base-4").unlines
