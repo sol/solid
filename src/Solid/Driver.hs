@@ -84,7 +84,7 @@ data Mode = GhcOptions | Repl | Doctest | With FilePath | Run
 
 solid :: Mode -> FilePath -> [String] -> IO ()
 solid mode self args = do
-  runtime <- ensureRuntime -< getRuntimeDirectory $ self
+  runtime <- ensureRuntime -< getXdgDirectory XdgState "solid" $ self
   Env.path.extend runtime.ghc_dir do
     let options = ghcOptions self runtime.package_env args
     case mode of
@@ -95,9 +95,6 @@ solid mode self args = do
       Doctest -> Process.command(runtime.bindir </> "solid-doctest", options).with Process.status >>= throwIO
       With command -> Process.command(command, options).with Process.status >>= throwIO
       Run -> Process.command(runtime.ghc_dir </> "runghc", options).with Process.status >>= throwIO
-  where
-    getRuntimeDirectory :: IO FilePath
-    getRuntimeDirectory = getXdgDirectory XdgState "solid" <&> (</> "ghc-{ghc}-{fingerprint}".asFilePath)
 
 ghcOptions :: FilePath -> FilePath -> [String] -> [String]
 ghcOptions self packageEnv args = opts ++ args
@@ -145,10 +142,13 @@ pathsFrom base_dir = Paths {
 }
 
 ensureRuntime :: FilePath -> FilePath -> IO Runtime
-ensureRuntime runtime_dir self = do
+ensureRuntime state_dir self = do
   unless -< runtime_dir.exists? $ do
-    createRuntime runtime_dir self
+    createRuntime store runtime_dir self
   readRuntime runtime_dir
+  where
+    runtime_dir = state_dir </> "ghc-{ghc}-{fingerprint}".asFilePath
+    store = state_dir </> "store"
 
 readRuntime :: FilePath -> IO Runtime
 readRuntime base_dir = do
@@ -162,14 +162,14 @@ readRuntime base_dir = do
     paths :: Paths
     paths = pathsFrom base_dir
 
-createRuntime :: FilePath -> FilePath -> IO ()
-createRuntime runtime_dir self = withConsole $ \ console -> do
+createRuntime :: FilePath -> FilePath -> FilePath -> IO ()
+createRuntime store runtime_dir self = withConsole $ \ console -> do
   Util.createAtomic runtime_dir $ \ tmp -> do
     let paths = pathsFrom tmp
     ghc_dir <- install_ghc console self
     writeBinaryFile paths.ghc_dir_cache ghc_dir.asByteString
     Env.path.extend ghc_dir do
-      createPackageEnv console self paths
+      createPackageEnv console store self paths
 
 install_ghc :: Console -> FilePath -> IO FilePath
 install_ghc console self = do
@@ -184,8 +184,8 @@ install_ghc console self = do
     stack :: [String] -> Process.Config () (IO ByteString) ()
     stack args = (console.command self ("stack" : "--verbosity" : "error" : args)).stdout.capture
 
-createPackageEnv :: Console -> FilePath -> Paths -> IO ()
-createPackageEnv console self paths = do
+createPackageEnv :: Console -> FilePath -> FilePath -> Paths -> IO ()
+createPackageEnv console store self paths = do
   console.info "Creating package environment...\n"
   let intensity = Ansi.Faint
   bracket_ (console.info intensity.set) (console.info intensity.reset) do
@@ -205,4 +205,4 @@ createPackageEnv console self paths = do
     verbosity = console.tty?.fold ("-v0" :) id
 
     cabal :: [String] -> IO ()
-    cabal args = (console.command self ("cabal" : verbosity args)).run
+    cabal args = (console.command self ("cabal" : "--store-dir" : store.toString : verbosity args)).run
