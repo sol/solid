@@ -4,6 +4,7 @@ packages:
   haskell-base
   solid-doctest
   vendor/ghc-bin
+  vendor/hedgehog-1.4
 
 package solid
   ghc-options: -Werror
