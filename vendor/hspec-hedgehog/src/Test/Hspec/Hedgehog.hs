@@ -11,6 +11,9 @@
 {-# LANGUAGE ViewPatterns          #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-unused-local-binds #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
 -- | This module allows you to easily integrate the "Hedgehog" library with
 -- "Test.Hspec" test-suites.
@@ -94,6 +97,7 @@ module Test.Hspec.Hedgehog
 
 import           HaskellPrelude
 import           Control.Monad.IO.Class     (liftIO)
+import           Data.Char                  (isSpace)
 import           Data.Coerce                (coerce)
 import           Data.IORef                 (newIORef, readIORef, writeIORef)
 import           GHC.Stack                  (withFrozenCallStack)
@@ -104,7 +108,8 @@ import           Hedgehog.Internal.Property (DiscardLimit (..), Property (..),
                                              ShrinkLimit (..),
                                              TerminationCriteria (..),
                                              TestCount (..), TestLimit (..))
-import           Hedgehog.Internal.Report   as Hedge
+import           Hedgehog.Internal.Report   hiding (renderResult)
+import qualified Hedgehog.Internal.Report   as Hedge
 import           Hedgehog.Internal.Runner   (checkReport)
 import qualified Hedgehog.Internal.Seed     as Seed
 import           Hedgehog.Internal.Source   (ColumnNo (..), LineNo (..),
@@ -201,9 +206,17 @@ instance (m ~ IO) => Example (a -> PropertyT m ()) where
                Nothing       -> Seed.random
                Just (rng, _) -> pure (uncurry Seed (unseedSMGen (coerce rng)))
             hedgeResult <- checkReport propConfig size seed (propertyTest prop) cb
-            ppresult <- renderResult EnableColor Nothing hedgeResult
-            writeIORef ref $ Result "" $ case reportStatus hedgeResult of
-                Failed FailureReport{..} ->
+
+            let config = defaultConfig { configContext = Context 3, configPrintReproduceMessage = True }
+                renderResult color = unlines . unindent . lines . dropWhileEnd isSpace <$> renderResultWith config color (Just "property") hedgeResult
+
+            case reportStatus hedgeResult of
+                Failed failure@FailureReport{..} -> do
+                    ppresult0 <- renderResult EnableColor
+                    --
+                    let (Report tests discards coverage seed result) = hedgeResult
+
+                    ppresult <- renderFailureReport config EnableColor (Just "property") tests discards seed failure
                     let
                         fromSpan Span{..} =
                             Location
@@ -211,10 +224,20 @@ instance (m ~ IO) => Example (a -> PropertyT m ()) where
                                 , locationLine = coerce spanStartLine
                                 , locationColumn = coerce spanStartColumn
                                 }
-                    in
-                        Hspec.Failure (fromSpan <$> failureLocation) $ ColorizedReason ppresult
-                GaveUp ->
-                    Failure Nothing (Reason "GaveUp")
-                OK ->
-                    Success
+                    writeIORef ref $ Result "" $ Hspec.Failure (fromSpan <$> failureLocation) $ ColorizedReason (ppresult
+                      <> "\n---------------------------\n" <> ppresult0)
+                GaveUp -> do
+                    ppresult <- renderResult DisableColor
+                    writeIORef ref $ Result "" $ Failure Nothing (Reason ppresult)
+                OK -> do
+                    ppresult <- renderResult DisableColor
+                    writeIORef ref $ Result ppresult Success
         readIORef ref
+
+dropWhileEnd :: (a -> Bool) -> [a] -> [a]
+dropWhileEnd p = reverse . dropWhile p . reverse
+
+unindent :: [String] -> [String]
+unindent xs = map (drop indentation) xs
+  where
+    indentation = minimum $ map (length . takeWhile (== ' ')) xs
