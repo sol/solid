@@ -8,7 +8,7 @@ module String (
 , unpack
 ) where
 
-import Solid.Common hiding (read, empty, replicate)
+import Solid.Common hiding (read, empty, replicate, take, drop, splitAt)
 import Solid.String
 import Solid.ByteString (ByteString)
 import Solid.Bytes.Unsafe
@@ -173,3 +173,40 @@ instance (HasField "read\7433" String a, Read a)
 
 instance HasField "ansi" String (Ansi String) where
   getField = ansi
+
+instance HasField "chunksOf" String (Int -> [String]) where
+  getField = flip chunksOf
+
+chunksOf :: Int -> String -> [String]
+chunksOf = coerce Utf8.chunksOf
+
+instance HasField "take" String (Int -> String) where
+  getField = flip take
+
+take :: Int -> String -> String
+take = coerce Utf8.take
+
+instance HasField "drop" String (Int -> String) where
+  getField = flip drop
+
+drop :: Int -> String -> String
+drop = coerce Utf8.drop
+
+instance HasField "splitAt" String (Int -> (String, String)) where
+  getField = flip splitAt
+
+splitAt :: Int -> String -> (String, String)
+splitAt = coerce Utf8.splitAt
+
+slice :: Int -> Int -> String -> String
+slice start end = String.drop start . String.take end -- FIXME: Add to String module
+
+instance HasField "slice" String (Int -> Int -> String) where
+  getField self start end = slice start end self
+
+breakOn :: String -> String -> (String, String)
+breakOn = coerce Utf8.breakOn
+{-# INLINE breakOn #-}
+
+instance HasField "breakOn" String (String -> (String, String)) where
+  getField = flip breakOn
