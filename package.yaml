@@ -56,7 +56,7 @@ executable:
   dependencies:
     - solid
     - Cabal
-    - cabal-install >= 3.10.2.1
+    - cabal-install >= 3.10.3.0
     - stack >= 2.13.1
     - hpack
     - rio

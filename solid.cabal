@@ -125,7 +125,7 @@ executable solid
       Cabal
     , async
     , bytestring
-    , cabal-install >=3.10.2.1
+    , cabal-install >=3.10.3.0
     , containers
     , directory
     , doctest
