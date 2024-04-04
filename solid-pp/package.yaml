@@ -15,7 +15,7 @@ ghc-options: -Wall
 dependencies:
   - base == 4.*
   - array
-  - ghc == 9.8.1
+  - ghc == 9.8.2
 
   - containers
   - transformers

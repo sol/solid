@@ -5,7 +5,7 @@ module Solid.Bytes.Unsafe where
 import Solid.Common
 
 import System.OsPath (OsPath)
-import System.OsString.Internal.Types (OsString(..), PosixString(..))
+import Solid.OsString (OsString(..), PosixString(..))
 
 import Data.Sliced.ByteArray (ByteArray)
 

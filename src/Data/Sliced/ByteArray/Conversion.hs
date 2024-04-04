@@ -43,7 +43,7 @@ use Data.ByteString.Lazy.Internal as Lazy
 import Data.Text.Internal (Text(..))
 
 import System.OsPath (OsPath)
-import System.OsString.Internal.Types (OsString(..), PosixString(..))
+import Solid.OsString (OsString(..), PosixString(..))
 
 toByteString :: ByteArray -> ByteString
 toByteString = asByteString . pin
