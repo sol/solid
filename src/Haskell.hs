@@ -49,7 +49,7 @@ use Data.ByteString.Lazy as Haskell (LazyByteString)
 use System.FilePath as Haskell
 use System.OsPath as Haskell
 use System.OsPath.Types as Haskell
-import System.OsString.Internal.Types (OsString(..))
+import Solid.OsString (OsString(..))
 
 import Data.Text (Text)
 

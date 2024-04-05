@@ -33,7 +33,7 @@ import Solid.FilePath
 import Solid.ToString qualified as Solid
 import Solid.Bytes.Unsafe
 import Data.Coerce (coerce)
-import System.OsString.Internal.Types (OsString(..), PosixString(..))
+import Solid.OsString (OsString(..), PosixString(..))
 import System.Posix.Files.PosixString qualified as Posix
 import System.Posix.Directory.PosixPath qualified as Posix
 

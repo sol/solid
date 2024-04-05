@@ -53,6 +53,7 @@ library
       Solid.FilePath
       Solid.Foreign.C
       Solid.MD5
+      Solid.OsString
       Solid.Process.Typed
       Solid.Process.Typed.Internal
       Solid.StackTrace
@@ -193,6 +194,7 @@ test-suite spec
       Solid.FilePath
       Solid.Foreign.C
       Solid.MD5
+      Solid.OsString
       Solid.Process.Typed
       Solid.Process.Typed.Internal
       Solid.StackTrace

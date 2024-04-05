@@ -25,7 +25,7 @@ import System.Environment.Import (getProgName)
 import System.Directory.Import (getTemporaryDirectory)
 
 import Data.Coerce (coerce)
-import System.OsString.Internal.Types qualified
+use Solid.OsString
 import System.Posix.Temp.PosixString qualified as Posix
 
 directory :: IO FilePath

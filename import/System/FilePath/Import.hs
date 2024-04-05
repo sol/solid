@@ -12,7 +12,7 @@ import Data.Coerce (coerce)
 import GHC.IO.Exception
 import System.OsPath qualified as OsPath
 import System.FilePath qualified as FilePath
-import System.OsString.Internal.Types qualified
+use Solid.OsString
 import System.Posix.Env.PosixString qualified as Posix
 
 (-<.>) :: FilePath -> FilePath -> FilePath
