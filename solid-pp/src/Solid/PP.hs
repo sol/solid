@@ -42,6 +42,7 @@ import qualified Data.ByteString.Short as SB
 import           Data.Set (Set)
 import qualified Data.Set as Set
 
+import qualified Solid.PP.Builder as Builder
 import           Solid.PP.DList
 import           Solid.PP.Edit (Edit(..), edit)
 import qualified Solid.PP.Edit as Edit
@@ -100,7 +101,7 @@ data Result = Failure String | Success
   deriving (Eq, Show)
 
 desugarExpression :: FilePath -> Int -> Text -> Either String Text
-desugarExpression src line input = execWriter . edit tell input . (.build) . pp <$> parseExpression extensions src line input
+desugarExpression src line input = Builder.toText . edit input . (.build) . pp <$> parseExpression extensions src line input
 
 main :: String -> String -> String -> IO ()
 main src cur dst = run src cur dst >>= \ case
@@ -121,8 +122,8 @@ linePragma line src = pack $ "{-# LINE " <> show line <> " " <> show src <> " #-
 preProcesses :: FilePath -> InputFile Original -> InputFile Current -> IO Result
 preProcesses dst original current = case parseModule extensions original current of
   Left err -> return (Failure err)
-  Right module_ -> withFile dst WriteMode $ \ h -> do
-    edit (hPutStr h) current.contents (addImplicitImports module_ <> ppModule module_).build
+  Right module_ -> do
+    Builder.writeFile dst $ edit current.contents (addImplicitImports module_ <> ppModule module_).build
     return Success
 
 data Where = Before | After
