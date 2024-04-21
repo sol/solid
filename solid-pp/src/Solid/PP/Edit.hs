@@ -5,8 +5,12 @@
 module Solid.PP.Edit (
   insert
 , insert_
+, insertText
+, insertText_
 , replace
 , replace_
+, replaceText
+, replaceText_
 , Edit(..)
 , insertClosingParen
 , edit
@@ -18,19 +22,33 @@ import           Solid.PP.IO
 import           Solid.PP.SrcLoc (BufferSpan(..), SrcLoc(..))
 import           Data.List hiding (singleton, insert)
 import           Solid.PP.DList
+import           Solid.PP.Builder (Builder)
+import qualified Solid.PP.Builder as Builder
 import qualified Data.Text as T
 
-insert :: SrcLoc -> Text -> DList Edit
-insert loc = singleton . Replace (Just loc.column) loc.offset 0
+insert :: SrcLoc -> Builder -> DList Edit
+insert loc = insertText loc . Builder.toText
 
-insert_ :: SrcLoc -> Text -> DList Edit
-insert_ loc = singleton . Replace Nothing loc.offset 0
+insert_ :: SrcLoc -> Builder -> DList Edit
+insert_ loc = insertText_ loc . Builder.toText
 
-replace :: BufferSpan -> Text -> DList Edit
-replace loc = singleton . Replace (Just loc.startColumn) loc.start loc.length
+insertText :: SrcLoc -> Text -> DList Edit
+insertText loc = singleton . Replace (Just loc.column) loc.offset 0
 
-replace_ :: BufferSpan -> Text -> DList Edit
-replace_ loc = singleton . Replace Nothing loc.start loc.length
+insertText_ :: SrcLoc -> Text -> DList Edit
+insertText_ loc = singleton . Replace Nothing loc.offset 0
+
+replace :: BufferSpan -> Builder -> DList Edit
+replace loc = replaceText loc . Builder.toText
+
+replace_ :: BufferSpan -> Builder -> DList Edit
+replace_ loc = replaceText_ loc . Builder.toText
+
+replaceText :: BufferSpan -> Text -> DList Edit
+replaceText loc = singleton . Replace (Just loc.startColumn) loc.start loc.length
+
+replaceText_ :: BufferSpan -> Text -> DList Edit
+replaceText_ loc = singleton . Replace Nothing loc.start loc.length
 
 data Edit = Replace {
   startColumn :: Maybe Int

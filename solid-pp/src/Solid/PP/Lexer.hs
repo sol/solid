@@ -33,7 +33,6 @@ import           Solid.PP.IO
 
 import           Data.Function
 import           Data.List (stripPrefix)
-import qualified Data.Text.Encoding as T
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -55,9 +54,6 @@ import           GHC.Types.SourceError
 import           GHC.Driver.Session hiding (language)
 import qualified GHC.Parser.Header as ModuleHeader
 import           GHC.Unit.Module.Warnings (emptyWarningCategorySet)
-
-instance HasField "toText" FastString Text where
-  getField = T.decodeUtf8Lenient . bytesFS
 
 allExtensions :: Map String Extension
 allExtensions = Map.fromList $ zip (map showExtension extensions) extensions
