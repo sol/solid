@@ -16,6 +16,7 @@ build-type:     Simple
 library
   exposed-modules:
       Solid.PP
+      Solid.PP.Builder
       Solid.PP.DList
       Solid.PP.Edit
       Solid.PP.IO
@@ -78,6 +79,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Solid.PP
+      Solid.PP.Builder
       Solid.PP.DList
       Solid.PP.Edit
       Solid.PP.IO
@@ -86,6 +88,7 @@ test-suite spec
       Solid.PP.SrcLoc
       Lexer
       EndToEndSpec
+      Solid.PP.BuilderSpec
       Solid.PP.EditSpec
       Solid.PP.IOSpec
       Solid.PP.LexerSpec

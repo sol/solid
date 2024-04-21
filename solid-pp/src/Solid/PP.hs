@@ -42,6 +42,8 @@ import qualified Data.ByteString.Short as SB
 import           Data.Set (Set)
 import qualified Data.Set as Set
 
+import           Solid.PP.Builder (Builder)
+import qualified Solid.PP.Builder as Builder
 import           Solid.PP.DList
 import           Solid.PP.Edit (Edit(..), edit)
 import qualified Solid.PP.Edit as Edit
@@ -113,10 +115,10 @@ run src cur dst = do
   org <- if src == cur then return input else readFile src
   preProcesses dst (InputFile src org) (InputFile cur $ addLinePragma input)
   where
-    addLinePragma = (linePragma 1 src <>)
+    addLinePragma = (Builder.toText (linePragma 1 src) <>)
 
-linePragma :: Int -> FilePath -> Text
-linePragma line src = pack $ "{-# LINE " <> show line <> " " <> show src <> " #-}\n"
+linePragma :: Int -> FilePath -> Builder
+linePragma line src = "{-# LINE " <> Builder.int line <> " " <> Builder.show src <> " #-}\n"
 
 preProcesses :: FilePath -> InputFile Original -> InputFile Current -> IO Result
 preProcesses dst original current = case parseModule extensions original current of
@@ -141,13 +143,13 @@ addImplicitImports module_ = case module_ of
     modules :: ImplicitImports
     modules = Set.intersection (implicitImports module_) wellKnownModules
 
-    formatImports :: Where -> ImplicitImports -> Text
+    formatImports :: Where -> ImplicitImports -> Builder
     formatImports = \ case
-      Before -> T.unlines . map formatImport . Set.toList
-      After -> ("\n" <>) . T.unlines . map formatImport . Set.toList
+      Before -> Builder.unlines . map formatImport . Set.toList
+      After -> ("\n" <>) . Builder.unlines . map formatImport . Set.toList
 
-    formatImport :: ImplicitImport -> Text
-    formatImport (ImplicitImport m) = "import qualified " <> m.toText
+    formatImport :: ImplicitImport -> Builder
+    formatImport (ImplicitImport m) = "import qualified " <> Builder.fastString m
 
 implicitImport :: ModuleName () -> ImplicitImport
 implicitImport = \ case
@@ -290,7 +292,7 @@ unescapeString = go
 unescapeStringLiteral :: BufferSpan -> FastString -> DList Edit
 unescapeStringLiteral loc (unpackFS -> old)
   | new == old = mempty
-  | otherwise = Edit.replace loc (pack new)
+  | otherwise = Edit.replaceText loc (pack new)
   where
     new = unescapeString old
 
@@ -302,9 +304,10 @@ ppImport = \ case
   Import loc Use name as imports -> ppUseStatement loc name as <> ppImportList imports
   Import _ _ _ _ imports -> ppImportList imports
   where
-    ppUseStatement use (ImportName _ (ModuleName loc qualified name)) as = Edit.replace use "import" <> Edit.insert loc.endLoc case (qualified, as) of
+    ppUseStatement :: BufferSpan -> ImportName BufferSpan -> Maybe (ModuleName BufferSpan) -> DList Edit
+    ppUseStatement use (ImportName _ (ModuleName loc qualified name)) as = Edit.replaceText use "import" <> Edit.insert loc.endLoc case (qualified, as) of
       (Nothing, _) -> " qualified"
-      (Just _, Nothing) -> " qualified as " <> name.toText
+      (Just _, Nothing) -> " qualified as " <> Builder.fastString name
       _ -> " qualified"
 
     ppImportList :: ImportList BufferSpan -> DList Edit
@@ -332,7 +335,7 @@ pp = ppNodes
     ppNode :: Node BufferSpan -> DList Edit
     ppNode = \ case
       Token loc t -> ppToken loc t
-      node@(MethodChain subject methodCalls) -> Edit.insert node.start (T.replicate n "(") <> ppSubject subject <> concatMap ppMethodCall methodCalls
+      node@(MethodChain subject methodCalls) -> Edit.insertText node.start (T.replicate n "(") <> ppSubject subject <> concatMap ppMethodCall methodCalls
         where
           n :: Int
           n = length $ filter hasArguments methodCalls
@@ -354,7 +357,7 @@ pp = ppNodes
       where
         open = case arguments of
           NoArguments -> mempty
-          Arguments {} -> Edit.insert start "("
+          Arguments {} -> Edit.insertText start "("
 
     ppMethodCall :: MethodCall BufferSpan -> DList Edit
     ppMethodCall (MethodCall loc name arguments) = desugarIdentifier loc.start loc.end name <> ppCloseArguments arguments
@@ -368,7 +371,7 @@ pp = ppNodes
           Argument _ arg : args -> ppNodes arg <> concatMap ppArgument args
 
     ppArgument :: Argument BufferSpan -> DList Edit
-    ppArgument (Argument loc nodes) = replace loc ")(" <> ppNodes nodes
+    ppArgument (Argument loc nodes) = Edit.replaceText loc ")(" <> ppNodes nodes
 
     ppToken :: BufferSpan -> Token -> DList Edit
     ppToken loc = \ case
@@ -379,24 +382,24 @@ pp = ppNodes
     ppLiteralString :: LiteralString BufferSpan -> DList Edit
     ppLiteralString = \ case
       Literal loc src -> unescapeStringLiteral loc src
-      Begin loc src expression -> replace loc (lambdaAbstract expression <> beginInterpolation src).build <> ppExpression 1 expression
+      Begin loc src expression -> Edit.replace loc (lambdaAbstract expression <> beginInterpolation src) <> ppExpression 1 expression
 
     ppExpression :: Int -> Expression BufferSpan -> DList Edit
     ppExpression n = \ case
-      Expression [] end -> Edit.insert end.loc.startLoc (pack $ abstractionParam n "") <> ppEnd (succ n) end
+      Expression [] end -> Edit.insert end.loc.startLoc (abstractionParam n) <> ppEnd (succ n) end
       Expression nodes end -> ppNodes nodes <> ppEnd n end
 
     ppEnd :: Int -> End BufferSpan -> DList Edit
     ppEnd n = \ case
       End loc src -> endInterpolation loc src
-      EndBegin loc src expression -> replace loc (endBeginInterpolation src).build <> ppExpression n expression
+      EndBegin loc src expression -> Edit.replace loc (endBeginInterpolation src) <> ppExpression n expression
 
-    unescape :: String -> (Maybe DString)
+    unescape :: String -> (Maybe Builder)
     unescape (init . drop 1 -> string)
       | null string = Nothing
       | otherwise = Just (fromString $ unescapeString string)
 
-    beginInterpolation :: FastString -> DString
+    beginInterpolation :: FastString -> Builder
     beginInterpolation src = literal <> "Solid.ToString.toString ("
       where
         literal = case unescape (unpackFS src) of
@@ -406,32 +409,30 @@ pp = ppNodes
     endInterpolation :: BufferSpan -> FastString -> DList Edit
     endInterpolation loc src = Edit.replace_ loc end <> close_paren loc.endLoc
       where
-        end :: Text
+        end :: Builder
         end = case unescape (unpackFS src) of
           Nothing -> ")"
-          Just string -> pack (") <> \"" <> string <> "\"").build
+          Just string -> ") <> \"" <> string <> "\""
 
-    endBeginInterpolation :: FastString -> DString
+    endBeginInterpolation :: FastString -> Builder
     endBeginInterpolation src = ") <> " <> beginInterpolation src
 
     close_paren :: SrcLoc -> DList Edit
     close_paren = singleton . Edit.insertClosingParen
 
-    replace loc = Edit.replace loc . pack
-
-lambdaAbstract :: Expression BufferSpan -> DString
+lambdaAbstract :: Expression BufferSpan -> Builder
 lambdaAbstract = lambda . countAbstractions
   where
-    lambda :: Int -> DString
+    lambda :: Int -> Builder
     lambda n
       | n == 0 = "("
       | otherwise = "(\\" <> params <> " -> "
       where
-        params :: DString
-        params = concatMap formatParam [1..n]
+        params :: Builder
+        params = Builder.concatMap formatParam [1..n]
 
-    formatParam :: Int -> DString
-    formatParam n = DList $ (' ' :) . abstractionParam n
+    formatParam :: Int -> Builder
+    formatParam n = " " <> abstractionParam n
 
     countAbstractions :: Expression BufferSpan -> Int
     countAbstractions = onExpression
@@ -447,5 +448,5 @@ lambdaAbstract = lambda . countAbstractions
           End _ _ -> 0
           EndBegin _ _ expression -> onExpression expression
 
-abstractionParam :: Int -> ShowS
-abstractionParam n = ('_' :) . shows n
+abstractionParam :: Int -> Builder
+abstractionParam n = Builder.char '_' <> Builder.int n

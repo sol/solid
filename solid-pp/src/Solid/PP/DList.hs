@@ -15,11 +15,6 @@ instance Monoid (DList a) where
 instance HasField "build" (DList a) [a] where
   getField (DList xs) = xs []
 
-type DString = DList Char
-
-instance IsString DString where
-  fromString = DList . showString
-
 concatMap :: Foldable t => (a -> DList b) -> t a -> DList b
 concatMap f = foldr ((<>) . f) mempty
 
