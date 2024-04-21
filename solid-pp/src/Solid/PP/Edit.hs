@@ -20,6 +20,9 @@ import           Data.List hiding (singleton, insert)
 import           Solid.PP.DList
 import qualified Data.Text as T
 
+import           Solid.PP.Builder
+import qualified Solid.PP.Builder as Builder
+
 insert :: SrcLoc -> Text -> DList Edit
 insert loc = singleton . Replace (Just loc.column) loc.offset 0
 
@@ -44,20 +47,22 @@ insertClosingParen loc = Replace Nothing loc.offset 0 (pragma <> ")")
   where
     pragma = mkColumnPragma (pred loc.column)
 
-edit :: forall m. Monad m => (Text -> m ()) -> Text -> [Edit] -> m ()
-edit put input = go 0 . sortOn (.start)
+edit :: Text -> [Edit] -> Builder
+edit input = go 0 . sortOn (.start)
   where
-    go :: Int -> [Edit] -> m ()
+    put = text
+
+    go :: Int -> [Edit] -> Builder
     go cursor = \ case
       [] -> do
         put (T.drop cursor input)
-      step@(Replace _ offset n substitute) : xs -> do
-        put (T.drop cursor $ T.take offset input)
-        put substitute
-        forM_ (columnPragma step) putColumnPragma
-        go (offset + n) xs
+      step@(Replace _ offset n substitute) : xs ->
+           put (T.drop cursor $ T.take offset input)
+        <> put substitute
+        <> maybe mempty putColumnPragma (columnPragma step)
+        <> go (offset + n) xs
 
-    putColumnPragma :: Int -> m ()
+    putColumnPragma :: Int -> Builder
     putColumnPragma = put . mkColumnPragma
 
 mkColumnPragma :: Int -> Text
