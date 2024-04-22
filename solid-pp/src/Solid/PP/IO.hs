@@ -17,6 +17,7 @@ import           Control.Arrow as Exports ((&&&), (>>>))
 import           Control.Monad as Exports
 import           Data.Maybe as Exports
 import           Data.Functor as Exports hiding (unzip)
+import           Data.Bifunctor as Exports
 import           Data.Foldable as Exports (for_)
 import           Data.String as Exports (IsString(..))
 import           Data.Proxy as Exports (Proxy(..))
@@ -33,8 +34,8 @@ import           System.Environment (getProgName)
 import           System.Exit (exitFailure)
 import           System.IO (stderr, hPutStrLn)
 
-pass :: Applicative m => m ()
-pass = pure ()
+pass :: Monad m => m ()
+pass = return ()
 
 die :: (String -> String) -> IO a
 die err = getProgName >>= hPutStrLn stderr . err >> exitFailure

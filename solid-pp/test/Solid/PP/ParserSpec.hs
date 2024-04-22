@@ -17,6 +17,7 @@ import           Solid.PP.LexerSpec ()
 import           GHC.IsList
 import           GHC.Data.FastString (FastString, mkFastString)
 import qualified Data.Text as T
+import           Data.Char
 import qualified Data.List as List
 
 import           Solid.PP (extensions)
@@ -30,6 +31,14 @@ instance IsList (Module ()) where
   type Item (Module ()) = Node ()
   fromList = Module NoModuleHeader []
   toList = undefined
+
+instance IsString (MethodName ()) where
+  fromString = MethodName () . fromString
+
+instance IsString (Type ()) where
+  fromString t = case t of
+    c : _ | isLower c -> TypeVariable (fromString t)
+    _ -> TypeName () Nothing (fromString t)
 
 instance IsString (ModuleHeader ()) where
   fromString name = ModuleHeader () (fromString name) NoExportList
@@ -164,6 +173,79 @@ spec = do
 
       it "accepts hiding lists" $ do
         parse "import Foo hiding (bar, baz)" `shouldBe` Module NoModuleHeader [Import () Unqualified "Foo" Nothing (HidingList [["bar"], ["baz"]])] []
+
+    context "when parsing method definitions" $ do
+      it "" $ do
+        let
+          input = unlines [
+              ".length :: String -> Int"
+            , ".length = coerce utf8length"
+            ]
+        parse input `shouldBe` [MethodDefinition $ Method () "length" [] [] "String" "Int" () (), Token () ITequal, "coerce", "utf8length"]
+
+      it "" $ do
+        let
+          input = unlines [
+              ".words :: String -> [String]"
+            , ".words = coerce utf8words"
+            ]
+        parse input `shouldBe` [MethodDefinition $ Method () "words" [] [] "String" (ListOf "String") () (), Token () ITequal, "coerce", "utf8words"]
+
+      it "" $ do
+        let
+          input = unlines [
+              ".foo :: S -> (A, B, C)"
+            , ".foo = bar"
+            ]
+        parse input `shouldBe` [MethodDefinition $ Method () "foo" [] [] "S" (Tuple ["A", "B", "C"]) () (), Token () ITequal, "bar"]
+
+      it "" $ do
+        let
+          input = unlines [
+              ".foo :: A -> B -> Subject -> Result"
+            , ".foo = undefined"
+            ]
+        parse input `shouldBe` [MethodDefinition $ Method () "foo" [] ["A", "B"] "Subject" "Result" () (), Token () ITequal, "undefined"]
+
+      it "" $ do
+        let
+          input = unlines [
+              ".remove :: FilePath -> IO ()"
+            , ".remove = undefined"
+            ]
+        parse input `shouldBe` [MethodDefinition $ Method () "remove" [] [] "FilePath" (TypeApplication "IO" (Tuple [])) () (), Token () ITequal, "undefined"]
+
+      it "" $ do
+        let
+          input = unlines [
+              ".foo :: FilePath -> Either Int String"
+            , ".foo = undefined"
+            ]
+        parse input `shouldBe` [MethodDefinition $ Method () "foo" [] [] "FilePath" (TypeApplication (TypeApplication "Either" "Int") "String") () (), Token () ITequal, "undefined"]
+
+      it "" $ do
+        let
+          input = unlines [
+              ".open :: IO.Mode -> FilePath -> IO Handle"
+            , ".open = undefined"
+            ]
+        parse input `shouldBe` [MethodDefinition $ Method () "open" [] [TypeName () (Just "IO") "Mode"] "FilePath" (TypeApplication "IO" "Handle") () (), Token () ITequal, "undefined"]
+
+      it "" $ do
+        let
+          input = unlines [
+              ".just? :: Maybe a -> Bool"
+            , ".just? = isJust"
+            ]
+        parse input `shouldBe` [MethodDefinition $ Method () "just?" [] [] (TypeApplication "Maybe" "a") "Bool" () (), Token () ITequal, "isJust"]
+      it "" $ do
+        let
+          input = unlines [
+              ".foo :: Eq a => Maybe a -> Bool"
+            , ".foo = isJust"
+            ]
+        parse input `shouldBe` [MethodDefinition $ Method () "foo" [TypeApplication "Eq" "a"] [] (TypeApplication "Maybe" "a") "Bool" () (), Token () ITequal, "isJust"]
+
 
     context "when parsing function calls" $ do
       it "accepts qualified names" $ do

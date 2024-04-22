@@ -25,6 +25,11 @@ module Solid.PP.Parser (
 , ImportName(..)
 , PackageName(..)
 , ImportList(..)
+
+, Method(..)
+, MethodName(..)
+, Type(..)
+
 , Subject(..)
 , BracketStyle(..)
 , Arguments(..)
@@ -48,6 +53,7 @@ import qualified Data.Set as Set
 import qualified Text.Megaparsec as P
 import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest, some)
 import           Control.Applicative.Combinators.NonEmpty
+import           Control.Monad.Combinators.Expr
 
 import           Solid.PP.Lexer hiding (Token, LexerResult(..), Extension(..))
 import qualified Solid.PP.Lexer as Lexer
@@ -156,14 +162,22 @@ instance ShowErrorComponent Error where
   showErrorComponent = \ case
     UnterminatedStringInterpolation -> "unterminated string interpolation"
     UnterminatedMethodCall -> "unterminated method call"
+    InvalidMethodArity -> "invalid method type (arity must be at least 1)"
+    ExpectingMethodName expected (Just actual) -> "unexpected method name " <> show actual <> ", expecting " <> show expected
+    ExpectingMethodName expected Nothing -> "expecting method name " <> show expected
 
 data Error =
     UnterminatedStringInterpolation
   | UnterminatedMethodCall
+  | InvalidMethodArity
+  | ExpectingMethodName FastString (Maybe FastString)
   deriving (Eq, Show, Ord)
 
 error :: Error -> Parser a
 error = fancyFailure . Set.singleton . ErrorCustom
+
+indentationError :: Pos -> BufferSpan -> Parser a
+indentationError expected actual = fancyFailure $ Set.singleton $ ErrorIndentation EQ expected (mkPos actual.startColumn)
 
 data Original
 data Current
@@ -211,7 +225,7 @@ pModuleHeader = moduleHeader <|> pure NoModuleHeader
       return $ ModuleHeader (start.merge end) name exports
 
 pModuleName :: Parser (ModuleName BufferSpan)
-pModuleName = token $ \ case
+pModuleName = token \ case
   L loc (ITconid name) -> Just $ ModuleName loc Nothing name
   L loc (ITqconid (qualified, name)) -> Just $ ModuleName loc (Just qualified) name
   _ -> Nothing
@@ -256,7 +270,110 @@ pModuleBody :: Parser [Node BufferSpan]
 pModuleBody = many pNode <* eof
 
 pNode :: Parser (Node BufferSpan)
-pNode = pMethodChain <|> pAnyToken
+pNode = pMethodDefinition <|> pMethodChain <|> pAnyToken
+
+pMethodDefinition :: Parser (Node BufferSpan)
+pMethodDefinition = MethodDefinition <$> pMethod
+
+data Method loc = Method {
+  dot :: loc
+, name :: MethodName loc
+, context :: [Type loc]
+, arguments :: [Type loc]
+, subject :: Type loc
+, result :: Type loc
+, definitionDot :: loc
+, definitionName :: loc
+} deriving (Eq, Show, Functor)
+
+pMethod :: Parser (Method BufferSpan)
+pMethod = do
+  dot <- pMethodDot
+  name <- pMethodName
+  (context, t) <- splitContext <$> pTypeSignature
+  case reverse $ functionTypeAsList t of
+    result : subject : (reverse -> arguments) -> do
+      _ <- optional (require ITsemi)
+      definitionDot <- pMethodDot
+      definitionName <- pDefinitionName name
+      return Method{..}
+    _ -> error InvalidMethodArity
+  where
+    pMethodDot :: Parser BufferSpan
+    pMethodDot = atStartOfLine PrefixProjection
+
+    pTypeSignature :: Parser (Type BufferSpan)
+    pTypeSignature = require (ITdcolon NormalSyntax) >> pType
+
+    pDefinitionName :: MethodName BufferSpan -> Parser BufferSpan
+    pDefinitionName (MethodName _ expected) = do
+      st <- getParserState
+      case st.stateInput.tokens of
+        L loc (ITvarid name) : _
+          | name == expected -> anySingle >> return loc
+          | otherwise -> error $ ExpectingMethodName expected (Just name)
+        _ -> error $ ExpectingMethodName expected Nothing
+
+    splitContext :: Type loc -> ([Type loc], Type loc)
+    splitContext = \ case
+      TypeContext c t -> case splitContext t of
+        (cs, ts) -> (c : cs, ts)
+      t -> ([], t)
+
+    functionTypeAsList :: Type loc -> [Type loc]
+    functionTypeAsList = \ case
+      FunctionType t1 t2 -> t1 : functionTypeAsList t2
+      t -> [t]
+
+atStartOfLine :: Lexer.Token -> Parser BufferSpan
+atStartOfLine expected = do
+  st <- getParserState
+  case st.stateInput.tokens of
+    L loc t : _ | t == expected && loc.startColumn /= 1 -> indentationError pos1 loc
+    _ -> require expected
+
+data MethodName loc = MethodName loc FastString
+  deriving (Eq, Show, Functor)
+
+pMethodName :: Parser (MethodName BufferSpan)
+pMethodName = uncurry MethodName <$> varid
+
+data Type loc =
+    TypeVariable FastString
+  | TypeName loc (Maybe FastString) FastString
+  | Tuple [Type loc]
+  | ListOf (Type loc)
+  | TypeApplication (Type loc) (Type loc)
+  | FunctionType (Type loc) (Type loc)
+  | TypeContext (Type loc) (Type loc)
+  deriving (Eq, Show, Functor)
+
+pType :: Parser (Type BufferSpan)
+pType = makeExprParser term [
+    [InfixL $ pure TypeApplication]
+  , [InfixR $ FunctionType <$ require (ITrarrow NormalSyntax)]
+  , [InfixR $ TypeContext <$ require (ITdarrow NormalSyntax)]
+  ]
+  where
+    term :: Parser (Type BufferSpan)
+    term = variable <|> name <|> tuple <|> list
+
+    variable :: Parser (Type BufferSpan)
+    variable = do
+      (_, a) <- varid
+      return (TypeVariable a)
+
+    name :: Parser (Type BufferSpan)
+    name = token \ case
+      L loc (ITconid n) -> Just $ TypeName loc Nothing n
+      L loc (ITqconid (qualified, n)) -> Just $ TypeName loc (Just qualified) n
+      _ -> Nothing
+
+    tuple :: Parser (Type BufferSpan)
+    tuple = oparen >> Tuple <$> pType `sepBy` comma <* cparen
+
+    list :: Parser (Type BufferSpan)
+    list = obrack >> ListOf <$> pType <* cbrack
 
 pMethodChain :: Parser (Node BufferSpan)
 pMethodChain = MethodChain <$> pSubject <*> many pMethodCall
@@ -477,6 +594,7 @@ data ImportList loc = NoImportList | ImportList [[Node loc]] | HidingList [[Node
 
 data Node loc =
     Token loc Lexer.Token
+  | MethodDefinition (Method loc)
   | MethodChain (Subject loc) [MethodCall loc]
   deriving (Eq, Show, Functor)
 
@@ -520,6 +638,7 @@ instance HasField "loc" (End loc) loc where
 instance HasField "start" (Node BufferSpan) SrcLoc where
   getField = \ case
     Token loc _ -> loc.startLoc
+    MethodDefinition method -> method.dot.startLoc
     MethodChain subject _ -> subject.start
 
 instance HasField "start" (Subject BufferSpan) SrcLoc where

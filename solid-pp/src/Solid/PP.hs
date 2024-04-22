@@ -226,7 +226,23 @@ implicitImports = ($ mempty) . fromModule . void
       Token () (ITqvarid (m, _)) -> Set.insert (ImplicitImport m)
       Token () (ITqconid (m, _)) -> Set.insert (ImplicitImport m)
       Token () (_ :: Token) -> id
+      MethodDefinition method -> fromMethod method
       MethodChain subject methodCalls -> fromSubject subject . foreach fromMethodCall methodCalls
+
+    fromMethod :: Method () -> ImplicitImports -> ImplicitImports
+    fromMethod = \ case
+      Method () (_ :: MethodName ()) context arguments subject result () () -> foreach fromType context . foreach fromType arguments . fromType subject . fromType result
+
+    fromType :: Type () -> ImplicitImports -> ImplicitImports
+    fromType = \ case
+      TypeVariable _ -> id
+      TypeName () (Just qualified) _name -> Set.insert (ImplicitImport qualified)
+      TypeName () Nothing _name -> id
+      Tuple ts -> foreach fromType ts
+      ListOf t -> fromType t
+      TypeApplication t1 t2 -> fromType t1 . fromType t2
+      FunctionType t1 t2 -> fromType t1 . fromType t2
+      TypeContext c t -> fromType c . fromType t
 
     fromSubject :: Subject () -> ImplicitImports -> ImplicitImports
     fromSubject = \ case
@@ -253,9 +269,15 @@ implicitImports = ($ mempty) . fromModule . void
       End () (_ :: FastString) -> id
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
-desugarIdentifier start end identifier
-  | lastChar == qmark || lastChar == bang = replace_ replacement
-  | otherwise = mempty
+desugarIdentifier start end = maybe mempty replace_ . desugarIdentifierMaybe
+  where
+    replace_ :: Text -> DList Edit
+    replace_ = singleton . Replace Nothing start (end - start)
+
+desugarIdentifierMaybe :: FastString -> Maybe Text
+desugarIdentifierMaybe identifier
+  | lastChar == qmark || lastChar == bang = Just replacement
+  | otherwise = Nothing
   where
     lastChar :: Word8
     lastChar = SB.last $ fastStringToShortByteString identifier
@@ -274,9 +296,6 @@ desugarIdentifier start end identifier
       '!' -> 'ᴉ'
       '?' -> 'ʔ'
       _ -> c
-
-    replace_ :: Text -> DList Edit
-    replace_ = singleton . Replace Nothing start (end - start)
 
 desugarQualifiedName :: BufferSpan -> FastString -> FastString -> DList Edit
 desugarQualifiedName loc (succ . lengthFS -> offset) identifier = desugarIdentifier (loc.start + offset) loc.end identifier
@@ -335,6 +354,16 @@ pp = ppNodes
     ppNode :: Node BufferSpan -> DList Edit
     ppNode = \ case
       Token loc t -> ppToken loc t
+      MethodDefinition method ->
+        Edit.replace method.dot (formatMethod method)
+        <> desugarIdentifier loc.start loc.end name
+        <> Edit.replace method.definitionDot ""
+        <> desugarIdentifier definitionName.start definitionName.end name
+        where
+          definitionName = method.definitionName
+          MethodName loc name = method.name
+
+
       node@(MethodChain subject methodCalls) -> Edit.insertText node.start (T.replicate n "(") <> ppSubject subject <> concatMap ppMethodCall methodCalls
         where
           n :: Int
@@ -344,6 +373,59 @@ pp = ppNodes
           hasArguments = \ case
             MethodCall _ _ NoArguments -> False
             MethodCall _ _ Arguments{} -> True
+
+    formatMethod :: Method BufferSpan -> Builder
+    formatMethod method = "instance " <> context <> columnPragma start.column <> "HasField " <> Builder.show name <> " " <> formatType method.subject <> " " <> xxx <> methodDefFoo <> linePragma start.line start.file
+      where
+        context :: Builder
+        context = case method.context of
+          [] -> ""
+          [c] -> formatType c <> " => "
+          cs -> "(" <> Builder.join ", " (map formatType cs) <> ") => "
+
+        start :: SrcLoc
+        start = method.dot.startLoc
+
+        name :: Text
+        name = fromMaybe (pack $ unpackFS n) $ desugarIdentifierMaybe n
+          where
+            MethodName _ n = method.name
+
+        xxx = case method.arguments of
+          [] -> formatType method.result
+          _ -> "(" <> formatFunctionType (method.arguments ++ [method.result]) <> ")"
+
+        methodDefFoo :: Builder
+        methodDefFoo = case method.arguments of
+          _ | n > 26 -> error "too many args" -- FIXME
+          [] -> " where getField = " <> Builder.fromText name <> "\n"
+          _  -> " where getField _subject" <> fromString (args " = ") <> Builder.fromText name <> fromString (args " _subject\n")
+          where
+            n :: Int
+            n = length method.arguments
+
+            foo :: [Char]
+            foo = take n ['a' ..]
+
+            args :: [Char] -> [Char]
+            args s = foldr (\ x xs -> ' ' : '_' : x : xs) s foo
+
+    columnPragma :: Int -> Builder
+    columnPragma n = "{-# COLUMN " <> Builder.show n <> " #-}"
+
+    formatFunctionType :: [Type BufferSpan] -> Builder
+    formatFunctionType = Builder.join " -> " . map formatType
+
+    formatType :: Type BufferSpan -> Builder
+    formatType = \ case
+      TypeVariable name -> Builder.fastString name
+      TypeName loc Nothing t -> columnPragma loc.startColumn <> Builder.fastString t
+      TypeName loc (Just qualified) t -> columnPragma loc.startColumn <> Builder.fastString qualified <> "." <> Builder.fastString t
+      Tuple ts -> "(" <> Builder.join ", " (map formatType ts) <> ")"
+      ListOf t -> "[" <> formatType t <> "]"
+      TypeApplication t1 t2 -> "(" <> formatType t1 <> " " <> formatType t2 <> ")"
+      FunctionType t1 t2 -> formatType t1 <> " -> " <> formatType t2
+      TypeContext c t -> formatType c <> " => " <> formatType t
 
     ppSubject :: Subject BufferSpan -> DList Edit
     ppSubject = \ case

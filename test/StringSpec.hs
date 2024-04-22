@@ -15,6 +15,12 @@ arbitrary = Gen.string (Range.linear 0 10) Gen.unicodeScalar
 
 spec :: Spec
 spec = do
+  describe "empty?" $ do
+    it "" $ do
+      let input = "" :: String
+      input.empty? `shouldBe` True
+      String.empty? input `shouldBe` True
+
   describe "length" $ do
     it "returns the length of a String" $ do
       input <- forAll arbitrary

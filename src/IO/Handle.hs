@@ -62,38 +62,38 @@ writeLine self str = do
   self.write str
   self.write "\n"
 
-tty? :: Handle -> IO Bool
-tty? = Haskell.hIsTerminalDevice
+.tty? :: Handle -> IO Bool
+.tty? = Haskell.hIsTerminalDevice
 
-open? :: Handle -> IO Bool
-open? = Haskell.hIsOpen
+.open? :: Handle -> IO Bool
+.open? = Haskell.hIsOpen
 
 open :: FilePath -> Mode -> IO Handle
 open = OsPath.openFile . coerce
 
-close :: Handle -> IO ()
-close = Haskell.hClose
+.close :: Handle -> IO ()
+.close = Haskell.hClose
 
-flush :: Handle -> IO ()
-flush = Haskell.hFlush
+.flush :: Handle -> IO ()
+.flush = Haskell.hFlush
 
-tell :: Handle -> IO Integer
-tell = Haskell.hTell
+.tell :: Handle -> IO Integer
+.tell = Haskell.hTell
 
-seek :: SeekMode -> Integer -> Handle -> IO ()
-seek mode n h = Haskell.hSeek h mode n
+.seek :: SeekMode -> Integer -> Handle -> IO ()
+.seek mode n h = Haskell.hSeek h mode n
 
-rewind :: Handle -> IO ()
-rewind = seek AbsoluteSeek 0
+.rewind :: Handle -> IO ()
+.rewind = seek AbsoluteSeek 0
 
-setEcho :: Bool -> Handle -> IO ()
-setEcho = flip Haskell.hSetEcho
+.setEcho :: Bool -> Handle -> IO ()
+.setEcho = flip Haskell.hSetEcho
 
-setBuffering :: BufferMode -> Handle -> IO ()
-setBuffering = flip Haskell.hSetBuffering
+.setBuffering :: BufferMode -> Handle -> IO ()
+.setBuffering = flip Haskell.hSetBuffering
 
-getContents :: Handle -> IO ByteString
-getContents = fmap Haskell.fromByteString . B.hGetContents
+.getContents :: Handle -> IO ByteString
+.getContents = fmap Haskell.fromByteString . B.hGetContents
 
 withLock :: IO a -> Handle -> IO a
 withLock action h = withMVar handle__ $ \ _ -> action
@@ -112,38 +112,8 @@ instance HasField "write" Handle (String -> IO ()) where
 instance HasField "writeLine" Handle (String -> IO ()) where
   getField = writeLine
 
-instance HasField "tty\660" Handle (IO Bool) where
-  getField = tty?
-
-instance HasField "open\660" Handle (IO Bool) where
-  getField = open?
-
-instance HasField "close" Handle (IO ()) where
-  getField = close
-
 instance HasField "release" Handle (IO ()) where
   getField = close
-
-instance HasField "flush" Handle (IO ()) where
-  getField = flush
-
-instance HasField "tell" Handle (IO Integer) where
-  getField = tell
-
-instance HasField "seek" Handle (SeekMode -> Integer -> IO ()) where
-  getField h mode n = seek mode n h
-
-instance HasField "rewind" Handle (IO ()) where
-  getField = rewind
-
-instance HasField "setEcho" Handle (Bool -> IO ()) where
-  getField = Haskell.hSetEcho
-
-instance HasField "setBuffering" Handle (BufferMode -> IO ()) where
-  getField = Haskell.hSetBuffering
-
-instance HasField "getContents" Handle (IO ByteString) where
-  getField = getContents
 
 instance HasField "withLock" Handle (IO a -> IO a) =>
          HasField "withLock" Handle (IO a -> IO a) where

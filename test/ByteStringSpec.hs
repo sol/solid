@@ -87,3 +87,17 @@ spec = do
       let path = "foo.txt" :: ByteString
       path.asFilePath `shouldBe` "foo.txt"
       ByteString.asFilePath path `shouldBe` "foo.txt"
+
+  describe "takeWhile" $ do
+    it "" $ do
+      let
+        input = "foobar" :: ByteString
+      input.takeWhile (> fromIntegral 'b'.ord) `shouldBe` "foo"
+      ByteString.takeWhile (> fromIntegral 'b'.ord) input `shouldBe` "foo"
+
+  describe "splitAt" $ do
+    it "" $ do
+      let
+        input = "foobar" :: ByteString
+      input.splitAt 3 `shouldBe` ("foo", "bar")
+      ByteString.splitAt 3 input `shouldBe` ("foo", "bar")
