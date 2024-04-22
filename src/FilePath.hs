@@ -44,78 +44,45 @@ use System.Directory.Import
 instance Solid.ToString FilePath where
   toString = toString
 
-exists? :: FilePath -> IO Bool
-exists? = Import.doesPathExist
+.exists? :: FilePath -> IO Bool
+.exists? = Import.doesPathExist
 
-file? :: FilePath -> IO Bool
-file? = Import.doesFileExist
+.file? :: FilePath -> IO Bool
+.file? = Import.doesFileExist
 
-directory? :: FilePath -> IO Bool
-directory? = Import.doesDirectoryExist
+.directory? :: FilePath -> IO Bool
+.directory? = Import.doesDirectoryExist
 
-absolute :: FilePath -> IO FilePath
-absolute = Import.makeAbsolute
+.absolute :: FilePath -> IO FilePath
+.absolute = Import.makeAbsolute
 
-remove :: FilePath -> IO ()
-remove path =
+.remove :: FilePath -> IO ()
+.remove path =
   C.withFilePath path $ C.throwErrnoPathIfMinus1Retry_ "remove" path . c_remove
 
 foreign import ccall unsafe "remove"
   c_remove :: C.String -> IO C.Int
 
-remove! :: FilePath -> IO ()
-remove! = Import.removePathForcibly
+.remove! :: FilePath -> IO ()
+.remove! = Import.removePathForcibly
 
-unlink :: FilePath -> IO ()
-unlink = coerce Posix.removeLink
+.unlink :: FilePath -> IO ()
+.unlink = coerce Posix.removeLink
 
-rmdir :: FilePath -> IO ()
-rmdir = coerce Posix.removeDirectory
+.rmdir :: FilePath -> IO ()
+.rmdir = coerce Posix.removeDirectory
 
 rename :: FilePath -> FilePath -> IO ()
 rename = Import.renamePath
 
-open :: IO.Mode -> FilePath -> IO Handle
-open = flip IO.open
+.open :: IO.Mode -> FilePath -> IO Handle
+.open = flip IO.open
 
-parent :: FilePath -> FilePath
-parent = Import.takeDirectory . Import.dropTrailingPathSeparator
+.parent :: FilePath -> FilePath
+.parent = Import.takeDirectory . Import.dropTrailingPathSeparator
 
-directory :: FilePath -> FilePath
-directory = Import.takeDirectory
-
-instance HasField "exists\660" FilePath (IO Bool) where
-  getField = exists?
-
-instance HasField "file\660" FilePath (IO Bool) where
-  getField = file?
-
-instance HasField "directory\660" FilePath (IO Bool) where
-  getField = directory?
-
-instance HasField "absolute" FilePath (IO FilePath) where
-  getField = absolute
-
-instance HasField "remove" FilePath (IO ()) where
-  getField = remove
-
-instance HasField "remove\7433" FilePath (IO ()) where
-  getField = remove!
-
-instance HasField "unlink" FilePath (IO ()) where
-  getField = unlink
-
-instance HasField "rmdir" FilePath (IO ()) where
-  getField = rmdir
+.directory :: FilePath -> FilePath
+.directory = Import.takeDirectory
 
 instance HasField "rename" FilePath (FilePath -> IO ()) where
   getField = rename
-
-instance HasField "open" FilePath (IO.Mode -> IO Handle) where
-  getField = IO.open
-
-instance HasField "parent" FilePath FilePath where
-  getField = parent
-
-instance HasField "directory" FilePath FilePath where
-  getField = directory

@@ -43,11 +43,8 @@ newtype StackTrace = StackTrace GHC.CallStack
 instance Solid.ToString StackTrace where
   toString = toString
 
-instance HasField "toString" StackTrace String where
-  getField = toString
-
-toString :: StackTrace -> String
-toString = prettyCallStack . toCallStack
+.toString :: StackTrace -> String
+.toString = prettyCallStack . toCallStack
 
 empty :: StackTrace
 empty = StackTrace GHC.EmptyCallStack
@@ -75,37 +72,25 @@ unknownLocation = GHC.SrcLoc {
 , srcLocEndCol    = 0
 }
 
-empty? :: StackTrace -> Bool
-empty? = go . toCallStack
+.empty? :: StackTrace -> Bool
+.empty? = go . toCallStack
   where
     go = \ case
       GHC.EmptyCallStack -> True
       GHC.PushCallStack _ _ _ -> False
       GHC.FreezeCallStack stack -> go stack
 
-size :: StackTrace -> Int
-size = Haskell.length . GHC.getCallStack . toCallStack
+.size :: StackTrace -> Int
+.size = Haskell.length . GHC.getCallStack . toCallStack
 
-pop :: StackTrace -> StackTrace
-pop (StackTrace stack) = StackTrace $ case stack of
+.pop :: StackTrace -> StackTrace
+.pop (StackTrace stack) = StackTrace $ case stack of
   GHC.EmptyCallStack -> stack
   GHC.PushCallStack _ _ st -> st
   GHC.FreezeCallStack _ -> stack
 
-callSites :: StackTrace -> [String]
-callSites = map (fst >>> pack) . GHC.getCallStack . toCallStack
-
-instance HasField "empty\660" StackTrace Bool where
-  getField = empty?
-
-instance HasField "size" StackTrace Int where
-  getField = size
-
-instance HasField "pop" StackTrace StackTrace where
-  getField = pop
-
-instance HasField "callSites" StackTrace [String] where
-  getField = callSites
+.callSites :: StackTrace -> [String]
+.callSites = map (fst >>> pack) . GHC.getCallStack . toCallStack
 
 toCallStack :: StackTrace -> GHC.CallStack
 toCallStack (StackTrace stack) = stack

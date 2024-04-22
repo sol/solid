@@ -17,6 +17,7 @@ import           Solid.PP.LexerSpec ()
 import           GHC.IsList
 import           GHC.Data.FastString (FastString, mkFastString)
 import qualified Data.Text as T
+import           Data.Char
 import qualified Data.List as List
 
 import           Solid.PP (extensions)
@@ -30,6 +31,14 @@ instance IsList (Module ()) where
   type Item (Module ()) = Node ()
   fromList = Module NoModuleHeader []
   toList = undefined
+
+instance IsString (MethodName ()) where
+  fromString = MethodName () . fromString
+
+instance IsString (Type ()) where
+  fromString t = case t of
+    c : _ | isLower c -> TypeVariable (fromString t)
+    _ -> TypeName () Nothing (fromString t)
 
 instance IsString (ModuleHeader ()) where
   fromString name = ModuleHeader () (fromString name) NoExportList
@@ -73,7 +82,9 @@ instance Num (Node ()) where
   fromInteger = token . fromInteger
 
 instance IsString (Node ()) where
-  fromString name = nameWith (fromString name) NoArguments
+  fromString = \ case
+    "=" -> token ITequal
+    name -> nameWith (fromString name) NoArguments
 
 instance IsString (Subject ()) where
   fromString name = Name () (fromString name) NoArguments
@@ -103,8 +114,13 @@ parse input action = annotated $ do
     formatToken :: WithBufferSpan Token -> String
     formatToken = show . unLoc
 
+infix 1 `shouldBe`, `shouldParseAs`
+
 shouldBe :: HasCallStack => (Eq a, Show a) => ((a -> Expectation) -> Expectation) -> a -> Expectation
 shouldBe action a = action (`Hspec.shouldBe` a)
+
+shouldParseAs :: HasCallStack => Text -> Module () -> Expectation
+shouldParseAs input expected = parse input `shouldBe` expected
 
 spec :: Spec
 spec = do
@@ -165,6 +181,66 @@ spec = do
       it "accepts hiding lists" $ do
         parse "import Foo hiding (bar, baz)" `shouldBe` Module NoModuleHeader [Import () Unqualified "Foo" Nothing (HidingList [["bar"], ["baz"]])] []
 
+    context "when parsing method definitions" $ do
+      let method name ctx args subject result = MethodDefinition $ Method () name ctx args subject result () ()
+
+      it "parses method definitions" $ do
+        unlines [
+            ".length :: String -> Int"
+          , ".length = coerce utf8length"
+          ]
+        `shouldParseAs` [method "length" [] [] "String" "Int", "=", "coerce", "utf8length"]
+
+      it "accepts list types" $ do
+        unlines [
+            ".words :: String -> [String]"
+          , ".words = coerce utf8words"
+          ]
+        `shouldParseAs` [method "words" [] [] "String" (ListOf "String"), "=", "coerce", "utf8words"]
+
+      it "accepts tuple types" $ do
+        unlines [
+            ".foo :: S -> (A, B, C)"
+          , ".foo = bar"
+          ]
+        `shouldParseAs` [method "foo" [] [] "S" (Tuple ["A", "B", "C"]), "=", "bar"]
+
+      it "accepts methods with arity greater 1" $ do
+        unlines [
+            ".foo :: A -> B -> Subject -> Result"
+          , ".foo = undefined"
+          ]
+        `shouldParseAs` [method "foo" [] ["A", "B"] "Subject" "Result", "=", "undefined"]
+
+      it "accepts the unit type" $ do
+        unlines [
+            ".remove :: FilePath -> IO ()"
+          , ".remove = undefined"
+          ]
+        `shouldParseAs` [method "remove" [] [] "FilePath" (TypeApplication "IO" (Tuple [])), "=", "undefined"]
+
+      it "accepts type applications" $ do
+        unlines [
+            ".foo :: FilePath -> Either Int String"
+          , ".foo = undefined"
+          ]
+        `shouldParseAs` [method "foo" [] [] "FilePath" (TypeApplication (TypeApplication "Either" "Int") "String"), "=", "undefined"]
+
+      it "accepts qualified type names" $ do
+        unlines [
+            ".open :: IO.Mode -> FilePath -> IO Handle"
+          , ".open = undefined"
+          ]
+        `shouldParseAs` [method "open" [] [TypeName () (Just "IO") "Mode"] "FilePath" (TypeApplication "IO" "Handle"), "=", "undefined"]
+
+      it "accepts type constraints" $ do
+        unlines [
+            ".foo? :: Eq a => Maybe a -> Bool"
+          , ".foo? = isJust"
+          ]
+        `shouldParseAs` [method "foo?" [TypeApplication "Eq" "a"] [] (TypeApplication "Maybe" "a") "Bool", "=", "isJust"]
+
+
     context "when parsing function calls" $ do
       it "accepts qualified names" $ do
         parse "String.foo(23)" `shouldBe` [MethodChain (QualifiedName () "String" "foo" [[23]]) []]
@@ -223,12 +299,11 @@ spec = do
         parse "(,,,)" `shouldBe` [bracketed Round [[],[],[],[]]]
 
       it "accepts unboxed tuples" $ do
-        let
-          input = unlines [
-              "{-# LANGUAGE UnboxedTuples #-}"
-            , "(# 23, 42 #)"
-            ]
-        parse input `shouldBe` [bracketed Unboxed [[23], [42]]]
+        unlines [
+            "{-# LANGUAGE UnboxedTuples #-}"
+          , "(# 23, 42 #)"
+          ]
+        `shouldParseAs` [bracketed Unboxed [[23], [42]]]
 
     context "when parsing string literals" $ do
       it "accepts a literal string" $ do

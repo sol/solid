@@ -115,10 +115,13 @@ run src cur dst = do
   org <- if src == cur then return input else readFile src
   preProcesses dst (InputFile src org) (InputFile cur $ addLinePragma input)
   where
-    addLinePragma = (Builder.toText (linePragma 1 src) <>)
+    addLinePragma = (Builder.toText (formatLinePragma 1 src) <>)
 
-linePragma :: Int -> FilePath -> Builder
-linePragma line src = "{-# LINE " <> Builder.int line <> " " <> Builder.show src <> " #-}\n"
+linePragma :: SrcLoc -> Builder
+linePragma loc = formatLinePragma loc.line loc.file
+
+formatLinePragma :: Int -> FilePath -> Builder
+formatLinePragma line src = "{-# LINE " <> Builder.int line <> " " <> Builder.show src <> " #-}\n"
 
 preProcesses :: FilePath -> InputFile Original -> InputFile Current -> IO Result
 preProcesses dst original current = case parseModule extensions original current of
@@ -138,7 +141,7 @@ addImplicitImports module_ = case module_ of
   where
     addImports where_ loc = case Set.null modules of
       True -> mempty
-      False -> Edit.insert_ loc $ formatImports where_ modules <> linePragma loc.line loc.file
+      False -> Edit.insert_ loc $ formatImports where_ modules <> linePragma loc
 
     modules :: ImplicitImports
     modules = Set.intersection (implicitImports module_) wellKnownModules
@@ -226,7 +229,24 @@ implicitImports = ($ mempty) . fromModule . void
       Token () (ITqvarid (m, _)) -> Set.insert (ImplicitImport m)
       Token () (ITqconid (m, _)) -> Set.insert (ImplicitImport m)
       Token () (_ :: Token) -> id
+      MethodDefinition method -> fromMethod method
       MethodChain subject methodCalls -> fromSubject subject . foreach fromMethodCall methodCalls
+
+    fromMethod :: Method () -> ImplicitImports -> ImplicitImports
+    fromMethod = \ case
+      Method () (_ :: MethodName ()) context arguments subject result () () -> foreach fromType context . foreach fromType arguments . fromType subject . fromType result
+
+    fromType :: Type () -> ImplicitImports -> ImplicitImports
+    fromType = \ case
+      TypeVariable _ -> id
+      TypeName () (Just qualified) _name -> Set.insert (ImplicitImport qualified)
+      TypeName () Nothing _name -> id
+      TypeLiteral _ -> id
+      Tuple ts -> foreach fromType ts
+      ListOf t -> fromType t
+      TypeApplication t1 t2 -> fromType t1 . fromType t2
+      FunctionType t1 t2 -> fromType t1 . fromType t2
+      TypeContext c t -> fromType c . fromType t
 
     fromSubject :: Subject () -> ImplicitImports -> ImplicitImports
     fromSubject = \ case
@@ -253,9 +273,15 @@ implicitImports = ($ mempty) . fromModule . void
       End () (_ :: FastString) -> id
 
 desugarIdentifier :: Int -> Int -> FastString -> DList Edit
-desugarIdentifier start end identifier
-  | lastChar == qmark || lastChar == bang = replace_ replacement
-  | otherwise = mempty
+desugarIdentifier start end = maybe mempty replace_ . desugarIdentifierMaybe
+  where
+    replace_ :: Text -> DList Edit
+    replace_ = singleton . Replace Nothing start (end - start)
+
+desugarIdentifierMaybe :: FastString -> Maybe Text
+desugarIdentifierMaybe identifier
+  | lastChar == qmark || lastChar == bang = Just replacement
+  | otherwise = Nothing
   where
     lastChar :: Word8
     lastChar = SB.last $ fastStringToShortByteString identifier
@@ -274,9 +300,6 @@ desugarIdentifier start end identifier
       '!' -> 'ᴉ'
       '?' -> 'ʔ'
       _ -> c
-
-    replace_ :: Text -> DList Edit
-    replace_ = singleton . Replace Nothing start (end - start)
 
 desugarQualifiedName :: BufferSpan -> FastString -> FastString -> DList Edit
 desugarQualifiedName loc (succ . lengthFS -> offset) identifier = desugarIdentifier (loc.start + offset) loc.end identifier
@@ -335,6 +358,14 @@ pp = ppNodes
     ppNode :: Node BufferSpan -> DList Edit
     ppNode = \ case
       Token loc t -> ppToken loc t
+      MethodDefinition method ->
+           Edit.replace method.dot (formatMethod method)
+        <> desugarIdentifier loc.start loc.end name
+        <> Edit.replace method.definitionDot ""
+        <> desugarIdentifier definitionName.start definitionName.end name
+        where
+          definitionName = method.definitionName
+          MethodName loc name = method.name
       node@(MethodChain subject methodCalls) -> Edit.insertText node.start (T.replicate n "(") <> ppSubject subject <> concatMap ppMethodCall methodCalls
         where
           n :: Int
@@ -344,6 +375,62 @@ pp = ppNodes
           hasArguments = \ case
             MethodCall _ _ NoArguments -> False
             MethodCall _ _ Arguments{} -> True
+
+    formatMethod :: Method BufferSpan -> Builder
+    formatMethod method =
+         "instance " <> formatType 0 (foldr TypeContext instanceHead method.context)
+      <> instanceBody
+      <> linePragma method.dot.startLoc
+      where
+        instanceHead :: Type BufferSpan
+        instanceHead = foldl1' TypeApplication [
+            TypeName method.dot Nothing "HasField"
+          , TypeLiteral (show name)
+          , method.subject
+          , foldr FunctionType method.result method.arguments
+          ]
+
+        name :: Text
+        name = desugarMethodName method.name
+
+        instanceBody :: Builder
+        instanceBody = case length method.arguments of
+          0 -> " where getField = " <> Builder.fromText name <> "\n"
+          n -> " where getField _subject" <> args <> " = " <> Builder.fromText name <> args <> " _subject\n"
+            where
+              args :: Builder
+              args = mconcat (take n ids)
+
+              ids :: [Builder]
+              ids = map (fromString . (" _" ++)) names
+                where
+                  names :: [String]
+                  names = [x : xs | xs <- "" : names, x <- ['a' .. 'z']]
+
+    desugarMethodName :: MethodName loc -> Text
+    desugarMethodName (MethodName _ name) = fromMaybe (pack $ unpackFS name) $ desugarIdentifierMaybe name
+
+    formatType :: Int -> Type BufferSpan -> Builder
+    formatType p = \ case
+      TypeVariable name -> Builder.fastString name
+      TypeName loc Nothing t -> Edit.formatColumnPragma loc.startColumn <> Builder.fastString t
+      TypeName loc (Just qualified) t -> Edit.formatColumnPragma loc.startColumn <> Builder.fastString qualified <> "." <> Builder.fastString t
+      TypeLiteral literal -> fromString literal
+      Tuple ts -> "(" <> Builder.join ", " (map (formatType 0) ts) <> ")"
+      ListOf t -> "[" <> formatType 0 t <> "]"
+      TypeApplication t1 t2 -> infixL 3 t1 " " t2
+      FunctionType t1 t2 -> infixR 2 t1 " -> " t2
+      TypeContext c t -> infixR 1 c " => " t
+      where
+        infixL :: Int -> Type BufferSpan -> Builder -> Type BufferSpan -> Builder
+        infixL n t1 sep t2 = parens n $ formatType n t1 <> sep <> formatType (succ n) t2
+
+        infixR :: Int -> Type BufferSpan -> Builder -> Type BufferSpan -> Builder
+        infixR n t1 sep t2 = parens n $ formatType (succ n) t1 <> sep <> formatType n t2
+
+        parens n term
+          | p > n = "(" <> term <> ")"
+          | otherwise = term
 
     ppSubject :: Subject BufferSpan -> DList Edit
     ppSubject = \ case

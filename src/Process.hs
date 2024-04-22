@@ -88,79 +88,49 @@ command cmd = Haskell.setDelegateCtlc True . Haskell.proc (Haskell.toFilePath! c
 shell :: String -> Config () () ()
 shell = Haskell.setDelegateCtlc True . Haskell.shell . unpack
 
-spawn :: Config stdin stdout stderr -> IO (Process stdin stdout stderr)
-spawn config = Process <$> Haskell.startProcess config <*> newMVar CheckStatusOnWait
+.spawn :: Config stdin stdout stderr -> IO (Process stdin stdout stderr)
+.spawn config = Process <$> Haskell.startProcess config <*> newMVar CheckStatusOnWait
 
-terminate :: Process stdin stdout stderr -> IO ()
-terminate = Haskell.stopProcess . (.handle)
+.terminate :: Process stdin stdout stderr -> IO ()
+.terminate = Haskell.stopProcess . (.handle)
 
-instance HasField "spawn" (Config stdin stdout stderr) (IO (Process stdin stdout stderr)) where
-  getField = spawn
-
-instance HasField "terminate" (Process stdin stdout stderr) (IO ()) where
-  getField = terminate
-
-wait :: Process stdin stdout stderr -> IO ()
-wait process = withMVar process.checkStatusOnWait $ \ check -> do
+.wait :: Process stdin stdout stderr -> IO ()
+.wait process = withMVar process.checkStatusOnWait $ \ check -> do
   Haskell.waitExitCode process.handle >>= \ case
     ExitSuccess -> pass
     ExitFailure code -> case check of
       CheckStatusOnWait -> throwExitStatusException process code
       DontCheckStatusOnWait -> pass
 
-status :: Process stdin stdout stderr -> IO ExitCode
-status process = modifyMVar process.checkStatusOnWait $ \ _ -> do
+.status :: Process stdin stdout stderr -> IO ExitCode
+.status process = modifyMVar process.checkStatusOnWait $ \ _ -> do
   st <- Haskell.waitExitCode process.handle
   return (DontCheckStatusOnWait, st)
 
-checkStatus :: Process stdin stdout stderr -> IO ()
-checkStatus process = status process >>= \ case
+.checkStatus :: Process stdin stdout stderr -> IO ()
+.checkStatus process = status process >>= \ case
   ExitSuccess -> pass
   ExitFailure code -> throwExitStatusException process code
 
-stdin :: Process stdin stdout stderr -> stdin
-stdin = Haskell.getStdin . (.handle)
+.stdin :: Process stdin stdout stderr -> stdin
+.stdin = Haskell.getStdin . (.handle)
 
-stdout :: Process stdin stdout stderr -> stdout
-stdout = Haskell.getStdout . (.handle)
+.stdout :: Process stdin stdout stderr -> stdout
+.stdout = Haskell.getStdout . (.handle)
 
-stderr :: Process stdin stdout stderr -> stderr
-stderr = Haskell.getStderr . (.handle)
-
-instance HasField "wait" (Process stdin stdout stderr) (IO ()) where
-  getField = wait
-
-instance HasField "status" (Process stdin stdout stderr) (IO ExitCode) where
-  getField = status
-
-instance HasField "checkStatus" (Process stdin stdout stderr) (IO ()) where
-  getField = checkStatus
-
-instance HasField "stdin" (Process stdin stdout stderr) stdin where
-  getField = stdin
-
-instance HasField "stdout" (Process stdin stdout stderr) stdout where
-  getField = stdout
-
-instance HasField "stderr" (Process stdin stdout stderr) stderr where
-  getField = stderr
+.stderr :: Process stdin stdout stderr -> stderr
+.stderr = Haskell.getStderr . (.handle)
 
 with :: Config stdin stdout stderr -> (Process stdin stdout stderr -> IO a) -> IO a
 with config action = bracket config.spawn terminate $ \ process -> do
   action process <* wait process
 
-run :: Config stdin stdout stderr -> IO ()
-run config = Process.with config checkStatus
+.run :: Config stdin stdout stderr -> IO ()
+.run config = Process.with config checkStatus
 
-read :: Config () () () -> IO ByteString
-read config = Process.with config.stdout.capture stdout
+.read :: Config () () () -> IO ByteString
+.read config = Process.with config.stdout.capture stdout
 
 instance HasField "with" (Config stdin stdout stderr) ((Process stdin stdout stderr -> IO a) -> IO a)
       => HasField "with" (Config stdin stdout stderr) ((Process stdin stdout stderr -> IO a) -> IO a) where
   getField = Process.with
-
-instance HasField "run" (Config () () ()) (IO ()) where
-  getField = run
-
-instance HasField "read" (Config () () ()) (IO ByteString) where
-  getField = read

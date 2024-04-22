@@ -20,17 +20,11 @@ use Data.Sliced.ByteArray.Conversion
 fromString :: String -> FilePath
 fromString = Bytes.asFilePath
 
-toString :: FilePath -> String
-toString = decodeUtf8 . asByteString
+.toString :: FilePath -> String
+.toString = decodeUtf8 . asByteString
 
-asByteString :: FilePath -> ByteString
-asByteString = Bytes . Conversion.fromOsPath . unFilePath
+.asByteString :: FilePath -> ByteString
+.asByteString = Bytes . Conversion.fromOsPath . unFilePath
 
 instance Common.IsString FilePath where
   fromString = fromString . String.pack
-
-instance HasField "toString" FilePath String where
-  getField = toString
-
-instance HasField "asByteString" FilePath ByteString where
-  getField = asByteString

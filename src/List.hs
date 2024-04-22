@@ -8,6 +8,7 @@ module List (
 
 , nub
 , nubOn
+, nub!!
 
 , startsWith
 , endsWith
@@ -19,6 +20,9 @@ module List (
 , enumerateFrom
 , List.join
 , randomChoice
+
+, select
+, discard
 
 , for
 , for_
@@ -43,11 +47,11 @@ use Data.Traversable
 empty :: [a]
 empty = []
 
-empty? :: [a] -> Bool
-empty? = null
+.empty? :: [a] -> Bool
+.empty? = null
 
-nub :: Ord a => [a] -> [a]
-nub = nubOn id
+.nub :: Ord a => [a] -> [a]
+.nub = nubOn id
 
 nubOn :: Ord b => (a -> b) -> [a] -> [a]
 nubOn f = go Set.empty
@@ -60,8 +64,8 @@ nubOn f = go Set.empty
         where
           b = f a
 
-nub!! :: Eq a => [a] -> [a]
-nub!! = Haskell.nub
+.nub!! :: Eq a => [a] -> [a]
+.nub!! = Haskell.nub
 
 -- | Enumerate a list.
 --
@@ -72,17 +76,17 @@ nub!! = Haskell.nub
 --
 -- >>> ["foo", "bar", "baz"].enumerate
 -- [(0,"foo"),(1,"bar"),(2,"baz")]
-enumerate :: [a] -> [(Int, a)]
-enumerate = zip [0..]
+.enumerate :: [a] -> [(Int, a)]
+.enumerate = zip [0..]
 
-enumerateFrom :: Int -> [a] -> [(Int, a)]
-enumerateFrom n = zip [n..]
+.enumerateFrom :: Int -> [a] -> [(Int, a)]
+.enumerateFrom n = zip [n..]
 
-select :: (a -> Bool) -> [a] -> [a]
-select = filter
+.select :: (a -> Bool) -> [a] -> [a]
+.select = filter
 
-discard :: (a -> Bool) -> [a] -> [a]
-discard p = filter (not . p)
+.discard :: (a -> Bool) -> [a] -> [a]
+.discard p = filter (not . p)
 
 -- | Join a list of strings.
 --
@@ -96,11 +100,8 @@ discard p = filter (not . p)
 join :: String -> [String] -> String
 join = Bytes.intercalate
 
-randomChoice :: [a] -> IO a
-randomChoice xs = (xs !!) <$> Haskell.uniformRM (0, pred xs.length) Haskell.globalStdGen
-
-instance HasField "empty\660" [a] Bool where
-  getField = empty?
+.randomChoice :: [a] -> IO a
+.randomChoice xs = (xs !!) <$> Haskell.uniformRM (0, pred xs.length) Haskell.globalStdGen
 
 instance HasField "length" [a] Int where
   getField = length
@@ -112,28 +113,19 @@ instance HasField "map" [a] ((a -> b) -> [b])
 instance HasField "reverse" [a] [a] where
   getField = reverse
 
-startsWith :: Eq a => [a] -> [a] -> Bool
-startsWith = isPrefixOf
+.startsWith :: Eq a => [a] -> [a] -> Bool
+.startsWith = isPrefixOf
 
-endsWith :: Eq a => [a] -> [a] -> Bool
-endsWith = isSuffixOf
+.endsWith :: Eq a => [a] -> [a] -> Bool
+.endsWith = isSuffixOf
 
-contains :: Eq a => [a] -> [a] -> Bool
-contains = isInfixOf
+.contains :: Eq a => [a] -> [a] -> Bool
+.contains = isInfixOf
 
 lookup! :: WithStackTrace => Eq a => a -> [(a, b)] -> b
 lookup! key values = case lookup key values of
   Nothing -> StackTrace.suppress Exception.invalidValue! "invalid key"
   Just a -> a
-
-instance Eq a => HasField "startsWith" [a] ([a] -> Bool) where
-  getField = flip startsWith
-
-instance Eq a => HasField "endsWith" [a] ([a] -> Bool) where
-  getField = flip endsWith
-
-instance Eq a => HasField "contains" [a] ([a] -> Bool) where
-  getField = flip contains
 
 instance Eq a => HasField "lookup" [(a, b)] (a -> Maybe b) where
   getField = flip lookup
@@ -150,14 +142,9 @@ instance Eq a => HasField "break" [a] ((a -> Bool) -> ([a], [a])) where
 instance Eq a => HasField "stripPrefix" [a] ([a] -> Maybe [a]) where
   getField = flip stripPrefix
 
-instance Ord a => HasField "nub" [a] [a] where
-  getField = nub
-
-instance (Ord b, HasField "nubOn" [a] ((a -> b) -> [a])) => HasField "nubOn" [a] ((a -> b) -> [a]) where
+instance (Ord b, HasField "nubOn" [a] ((a -> b) -> [a]))
+      =>         HasField "nubOn" [a] ((a -> b) -> [a]) where
   getField = flip nubOn
-
-instance Eq a => HasField "nub\7433\7433" [a] [a] where
-  getField = nub!!
 
 instance Ord a => HasField "sort" [a] [a] where
   getField = sort
@@ -169,20 +156,8 @@ instance HasField "zip" [b] ([a] -> [(a, b)])
       => HasField "zip" [b] ([a] -> [(a, b)]) where
   getField = flip zip
 
-instance HasField "enumerate" [a] [(Int, a)] where
-  getField = enumerate
-
-instance HasField "enumerateFrom" [a] (Int -> [(Int, a)]) where
-  getField = flip enumerateFrom
-
 instance HasField "filter" [a] ((a -> Bool) -> [a]) where
   getField = flip filter
-
-instance HasField "select" [a] ((a -> Bool) -> [a]) where
-  getField = flip select
-
-instance HasField "discard" [a] ((a -> Bool) -> [a]) where
-  getField = flip discard
 
 instance HasField "join" [String] (String -> String) where
   getField = flip List.join
@@ -192,9 +167,6 @@ instance HasField "intersperse" [a] (a -> [a]) where
 
 instance HasField "intercalate" [[a]] ([a] -> [a]) where
   getField = flip intercalate
-
-instance HasField "randomChoice" [a] (IO a) where
-  getField = randomChoice
 
 traverse :: Applicative m => (a -> m b) -> [a] -> m [b]
 traverse = Traversable.traverse

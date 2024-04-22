@@ -23,23 +23,14 @@ isPrefixOf = coerce ByteArray.isPrefixOf
 isSuffixOf :: Bytes a -> Bytes a -> Bool
 isSuffixOf = coerce ByteArray.isSuffixOf
 
-startsWith :: Bytes a -> Bytes a -> Bool
-startsWith = isPrefixOf
+.startsWith :: Bytes a -> Bytes a -> Bool
+.startsWith = isPrefixOf
 
-endsWith :: Bytes a -> Bytes a -> Bool
-endsWith = isSuffixOf
+.endsWith :: Bytes a -> Bytes a -> Bool
+.endsWith = isSuffixOf
 
 asFilePath :: Bytes a -> FilePath
 asFilePath = FilePath . coerce Conversion.toOsPath
 
-asByteString :: Bytes a -> ByteString
-asByteString = Bytes . unBytes
-
-instance HasField "startsWith" (Bytes a) (Bytes a -> Bool) where
-  getField = flip startsWith
-
-instance HasField "endsWith" (Bytes a) (Bytes a -> Bool) where
-  getField = flip endsWith
-
-instance HasField "asByteString" (Bytes a) ByteString where
-  getField = asByteString
+.asByteString :: Bytes a -> ByteString
+.asByteString = Bytes . unBytes

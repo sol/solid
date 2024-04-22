@@ -6,7 +6,9 @@ import           Solid.PP.IO
 
 import           Test.Hspec
 import           Test.Mockery.Directory
+import           Data.Char
 import qualified Data.Set as Set
+import           Data.List (stripPrefix)
 import qualified Data.List as List
 
 import           Solid.PP.Parser
@@ -14,6 +16,7 @@ import           Solid.PP.Parser
 import           Solid.PP
 
 infix 1 `shouldDesugarTo`
+infix 1 `shouldDesugarTo_`
 
 run_ :: HasCallStack => FilePath -> FilePath -> FilePath -> IO ()
 run_ src cur dst = run src cur dst >>= \ case
@@ -26,6 +29,22 @@ shouldDesugarTo input expected = do
   writeFile file input
   run_ file file file
   readFile file `shouldReturn` "{-# LINE 1 " <> pack (show file) <> " #-}\n" <> expected
+
+shouldDesugarTo_ :: HasCallStack => Text -> Text -> Expectation
+shouldDesugarTo_ input expected = do
+  let file = "main.hs"
+  writeFile file input
+  run_ file file file
+  removePragmas <$> readFile file `shouldReturn` expected
+  where
+    removePragmas :: Text -> Text
+    removePragmas = pack . go . unpack
+      where
+        go = \ case
+          xs | Just ys <- stripPrefix "{-# LINE " xs, Just zs <- stripPrefix " \"main.hs\" #-}\n" (dropWhile isDigit ys) -> go zs
+          xs | Just ys <- stripPrefix "{-# COLUMN " xs, Just zs <- stripPrefix " #-}" (dropWhile isDigit ys) -> go zs
+          x : xs -> x : go xs
+          "" -> ""
 
 interpolationShouldDesugarTo :: HasCallStack => Text -> Text -> Expectation
 interpolationShouldDesugarTo input expected = do
@@ -361,6 +380,144 @@ spec = do
                 , "{-# LINE 1 \"src.hs\" #-}"
                 , ""
                 ]
+
+    context "when pre-processing method definitions" $ do
+      it "desugars method definitions" $ do
+        unlines [
+            ".length :: String -> Int"
+          , ".length = coerce Utf8.length"
+          ] `shouldDesugarTo_` unlines [
+            "instance HasField \"length\" String Int where getField = length"
+          , "length :: String -> Int"
+          , "length = coerce Utf8.length"
+          ]
+
+      it "desugars identifiers" $ do
+        unlines [
+            ".empty? :: String -> Bool"
+          , ".empty? = coerce Utf8.null"
+          ] `shouldDesugarTo_` unlines [
+            "instance HasField \"empty\\660\" String Bool where getField = emptyʔ"
+          , "emptyʔ :: String -> Bool"
+          , "emptyʔ = coerce Utf8.null"
+          ]
+
+      it "accepts methods with arity greater 1" $ do
+        unlines [
+            ".foo :: A -> B -> S -> R"
+          , ".foo = undefined"
+          ] `shouldDesugarTo_` unlines [
+            "instance HasField \"foo\" S (A -> B -> R) where getField _subject _a _b = foo _a _b _subject"
+          , "foo :: A -> B -> S -> R"
+          , "foo = undefined"
+          ]
+
+      it "accepts type applications" $ do
+        unlines [
+            ".foo :: String -> Maybe Int"
+          , ".foo = undefined"
+          ] `shouldDesugarTo_` unlines [
+            "instance HasField \"foo\" String (Maybe Int) where getField = foo"
+          , "foo :: String -> Maybe Int"
+          , "foo = undefined"
+          ]
+
+      it "accepts type variables" $ do
+        unlines [
+            ".stdin :: Config stdin stdout stderr -> STDIN stdin stdout stderr"
+          , ".stdin = STDIN"
+          ] `shouldDesugarTo_` unlines [
+            "instance HasField \"stdin\" (Config stdin stdout stderr) (STDIN stdin stdout stderr) where getField = stdin"
+          , "stdin :: Config stdin stdout stderr -> STDIN stdin stdout stderr"
+          , "stdin = STDIN"
+          ]
+
+      it "accepts qualified types" $ do
+        unlines [
+            ".open :: IO.Mode -> FilePath -> Handle"
+          , ".open = undefined"
+          ] `shouldDesugarTo_` unlines [
+            "import qualified IO"
+          , "instance HasField \"open\" FilePath (IO.Mode -> Handle) where getField _subject _a = open _a _subject"
+          , "open :: IO.Mode -> FilePath -> Handle"
+          , "open = undefined"
+          ]
+
+      it "accepts type constraints" $ do
+        unlines [
+            ".nub :: Eq a => [a] -> [a]"
+          , ".nub = undefined"
+          ] `shouldDesugarTo_` unlines [
+            "instance Eq a => HasField \"nub\" [a] [a] where getField = nub"
+          , "nub :: Eq a => [a] -> [a]"
+          , "nub = undefined"
+          ]
+
+      it "adds COLUMN pragmas to type names" $ do
+        unlines [
+            ".open :: IO.Mode -> FilePath -> Handle"
+          , ".open = undefined"
+          ] `shouldDesugarTo` unlines [
+            "import qualified IO"
+          , "{-# LINE 1 \"main.hs\" #-}"
+          , "instance {-# COLUMN 1 #-}HasField \"open\" {-# COLUMN 21 #-}FilePath ({-# COLUMN 10 #-}IO.Mode -> {-# COLUMN 33 #-}Handle) where getField _subject _a = open _a _subject"
+          , "{-# LINE 1 \"main.hs\" #-}"
+          , "{-# COLUMN 2 #-}open :: IO.Mode -> FilePath -> Handle"
+          , "{-# COLUMN 2 #-}open = undefined"
+          ]
+
+      it "adds COLUMN pragmas to constraints" $ do
+        unlines [
+            ".nub :: Eq a => [a] -> [a]"
+          , ".nub = undefined"
+          ] `shouldDesugarTo` unlines [
+            "instance {-# COLUMN 9 #-}Eq a => {-# COLUMN 1 #-}HasField \"nub\" [a] [a] where getField = nub"
+          , "{-# LINE 1 \"main.hs\" #-}"
+          , "{-# COLUMN 2 #-}nub :: Eq a => [a] -> [a]"
+          , "{-# COLUMN 2 #-}nub = undefined"
+          ]
+
+      context "when arity is 0" $ do
+        it "reports an error" $ do
+          writeFile "src.hs" $ unlines [
+              ".foo :: Int"
+            , ".foo = undefined"
+            ]
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
+              "src.hs:2:1:"
+            , "  |"
+            , "2 | .foo = undefined"
+            , "  | ^"
+            , "invalid method type (arity must be at least 1)"
+            ])
+
+      context "with incorrect indentation" $ do
+        it "reports an error" $ do
+          writeFile "src.hs" $ unlines [
+              ".foo :: Int -> Int"
+            , " .foo = undefined"
+            ]
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
+              "src.hs:2:2:"
+            , "  |"
+            , "2 |  .foo = undefined"
+            , "  |  ^"
+            , "incorrect indentation (got 2, should be equal to 1)"
+            ])
+
+      context "when method names do not match" $ do
+        it "reports an error" $ do
+          writeFile "src.hs" $ unlines [
+              ".foo :: Int -> Int"
+            , ".bar = undefined"
+            ]
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
+              "src.hs:2:2:"
+            , "  |"
+            , "2 | .bar = undefined"
+            , "  |  ^"
+            , "unexpected method name \"bar\", expecting \"foo\""
+            ])
 
     context "when pre-processing identifiers" $ do
       it "desugars postfix bangs" $ do

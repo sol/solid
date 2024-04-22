@@ -9,13 +9,16 @@ module Solid.PP.Builder (
 , char
 , fastString
 
+, join
 , unlines
 , concatMap
 ) where
 
 import           Prelude ()
-import           Solid.PP.IO as Prelude hiding (show, unlines, concatMap)
+import           Solid.PP.IO as Prelude hiding (show, join, unlines, concatMap)
 import qualified Solid.PP.IO as Prelude
+
+import           Data.List (intersperse)
 
 import           Data.Text.Internal (text)
 import           Data.Text.Internal.StrictBuilder (StrictBuilder)
@@ -51,6 +54,9 @@ fastString = unsafeFromShortByteString . fastStringToShortByteString
 
 unsafeFromShortByteString :: ShortByteString -> Builder
 unsafeFromShortByteString bs = fromText $ text bs.unShortByteString 0 (ShortByteString.length bs)
+
+join :: Builder -> [Builder] -> Builder
+join separator = mconcat . intersperse separator
 
 unlines :: [Builder] -> Builder
 unlines = mconcat . foldr (\ x xs -> x : char '\n' : xs) []
