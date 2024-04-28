@@ -148,7 +148,7 @@ instance HasField "toSourcePos" SrcLoc SourcePos where
   getField loc = SourcePos loc.file (mkPos loc.line) (mkPos loc.column)
 
 showToken :: Lexer.Token -> String
-showToken t = case lookup t excludedByAnyToken of
+showToken t = case tokenName t of
   Nothing -> show t
   Just name -> name
 
@@ -339,40 +339,56 @@ pAnyToken = token \ case
   L loc t -> Just $ Token loc t
   where
     excluded :: Set Lexer.Token
-    excluded = Set.fromList (map fst excludedByAnyToken)
+    excluded = Set.fromList (map (.token) $ filter (.excludedByAnyToken) tokenMetadata)
 
-excludedByAnyToken :: [(Lexer.Token, String)]
-excludedByAnyToken = [
-    (ITcomma, ",")
-  , (IToparen, "(")
-  , (ITcparen, ")")
-  , (ITobrack, "[")
-  , (ITcbrack, "]")
-  , (ITocurly, "{")
-  , (ITccurly, "}")
-  , (IToubxparen, "(#")
-  , (ITcubxparen, "#)")
+data TokenMetadata = TokenMetadata {
+  token :: Lexer.Token
+, excludedByAnyToken :: Bool
+, name :: String
+}
 
-  , (ITopabrack, "[:")
-  , (ITcpabrack, ":]")
+tokenMetadata :: [TokenMetadata]
+tokenMetadata = [
+    excluded ITcomma ","
+  , excluded IToparen "("
+  , excluded ITcparen ")"
+  , excluded ITobrack "["
+  , excluded ITcbrack "]"
+  , excluded ITocurly "{"
+  , excluded ITccurly "}"
+  , excluded IToubxparen "(#"
+  , excluded ITcubxparen "#)"
 
-  , (ITopenTypQuote, "[t|")
-  , (ITopenDecQuote, "[d|")
-  , (ITopenPatQuote, "[p|")
-  , (ITopenExpQuote NoE NormalSyntax, "[|")
-  , (ITopenExpQuote HasE NormalSyntax, "[e|")
-  , (ITopenExpQuote NoE UnicodeSyntax, "⟦")
-  , (ITcloseQuote NormalSyntax, "|]")
-  , (ITcloseQuote UnicodeSyntax, "⟧")
-  , (ITopenTExpQuote NoE, "[||")
-  , (ITopenTExpQuote HasE, "[e||")
-  , (ITcloseTExpQuote, "||]")
+  , excluded ITopabrack "[:"
+  , excluded ITcpabrack ":]"
 
-  , (IToparenbar NormalSyntax, "(|")
-  , (IToparenbar UnicodeSyntax, "⦇")
-  , (ITcparenbar NormalSyntax, "|)")
-  , (ITcparenbar UnicodeSyntax, "⦈")
+  , excluded ITopenTypQuote "[t|"
+  , excluded ITopenDecQuote "[d|"
+  , excluded ITopenPatQuote "[p|"
+  , excluded (ITopenExpQuote NoE NormalSyntax) "[|"
+  , excluded (ITopenExpQuote HasE NormalSyntax) "[e|"
+  , excluded (ITopenExpQuote NoE UnicodeSyntax) "⟦"
+  , excluded (ITcloseQuote NormalSyntax) "|]"
+  , excluded (ITcloseQuote UnicodeSyntax) "⟧"
+  , excluded (ITopenTExpQuote NoE) "[||"
+  , excluded (ITopenTExpQuote HasE) "[e||"
+  , excluded ITcloseTExpQuote "||]"
+
+  , excluded (IToparenbar NormalSyntax) "(|"
+  , excluded (IToparenbar UnicodeSyntax) "⦇"
+  , excluded (ITcparenbar NormalSyntax) "|)"
+  , excluded (ITcparenbar UnicodeSyntax) "⦈"
+
+  , included ITequal "="
+  , included (ITdcolon NormalSyntax) "::"
+  , included (ITdcolon UnicodeSyntax) "∷"
   ]
+  where
+    excluded t = TokenMetadata t True
+    included t = TokenMetadata t False
+
+tokenName :: Lexer.Token -> Maybe String
+tokenName t = (.name) <$> find ((.token) >>> (== t)) tokenMetadata
 
 comma :: Parser BufferSpan
 comma = require ITcomma
