@@ -17,6 +17,7 @@ import           Solid.PP.LexerSpec ()
 import           GHC.IsList
 import           GHC.Data.FastString (FastString, mkFastString)
 import qualified Data.Text as T
+import qualified Data.List as List
 
 import           Solid.PP (extensions)
 import           Solid.PP.Lexer (Token(..))
@@ -97,7 +98,10 @@ parse input action = annotated $ do
     annotated = either (const id) (annotate . formatTokens) $ Lexer.tokenize extensions "main.hs" 1 input
 
     formatTokens :: Lexer.LexerResult -> String
-    formatTokens result = "\ESC[31mtokens: \ESC[36m" <> show (map unLoc result.tokens) <> "\ESC[39m"
+    formatTokens result = "\ESC[31mtokens: \ESC[36m" <> List.intercalate "  " (map formatToken result.tokens) <> "\ESC[39m"
+
+    formatToken :: WithBufferSpan Token -> String
+    formatToken = show . unLoc
 
 shouldBe :: HasCallStack => (Eq a, Show a) => ((a -> Expectation) -> Expectation) -> a -> Expectation
 shouldBe action a = action (`Hspec.shouldBe` a)
