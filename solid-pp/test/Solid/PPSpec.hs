@@ -427,7 +427,7 @@ spec = do
             ".stdin :: Config stdin stdout stderr -> STDIN stdin stdout stderr"
           , ".stdin = STDIN"
           ] `shouldDesugarTo_` unlines [
-            "instance HasField \"stdin\" (((Config stdin) stdout) stderr) (((STDIN stdin) stdout) stderr) where getField = stdin"
+            "instance HasField \"stdin\" (Config stdin stdout stderr) (STDIN stdin stdout stderr) where getField = stdin"
           , "stdin :: Config stdin stdout stderr -> STDIN stdin stdout stderr"
           , "stdin = STDIN"
           ]
@@ -448,7 +448,7 @@ spec = do
             ".nub :: Eq a => [a] -> [a]"
           , ".nub = undefined"
           ] `shouldDesugarTo_` unlines [
-            "instance (Eq a) => HasField \"nub\" [a] [a] where getField = nub"
+            "instance Eq a => HasField \"nub\" [a] [a] where getField = nub"
           , "nub :: Eq a => [a] -> [a]"
           , "nub = undefined"
           ]
@@ -471,7 +471,7 @@ spec = do
             ".nub :: Eq a => [a] -> [a]"
           , ".nub = undefined"
           ] `shouldDesugarTo` unlines [
-            "instance ({-# COLUMN 9 #-}Eq a) => {-# COLUMN 1 #-}HasField \"nub\" [a] [a] where getField = nub"
+            "instance {-# COLUMN 9 #-}Eq a => {-# COLUMN 1 #-}HasField \"nub\" [a] [a] where getField = nub"
           , "{-# LINE 1 \"main.hs\" #-}"
           , "{-# COLUMN 2 #-}nub :: Eq a => [a] -> [a]"
           , "{-# COLUMN 2 #-}nub = undefined"

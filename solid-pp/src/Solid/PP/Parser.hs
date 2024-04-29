@@ -341,6 +341,7 @@ pMethodName = uncurry MethodName <$> varid
 data Type loc =
     TypeVariable FastString
   | TypeName loc (Maybe FastString) FastString
+  | TypeLiteral String
   | Tuple [Type loc]
   | ListOf (Type loc)
   | TypeApplication (Type loc) (Type loc)

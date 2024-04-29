@@ -46,6 +46,20 @@ spec = do
       input.length === input.unpack.length
       ByteString.length input === input.unpack.length
 
+  describe "takeWhile" $ do
+    it "returns the longest prefix of a ByteString so that a predicate holds for every byte" $ do
+      let
+        input = "foobar" :: ByteString
+        p = (/= fromIntegral 'b'.ord)
+      input.takeWhile p `shouldBe` "foo"
+      ByteString.takeWhile p input `shouldBe` "foo"
+
+  describe "splitAt" $ do
+    it "splits a ByteString at the given index" $ do
+      let input = "foobar" :: ByteString
+      input.splitAt 3 `shouldBe` ("foo", "bar")
+      ByteString.splitAt 3 input `shouldBe` ("foo", "bar")
+
   describe "strip" $ do
     it "removes leading and trailing whitespace" $ do
       let input = "  foo\n \r" :: ByteString
@@ -87,17 +101,3 @@ spec = do
       let path = "foo.txt" :: ByteString
       path.asFilePath `shouldBe` "foo.txt"
       ByteString.asFilePath path `shouldBe` "foo.txt"
-
-  describe "takeWhile" $ do
-    it "" $ do
-      let
-        input = "foobar" :: ByteString
-      input.takeWhile (> fromIntegral 'b'.ord) `shouldBe` "foo"
-      ByteString.takeWhile (> fromIntegral 'b'.ord) input `shouldBe` "foo"
-
-  describe "splitAt" $ do
-    it "" $ do
-      let
-        input = "foobar" :: ByteString
-      input.splitAt 3 `shouldBe` ("foo", "bar")
-      ByteString.splitAt 3 input `shouldBe` ("foo", "bar")

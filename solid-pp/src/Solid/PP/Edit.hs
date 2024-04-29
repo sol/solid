@@ -14,6 +14,7 @@ module Solid.PP.Edit (
 , Edit(..)
 , insertClosingParen
 , edit
+, formatColumnPragma
 , columnPragma
 ) where
 
@@ -58,9 +59,9 @@ data Edit = Replace {
 } deriving (Eq, Show)
 
 insertClosingParen :: SrcLoc -> Edit
-insertClosingParen loc = Replace Nothing loc.offset 0 (pragma <> ")")
+insertClosingParen loc = Replace Nothing loc.offset 0 (Builder.toText $ pragma <> ")")
   where
-    pragma = mkColumnPragma (pred loc.column)
+    pragma = formatColumnPragma (pred loc.column)
 
 edit :: forall m. Monad m => (Text -> m ()) -> Text -> [Edit] -> m ()
 edit put input = go 0 . sortOn (.start)
@@ -72,19 +73,16 @@ edit put input = go 0 . sortOn (.start)
       step@(Replace _ offset n substitute) : xs -> do
         put (T.drop cursor $ T.take offset input)
         put substitute
-        forM_ (columnPragma step) putColumnPragma
+        forM_ (columnPragma step) (put . Builder.toText)
         go (offset + n) xs
 
-    putColumnPragma :: Int -> m ()
-    putColumnPragma = put . mkColumnPragma
+formatColumnPragma :: Int -> Builder
+formatColumnPragma n = "{-# COLUMN " <> Builder.show n <> " #-}"
 
-mkColumnPragma :: Int -> Text
-mkColumnPragma (T.pack . show -> col) = "{-# COLUMN " <> col <> " #-}"
-
-columnPragma :: Edit -> Maybe Int
+columnPragma :: Edit -> Maybe Builder
 columnPragma (Replace startColumn _ old (T.length -> new))
   | pragma == actual = Nothing
-  | otherwise = pragma
+  | otherwise = formatColumnPragma <$> pragma
   where
     pragma :: Maybe Int
     pragma = (fromIntegral old +) <$> startColumn

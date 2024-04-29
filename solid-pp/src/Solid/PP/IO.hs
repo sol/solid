@@ -10,7 +10,7 @@ module Solid.PP.IO (
 ) where
 
 import           Prelude as Exports hiding (readFile, writeFile, lines, unlines, foldl)
-import           Data.List as Exports (foldl')
+import           Data.List as Exports (foldl', foldl1')
 import           Data.List.NonEmpty as Exports (NonEmpty(..))
 import           Control.Applicative as Exports
 import           Control.Arrow as Exports ((&&&), (>>>))
@@ -34,8 +34,8 @@ import           System.Environment (getProgName)
 import           System.Exit (exitFailure)
 import           System.IO (stderr, hPutStrLn)
 
-pass :: Monad m => m ()
-pass = return ()
+pass :: Applicative m => m ()
+pass = pure ()
 
 die :: (String -> String) -> IO a
 die err = getProgName >>= hPutStrLn stderr . err >> exitFailure

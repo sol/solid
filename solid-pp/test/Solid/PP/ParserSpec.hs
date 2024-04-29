@@ -82,7 +82,9 @@ instance Num (Node ()) where
   fromInteger = token . fromInteger
 
 instance IsString (Node ()) where
-  fromString name = nameWith (fromString name) NoArguments
+  fromString = \ case
+    "=" -> token ITequal
+    name -> nameWith (fromString name) NoArguments
 
 instance IsString (Subject ()) where
   fromString name = Name () (fromString name) NoArguments
@@ -112,8 +114,13 @@ parse input action = annotated $ do
     formatToken :: WithBufferSpan Token -> String
     formatToken = show . unLoc
 
+infix 1 `shouldBe`, `shouldParseAs`
+
 shouldBe :: HasCallStack => (Eq a, Show a) => ((a -> Expectation) -> Expectation) -> a -> Expectation
 shouldBe action a = action (`Hspec.shouldBe` a)
+
+shouldParseAs :: HasCallStack => Text -> Module () -> Expectation
+shouldParseAs input expected = parse input `shouldBe` expected
 
 spec :: Spec
 spec = do
@@ -175,76 +182,63 @@ spec = do
         parse "import Foo hiding (bar, baz)" `shouldBe` Module NoModuleHeader [Import () Unqualified "Foo" Nothing (HidingList [["bar"], ["baz"]])] []
 
     context "when parsing method definitions" $ do
-      it "" $ do
-        let
-          input = unlines [
-              ".length :: String -> Int"
-            , ".length = coerce utf8length"
-            ]
-        parse input `shouldBe` [MethodDefinition $ Method () "length" [] [] "String" "Int" () (), Token () ITequal, "coerce", "utf8length"]
+      let method name ctx args subject result = MethodDefinition $ Method () name ctx args subject result () ()
 
-      it "" $ do
-        let
-          input = unlines [
-              ".words :: String -> [String]"
-            , ".words = coerce utf8words"
-            ]
-        parse input `shouldBe` [MethodDefinition $ Method () "words" [] [] "String" (ListOf "String") () (), Token () ITequal, "coerce", "utf8words"]
+      it "parses method definitions" $ do
+        unlines [
+            ".length :: String -> Int"
+          , ".length = coerce utf8length"
+          ]
+        `shouldParseAs` [method "length" [] [] "String" "Int", "=", "coerce", "utf8length"]
 
-      it "" $ do
-        let
-          input = unlines [
-              ".foo :: S -> (A, B, C)"
-            , ".foo = bar"
-            ]
-        parse input `shouldBe` [MethodDefinition $ Method () "foo" [] [] "S" (Tuple ["A", "B", "C"]) () (), Token () ITequal, "bar"]
+      it "accepts list types" $ do
+        unlines [
+            ".words :: String -> [String]"
+          , ".words = coerce utf8words"
+          ]
+        `shouldParseAs` [method "words" [] [] "String" (ListOf "String"), "=", "coerce", "utf8words"]
 
-      it "" $ do
-        let
-          input = unlines [
-              ".foo :: A -> B -> Subject -> Result"
-            , ".foo = undefined"
-            ]
-        parse input `shouldBe` [MethodDefinition $ Method () "foo" [] ["A", "B"] "Subject" "Result" () (), Token () ITequal, "undefined"]
+      it "accepts tuple types" $ do
+        unlines [
+            ".foo :: S -> (A, B, C)"
+          , ".foo = bar"
+          ]
+        `shouldParseAs` [method "foo" [] [] "S" (Tuple ["A", "B", "C"]), "=", "bar"]
 
-      it "" $ do
-        let
-          input = unlines [
-              ".remove :: FilePath -> IO ()"
-            , ".remove = undefined"
-            ]
-        parse input `shouldBe` [MethodDefinition $ Method () "remove" [] [] "FilePath" (TypeApplication "IO" (Tuple [])) () (), Token () ITequal, "undefined"]
+      it "accepts methods with arity greater 1" $ do
+        unlines [
+            ".foo :: A -> B -> Subject -> Result"
+          , ".foo = undefined"
+          ]
+        `shouldParseAs` [method "foo" [] ["A", "B"] "Subject" "Result", "=", "undefined"]
 
-      it "" $ do
-        let
-          input = unlines [
-              ".foo :: FilePath -> Either Int String"
-            , ".foo = undefined"
-            ]
-        parse input `shouldBe` [MethodDefinition $ Method () "foo" [] [] "FilePath" (TypeApplication (TypeApplication "Either" "Int") "String") () (), Token () ITequal, "undefined"]
+      it "accepts the unit type" $ do
+        unlines [
+            ".remove :: FilePath -> IO ()"
+          , ".remove = undefined"
+          ]
+        `shouldParseAs` [method "remove" [] [] "FilePath" (TypeApplication "IO" (Tuple [])), "=", "undefined"]
 
-      it "" $ do
-        let
-          input = unlines [
-              ".open :: IO.Mode -> FilePath -> IO Handle"
-            , ".open = undefined"
-            ]
-        parse input `shouldBe` [MethodDefinition $ Method () "open" [] [TypeName () (Just "IO") "Mode"] "FilePath" (TypeApplication "IO" "Handle") () (), Token () ITequal, "undefined"]
+      it "accepts type applications" $ do
+        unlines [
+            ".foo :: FilePath -> Either Int String"
+          , ".foo = undefined"
+          ]
+        `shouldParseAs` [method "foo" [] [] "FilePath" (TypeApplication (TypeApplication "Either" "Int") "String"), "=", "undefined"]
 
-      it "" $ do
-        let
-          input = unlines [
-              ".just? :: Maybe a -> Bool"
-            , ".just? = isJust"
-            ]
-        parse input `shouldBe` [MethodDefinition $ Method () "just?" [] [] (TypeApplication "Maybe" "a") "Bool" () (), Token () ITequal, "isJust"]
-      it "" $ do
-        let
-          input = unlines [
-              ".foo :: Eq a => Maybe a -> Bool"
-            , ".foo = isJust"
-            ]
-        parse input `shouldBe` [MethodDefinition $ Method () "foo" [TypeApplication "Eq" "a"] [] (TypeApplication "Maybe" "a") "Bool" () (), Token () ITequal, "isJust"]
+      it "accepts qualified type names" $ do
+        unlines [
+            ".open :: IO.Mode -> FilePath -> IO Handle"
+          , ".open = undefined"
+          ]
+        `shouldParseAs` [method "open" [] [TypeName () (Just "IO") "Mode"] "FilePath" (TypeApplication "IO" "Handle"), "=", "undefined"]
+
+      it "accepts type constraints" $ do
+        unlines [
+            ".foo? :: Eq a => Maybe a -> Bool"
+          , ".foo? = isJust"
+          ]
+        `shouldParseAs` [method "foo?" [TypeApplication "Eq" "a"] [] (TypeApplication "Maybe" "a") "Bool", "=", "isJust"]
 
 
     context "when parsing function calls" $ do
@@ -305,12 +299,11 @@ spec = do
         parse "(,,,)" `shouldBe` [bracketed Round [[],[],[],[]]]
 
       it "accepts unboxed tuples" $ do
-        let
-          input = unlines [
-              "{-# LANGUAGE UnboxedTuples #-}"
-            , "(# 23, 42 #)"
-            ]
-        parse input `shouldBe` [bracketed Unboxed [[23], [42]]]
+        unlines [
+            "{-# LANGUAGE UnboxedTuples #-}"
+          , "(# 23, 42 #)"
+          ]
+        `shouldParseAs` [bracketed Unboxed [[23], [42]]]
 
     context "when parsing string literals" $ do
       it "accepts a literal string" $ do
