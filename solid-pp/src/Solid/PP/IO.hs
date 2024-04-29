@@ -1,5 +1,6 @@
 module Solid.PP.IO (
   module Exports
+, pass
 , die
 , readFile
 , writeFile
@@ -31,6 +32,9 @@ import qualified Data.ByteString as B
 import           System.Environment (getProgName)
 import           System.Exit (exitFailure)
 import           System.IO (stderr, hPutStrLn)
+
+pass :: Applicative m => m ()
+pass = pure ()
 
 die :: (String -> String) -> IO a
 die err = getProgName >>= hPutStrLn stderr . err >> exitFailure

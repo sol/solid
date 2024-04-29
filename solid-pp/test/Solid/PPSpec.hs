@@ -15,14 +15,17 @@ import           Solid.PP
 
 infix 1 `shouldDesugarTo`
 
+run_ :: HasCallStack => FilePath -> FilePath -> FilePath -> IO ()
+run_ src cur dst = run src cur dst >>= \ case
+  Failure message -> expectationFailure message
+  Success -> pass
+
 shouldDesugarTo :: HasCallStack => Text -> Text -> Expectation
 shouldDesugarTo input expected = do
   let file = "main.hs"
   writeFile file input
-  Success <- run file file file
-  readFile file `shouldReturn`
-       "{-# LINE 1 " <> pack (show file) <> " #-}\n"
-    <> expected
+  run_ file file file
+  readFile file `shouldReturn` "{-# LINE 1 " <> pack (show file) <> " #-}\n" <> expected
 
 interpolationShouldDesugarTo :: HasCallStack => Text -> Text -> Expectation
 interpolationShouldDesugarTo input expected = do
@@ -216,7 +219,7 @@ spec = do
             "foo :: String -> Int"
           , "foo = String.length"
           ]
-        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
+        run_ "src.hs" "src.hs" "dst.hs"
         readFile "dst.hs" `shouldReturn` unlines [
             "{-# LINE 1 \"src.hs\" #-}"
           , "import qualified String"
@@ -232,7 +235,7 @@ spec = do
             , "foo :: String -> Int"
             , "foo = String.length"
             ]
-          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
+          run_ "src.hs" "src.hs" "dst.hs"
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
             , "import qualified String"
@@ -252,7 +255,7 @@ spec = do
             , "{-# INLINE foo #-}"
             , "foo = String.length"
             ]
-          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
+          run_ "src.hs" "src.hs" "dst.hs"
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
             , "-- some comment"
@@ -272,7 +275,7 @@ spec = do
               , "{-# LANGUAGE OverloadedStrings #-}"
               , "{-# OPTIONS_GHC -fno-warn-orphans #-}"
               ]
-            run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
+            run_ "src.hs" "src.hs" "dst.hs"
             readFile "dst.hs" `shouldReturn` unlines [
                 "{-# LINE 1 \"src.hs\" #-}"
               , "-- some comment"
@@ -288,7 +291,7 @@ spec = do
             , "foo :: String -> Int"
             , "foo = String.length"
             ]
-          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
+          run_ "src.hs" "src.hs" "dst.hs"
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
             , "{-# LANGUAGE OverloadedStrings #-}"
@@ -305,7 +308,7 @@ spec = do
               "module String where"
             , "foo = String.length"
             ]
-          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
+          run_ "src.hs" "src.hs" "dst.hs"
           readFile "dst.hs" `shouldReturn` unlines [
               "{-# LINE 1 \"src.hs\" #-}"
             , "module String where"
@@ -319,7 +322,7 @@ spec = do
               , "foo :: Int"
               , "foo = 23"
               ]
-            run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
+            run_ "src.hs" "src.hs" "dst.hs"
             readFile "dst.hs" `shouldReturn` unlines [
                 "{-# LINE 1 \"src.hs\" #-}"
               , "module Foo where"
@@ -334,7 +337,7 @@ spec = do
               , "foo! :: String -> Int"
               , "foo! = String.length"
               ]
-            run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
+            run_ "src.hs" "src.hs" "dst.hs"
             readFile "dst.hs" `shouldReturn` unlines [
                 "{-# LINE 1 \"src.hs\" #-}"
               , "module Foo (fooᴉ) where"
@@ -350,7 +353,7 @@ spec = do
               writeFile "src.hs" $ unlines [
                   "module Foo (String.length) where"
                 ]
-              run "src.hs" "src.hs" "dst.hs" `shouldReturn` Success
+              run_ "src.hs" "src.hs" "dst.hs"
               readFile "dst.hs" `shouldReturn` unlines [
                   "{-# LINE 1 \"src.hs\" #-}"
                 , "module Foo (String.length) where"
