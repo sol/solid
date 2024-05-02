@@ -2,11 +2,13 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE InstanceSigs          #-}
+{-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 {-# LANGUAGE ViewPatterns          #-}
 
@@ -104,7 +106,7 @@ import           Hedgehog.Internal.Property (DiscardLimit (..), Property (..),
                                              ShrinkLimit (..),
                                              TerminationCriteria (..),
                                              TestCount (..), TestLimit (..))
-import           Hedgehog.Internal.Report   as Hedge
+import           Hedgehog.Internal.Report   hiding (renderResult)
 import           Hedgehog.Internal.Runner   (checkReport)
 import qualified Hedgehog.Internal.Seed     as Seed
 import           Hedgehog.Internal.Source   (ColumnNo (..), LineNo (..),
@@ -201,9 +203,12 @@ instance (m ~ IO) => Example (a -> PropertyT m ()) where
                Nothing       -> Seed.random
                Just (rng, _) -> pure (uncurry Seed (unseedSMGen (coerce rng)))
             hedgeResult <- checkReport propConfig size seed (propertyTest prop) cb
-            ppresult <- renderResult EnableColor Nothing hedgeResult
-            writeIORef ref $ Result "" $ case reportStatus hedgeResult of
-                Failed FailureReport{..} ->
+
+            let renderResult color = renderResultWith (Context 3) color (Just "property") hedgeResult
+
+            case reportStatus hedgeResult of
+                Failed FailureReport{..} -> do
+                    ppresult <- renderResult EnableColor
                     let
                         fromSpan Span{..} =
                             Location
@@ -211,10 +216,11 @@ instance (m ~ IO) => Example (a -> PropertyT m ()) where
                                 , locationLine = coerce spanStartLine
                                 , locationColumn = coerce spanStartColumn
                                 }
-                    in
-                        Hspec.Failure (fromSpan <$> failureLocation) $ ColorizedReason ppresult
-                GaveUp ->
-                    Failure Nothing (Reason "GaveUp")
-                OK ->
-                    Success
+                    writeIORef ref $ Result "" $ Hspec.Failure (fromSpan <$> failureLocation) $ ColorizedReason ppresult
+                GaveUp -> do
+                    ppresult <- renderResult DisableColor
+                    writeIORef ref $ Result "" $ Failure Nothing (Reason ppresult)
+                OK -> do
+                    ppresult <- renderResult DisableColor
+                    writeIORef ref $ Result ppresult Success
         readIORef ref
