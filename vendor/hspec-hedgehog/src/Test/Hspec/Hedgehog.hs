@@ -208,9 +208,9 @@ instance (m ~ IO) => Example (a -> PropertyT m ()) where
             let
               config = defaultConfig {
                   configContext = Context 0
-                -- , configPrintFailedAtLocation = False
+                , configPrintFailedAtLocation = False
                 , configPrintReproduceMessage = False
-                -- , configPrintPrefixIcons = DisablePrefixIcons
+                , configPrintPrefixIcons = DisablePrefixIcons
                 }
               renderResult color = unlines . unindent . lines . dropWhileEnd isSpace <$> renderResultWith config color (Just "") hedgeResult
 
