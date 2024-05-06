@@ -93,10 +93,14 @@ wellKnownModules = Set.fromList [
   , "Temp"
   , "Word8"
   , toStringModule
+  , suppressForMethodModule
   ]
 
 toStringModule :: ImplicitImport
 toStringModule = "Solid.ToString"
+
+suppressForMethodModule :: ImplicitImport
+suppressForMethodModule = "Solid.StackTrace"
 
 data Result = Failure String | Success
   deriving (Eq, Show)
@@ -234,7 +238,17 @@ implicitImports = ($ mempty) . fromModule . void
 
     fromMethod :: Method () -> ImplicitImports -> ImplicitImports
     fromMethod = \ case
-      Method () (_ :: MethodName ()) context arguments subject result () () -> foreach fromType context . foreach fromType arguments . fromType subject . fromType result
+      Method () (_ :: MethodName ()) withStackTrace context arguments subject result () () ->
+          fromWithStackTrace withStackTrace
+        . foreach fromType context
+        . foreach fromType arguments
+        . fromType subject
+        . fromType result
+
+    fromWithStackTrace :: WithStackTrace -> ImplicitImports -> ImplicitImports
+    fromWithStackTrace = \ case
+      WithStackTrace -> Set.insert suppressForMethodModule
+      WithoutStackTrace -> id
 
     fromType :: Type () -> ImplicitImports -> ImplicitImports
     fromType = \ case
@@ -355,6 +369,8 @@ ppExportList = \ case
   NoExportList -> mempty
   ExportList nodes -> concatMap (pp Nothing) nodes
 
+data WithColumnPragma = WithColumnPragma | WithoutColumnPragma
+
 pp :: Maybe Builder -> [Node BufferSpan] -> DList Edit
 pp moduleName = ppNodes
   where
@@ -384,29 +400,37 @@ pp moduleName = ppNodes
 
     formatMethod :: Method BufferSpan -> Builder
     formatMethod method =
-         "instance " <> formatType 0 (foldr TypeContext instanceHead method.context)
+         "instance " <> formatType WithColumnPragma 0 (foldr TypeContext instanceHead method.context)
       <> instanceBody
       <> linePragma method.dot.startLoc
       where
         instanceHead :: Type BufferSpan
         instanceHead = foldl1' TypeApplication [
             TypeName method.dot Nothing "HasField"
-          , TypeLiteral (show name)
+          , TypeLiteral (show nameAsText)
           , method.subject
           , foldr FunctionType method.result method.arguments
           ]
 
-        name :: Text
-        name = desugarMethodName method.name
+        nameAsText :: Text
+        nameAsText = desugarMethodName method.name
+
+        name :: Builder
+        name = Builder.fromText nameAsText
 
         instanceBody :: Builder
         instanceBody =
           let
-            implementation = Edit.formatColumnPragma method.name.loc.startColumn <> case moduleName of
+            suppressStackTrace = case method.withStackTrace of
+              WithStackTrace ->
+                "Solid.StackTrace.suppressForMethod " <> Builder.show (Builder.toText $ formatTypeForStackTrace method.subject <> "." <> name) <> " "
+              WithoutStackTrace ->
+                mempty
+            implementation = suppressStackTrace <> Edit.formatColumnPragma method.name.loc.startColumn <> case moduleName of
               Nothing ->
-                Builder.fromText name
+                name
               Just m ->
-                m <> "." <> Builder.fromText name
+                m <> "." <> name
           in case length method.arguments of
             0 -> " where getField = " <> implementation <> "\n"
             n -> " where getField _subject" <> args <> " = " <> implementation <> args <> " _subject\n"
@@ -423,27 +447,41 @@ pp moduleName = ppNodes
     desugarMethodName :: MethodName loc -> Text
     desugarMethodName (MethodName _ name) = fromMaybe (pack $ unpackFS name) $ desugarIdentifierMaybe name
 
-    formatType :: Int -> Type BufferSpan -> Builder
-    formatType p = \ case
-      TypeVariable name -> Builder.fastString name
-      TypeName loc Nothing t -> Edit.formatColumnPragma loc.startColumn <> Builder.fastString t
-      TypeName loc (Just qualified) t -> Edit.formatColumnPragma loc.startColumn <> Builder.fastString qualified <> "." <> Builder.fastString t
-      TypeLiteral literal -> fromString literal
-      Tuple ts -> "(" <> Builder.join ", " (map (formatType 0) ts) <> ")"
-      ListOf t -> "[" <> formatType 0 t <> "]"
-      TypeApplication t1 t2 -> infixL 3 t1 " " t2
-      FunctionType t1 t2 -> infixR 2 t1 " -> " t2
-      TypeContext c t -> infixR 1 c " => " t
+    formatTypeForStackTrace :: Type BufferSpan -> Builder
+    formatTypeForStackTrace = go
       where
-        infixL :: Int -> Type BufferSpan -> Builder -> Type BufferSpan -> Builder
-        infixL n t1 sep t2 = parens n $ formatType n t1 <> sep <> formatType (succ n) t2
+        go = \ case
+          TypeApplication t TypeVariable{} -> go t
+          t -> formatType WithoutColumnPragma maxBound t
 
-        infixR :: Int -> Type BufferSpan -> Builder -> Type BufferSpan -> Builder
-        infixR n t1 sep t2 = parens n $ formatType (succ n) t1 <> sep <> formatType n t2
+    formatType :: WithColumnPragma -> Int -> Type BufferSpan -> Builder
+    formatType withColumnPragma = go
+      where
+        column loc = case withColumnPragma of
+          WithColumnPragma -> Edit.formatColumnPragma loc.startColumn
+          WithoutColumnPragma -> mempty
 
-        parens n term
-          | p > n = "(" <> term <> ")"
-          | otherwise = term
+        go :: Int -> Type BufferSpan -> Builder
+        go p = \ case
+          TypeVariable name -> Builder.fastString name
+          TypeName loc Nothing t -> column loc <> Builder.fastString t
+          TypeName loc (Just qualified) t -> column loc <> Builder.fastString qualified <> "." <> Builder.fastString t
+          TypeLiteral literal -> fromString literal
+          Tuple ts -> "(" <> Builder.join ", " (map (go 0) ts) <> ")"
+          ListOf t -> "[" <> go 0 t <> "]"
+          TypeApplication t1 t2 -> infixL 3 t1 " " t2
+          FunctionType t1 t2 -> infixR 2 t1 " -> " t2
+          TypeContext c t -> infixR 1 c " => " t
+          where
+            infixL :: Int -> Type BufferSpan -> Builder -> Type BufferSpan -> Builder
+            infixL n t1 sep t2 = parens n $ go n t1 <> sep <> go (succ n) t2
+
+            infixR :: Int -> Type BufferSpan -> Builder -> Type BufferSpan -> Builder
+            infixR n t1 sep t2 = parens n $ go (succ n) t1 <> sep <> go n t2
+
+            parens n term
+              | p > n = "(" <> term <> ")"
+              | otherwise = term
 
     ppSubject :: Subject BufferSpan -> DList Edit
     ppSubject = \ case
