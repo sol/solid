@@ -477,6 +477,20 @@ spec = do
           , "{-# COLUMN 2 #-}nub = undefined"
           ]
 
+      context "with a WithStackTrace contraint" $ do
+        it "suppresses stack trace for HasField instance" $ do
+          unlines [
+              ".left! :: WithStackTrace => Either l r -> l"
+            , ".left! = undefined"
+            ] `shouldDesugarTo` unlines [
+              "import qualified Solid.StackTrace"
+            , "{-# LINE 1 \"main.hs\" #-}"
+            , "instance {-# COLUMN 1 #-}HasField \"left\\7433\" ({-# COLUMN 29 #-}Either l r) l where getField = Solid.StackTrace.suppressForMethod \"Either.left\\7433\" {-# COLUMN 2 #-}Main.leftᴉ"
+            , "{-# LINE 1 \"main.hs\" #-}"
+            , "{-# COLUMN 2 #-}leftᴉ :: WithStackTrace => Either l r -> l"
+            , "{-# COLUMN 2 #-}leftᴉ = undefined"
+            ]
+
       context "when arity is 0" $ do
         it "reports an error" $ do
           writeFile "src.hs" $ unlines [

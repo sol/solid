@@ -28,6 +28,7 @@ module Solid.PP.Parser (
 
 , Method(..)
 , MethodName(..)
+, WithStackTrace(..)
 , Type(..)
 
 , Subject(..)
@@ -275,9 +276,13 @@ pNode = pMethodDefinition <|> pMethodChain <|> pAnyToken
 pMethodDefinition :: Parser (Node BufferSpan)
 pMethodDefinition = MethodDefinition <$> pMethod
 
+data WithStackTrace = WithStackTrace | WithoutStackTrace
+  deriving (Eq, Show)
+
 data Method loc = Method {
   dot :: loc
 , name :: MethodName loc
+, withStackTrace :: WithStackTrace
 , context :: [Type loc]
 , arguments :: [Type loc]
 , subject :: Type loc
@@ -290,7 +295,7 @@ pMethod :: Parser (Method BufferSpan)
 pMethod = do
   dot <- pMethodDot
   name <- pMethodName
-  (context, t) <- splitContext <$> pTypeSignature
+  ((withStackTrace, context), t) <- first splitWithStackTrace . splitContext <$> pTypeSignature
   case reverse $ functionTypeAsList t of
     result : subject : (reverse -> arguments) -> do
       _ <- optional (require ITsemi)
@@ -319,6 +324,18 @@ pMethod = do
       TypeContext c t -> case splitContext t of
         (cs, ts) -> (c : cs, ts)
       t -> ([], t)
+
+    splitWithStackTrace :: [Type loc] -> (WithStackTrace, [Type loc])
+    splitWithStackTrace = go
+      where
+        go :: [Type loc] -> (WithStackTrace, [Type loc])
+        go = \ case
+          [] ->
+            (WithoutStackTrace, [])
+          TypeName _ Nothing "WithStackTrace" : xs ->
+            (WithStackTrace, xs)
+          x : xs ->
+            (x :) <$> go xs
 
     functionTypeAsList :: Type loc -> [Type loc]
     functionTypeAsList = \ case

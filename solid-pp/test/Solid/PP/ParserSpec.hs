@@ -182,7 +182,7 @@ spec = do
         parse "import Foo hiding (bar, baz)" `shouldBe` Module NoModuleHeader [Import () Unqualified "Foo" Nothing (HidingList [["bar"], ["baz"]])] []
 
     context "when parsing method definitions" $ do
-      let method name ctx args subject result = MethodDefinition $ Method () name ctx args subject result () ()
+      let method name ctx args subject result = MethodDefinition $ Method () name WithoutStackTrace ctx args subject result () ()
 
       it "parses method definitions" $ do
         unlines [

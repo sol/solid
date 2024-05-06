@@ -32,14 +32,11 @@ instance IsString ByteString where
 .asString :: ByteString -> Maybe String
 .asString = String.asString
 
-asString! :: WithStackTrace => ByteString -> String
-asString! (Bytes string) = if ByteArray.isValidUtf8 string then Bytes string else throw! UnicodeDecodeError
+.asString! :: WithStackTrace => ByteString -> String
+.asString! (Bytes string) = if ByteArray.isValidUtf8 string then Bytes string else throw! UnicodeDecodeError
 
 .decodeUtf8 :: ByteString -> String
 .decodeUtf8 = String.decodeUtf8
-
-instance HasField "asString\7433" ByteString String where
-  getField = asString!
 
 empty :: ByteString
 empty = mempty

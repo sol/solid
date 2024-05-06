@@ -51,14 +51,14 @@ use Haskell
 
 type Mode = Haskell.IOMode
 
-print :: ToString a => Handle -> a -> IO ()
-print h = writeLine h . toString
+print :: ToString a => a -> Handle -> IO ()
+print = writeLine . toString
 
-write :: Handle -> String -> IO ()
-write h = B.hPut h . Haskell.asByteString
+.write :: String -> Handle -> IO ()
+.write xs h = B.hPut h (Haskell.asByteString xs)
 
-writeLine :: Handle -> String -> IO ()
-writeLine self str = do
+.writeLine :: String -> Handle -> IO ()
+.writeLine str self = do
   self.write str
   self.write "\n"
 
@@ -104,13 +104,7 @@ withLock action h = withMVar handle__ $ \ _ -> action
 
 instance (ToString a, HasField "print" Handle (a -> IO ()))
                    => HasField "print" Handle (a -> IO ()) where
-  getField = print
-
-instance HasField "write" Handle (String -> IO ()) where
-  getField = write
-
-instance HasField "writeLine" Handle (String -> IO ()) where
-  getField = writeLine
+  getField = flip print
 
 instance HasField "release" Handle (IO ()) where
   getField = close

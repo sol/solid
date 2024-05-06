@@ -29,13 +29,13 @@ fold = either
 .right_or :: r -> Either l r -> r
 .right_or = fromRight
 
-left! :: WithStackTrace => Either l r -> l
-left! = \ case
+.left! :: WithStackTrace => Either l r -> l
+.left! = \ case
   Left l -> l
   Right _ -> StackTrace.suppress Exception.invalidValue! "Right"
 
-right! :: WithStackTrace => Either l r -> r
-right! = \ case
+.right! :: WithStackTrace => Either l r -> r
+.right! = \ case
   Left _ -> StackTrace.suppress Exception.invalidValue! "Left"
   Right r -> r
 
@@ -48,9 +48,3 @@ right! = \ case
 instance HasField "fold" (Either l r) ((l -> a) -> (r -> a) -> a)
       => HasField "fold" (Either l r) ((l -> a) -> (r -> a) -> a) where
   getField value fl fr = fold fl fr value
-
-instance HasField "left\7433" (Either l r) l where
-  getField = StackTrace.suppressForMethod "Either.left!" left!
-
-instance HasField "right\7433" (Either l r) r where
-  getField = StackTrace.suppressForMethod "Either.right!" right!
