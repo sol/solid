@@ -477,7 +477,7 @@ spec = do
           , "{-# COLUMN 2 #-}nub = undefined"
           ]
 
-      context "with a WithStackTrace contraint" $ do
+      context "with a WithStackTrace constraint" $ do
         it "suppresses stack trace for HasField instance" $ do
           unlines [
               ".left! :: WithStackTrace => Either l r -> l"
@@ -489,6 +489,17 @@ spec = do
             , "{-# LINE 1 \"main.hs\" #-}"
             , "{-# COLUMN 2 #-}leftᴉ :: WithStackTrace => Either l r -> l"
             , "{-# COLUMN 2 #-}leftᴉ = undefined"
+            ]
+
+      context "with multiple constraints" $ do
+        it "desugars method definitions" $ do
+          unlines [
+              ".foo :: Show l => Show r => Either l r -> String"
+            , ".foo = undefined"
+            ] `shouldDesugarTo_` unlines [
+              "instance (Show l, Show r) => HasField \"foo\" (Either l r) String where getField = Main.foo"
+            , "foo :: Show l => Show r => Either l r -> String"
+            , "foo = undefined"
             ]
 
       context "when arity is 0" $ do

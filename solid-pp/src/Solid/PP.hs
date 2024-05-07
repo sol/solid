@@ -400,10 +400,16 @@ pp moduleName = ppNodes
 
     formatMethod :: Method BufferSpan -> Builder
     formatMethod method =
-         "instance " <> formatType WithColumnPragma 0 (foldr TypeContext instanceHead method.context)
+         "instance " <> formatType WithColumnPragma 0 (addContext instanceHead method.context)
       <> instanceBody
       <> linePragma method.dot.startLoc
       where
+        addContext :: Type loc -> [Type loc] -> Type loc
+        addContext t = \ case
+          [] -> t
+          [context] -> TypeContext context t
+          context -> TypeContext (Tuple context) t
+
         instanceHead :: Type BufferSpan
         instanceHead = foldl1' TypeApplication [
             TypeName method.dot Nothing "HasField"
