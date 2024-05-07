@@ -51,8 +51,8 @@ use Haskell
 
 type Mode = Haskell.IOMode
 
-print :: ToString a => a -> Handle -> IO ()
-print = writeLine . toString
+.print :: ToString a => a -> Handle -> IO ()
+.print = writeLine . toString
 
 .write :: String -> Handle -> IO ()
 .write xs h = B.hPut h (Haskell.asByteString xs)
@@ -95,20 +95,12 @@ open = OsPath.openFile . coerce
 .getContents :: Handle -> IO ByteString
 .getContents = fmap Haskell.fromByteString . B.hGetContents
 
-withLock :: IO a -> Handle -> IO a
-withLock action h = withMVar handle__ $ \ _ -> action
+.withLock :: IO a -> Handle -> IO a
+.withLock action h = withMVar handle__ $ \ _ -> action
   where
     handle__ = case h of
       FileHandle _ m -> m
       DuplexHandle _ m _ -> m
 
-instance (ToString a, HasField "print" Handle (a -> IO ()))
-                   => HasField "print" Handle (a -> IO ()) where
-  getField = flip print
-
 instance HasField "release" Handle (IO ()) where
   getField = close
-
-instance HasField "withLock" Handle (IO a -> IO a) =>
-         HasField "withLock" Handle (IO a -> IO a) where
-  getField = flip withLock

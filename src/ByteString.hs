@@ -174,18 +174,10 @@ endsWith = Bytes.endsWith
 .asFilePath :: ByteString -> FilePath
 .asFilePath = Bytes.asFilePath
 
-read :: Read a => ByteString -> Maybe a
-read = asString >=> String.read
+.read :: Read a => ByteString -> Maybe a
+.read = asString >=> String.read
 
-read! :: WithStackTrace => Read a => ByteString -> a
-read! input = case read input of
+.read! :: WithStackTrace => Read a => ByteString -> a
+.read! input = case read input of
   Nothing -> StackTrace.suppress Exception.invalidValue! "no parse"
   Just a -> a
-
-instance (HasField "read" ByteString (Maybe a), Read a)
-       => HasField "read" ByteString (Maybe a) where
-  getField = read
-
-instance (HasField "read\7433" ByteString a, Read a)
-       => HasField "read\7433" ByteString a where
-  getField = StackTrace.suppressForMethod "ByteString.read!" ByteString.read!
