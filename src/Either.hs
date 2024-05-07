@@ -20,8 +20,8 @@ import Solid.Common
 import Solid.StackTrace qualified as StackTrace
 import Data.Either
 
-fold :: (l -> a) -> (r -> a) -> Either l r -> a
-fold = either
+.fold :: (l -> a) -> (r -> a) -> Either l r -> a
+.fold = either
 
 .left_or :: l -> Either l r -> l
 .left_or = fromLeft
@@ -44,7 +44,3 @@ fold = either
 
 .right? :: Either l r -> Bool
 .right? = isRight
-
-instance HasField "fold" (Either l r) ((l -> a) -> (r -> a) -> a)
-      => HasField "fold" (Either l r) ((l -> a) -> (r -> a) -> a) where
-  getField value fl fr = fold fl fr value

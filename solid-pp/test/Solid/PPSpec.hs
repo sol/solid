@@ -502,6 +502,17 @@ spec = do
             , "foo = undefined"
             ]
 
+      context "when the liberal coverage condition does not hold" $ do
+        it "adds a recursive constraint" $ do
+          unlines [
+              ".map :: (a -> b) -> [a] -> [b]"
+            , ".map = undefined"
+            ] `shouldDesugarTo_` unlines [
+              "instance HasField \"map\" [a] ((a -> b) -> [b]) => HasField \"map\" [a] ((a -> b) -> [b]) where getField _subject _a = Main.map _a _subject"
+            , "map :: (a -> b) -> [a] -> [b]"
+            , "map = undefined"
+            ]
+
       context "when arity is 0" $ do
         it "reports an error" $ do
           writeFile "src.hs" $ unlines [

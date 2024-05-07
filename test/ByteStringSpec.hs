@@ -87,3 +87,26 @@ spec = do
       let path = "foo.txt" :: ByteString
       path.asFilePath `shouldBe` "foo.txt"
       ByteString.asFilePath path `shouldBe` "foo.txt"
+
+  describe "read" $ do
+    it "parses a value" $ do
+      let input = "23" :: ByteString
+      input.read `shouldBe` Just (23 :: Int)
+      ByteString.read @Int input `shouldBe` Just 23
+
+    context "with invalid input" $ do
+      it "returns Nothing" $ do
+        let input = "foo" :: ByteString
+        ByteString.read @Int input `shouldBe` Nothing
+
+  describe "read!" $ do
+    it "parses a value" $ do
+      let input = "23" :: ByteString
+      input.read! `shouldBe` (23 :: Int)
+      ByteString.read! @Int input `shouldBe` 23
+
+    context "with invalid input" $ do
+      it "throws an exception" $ do
+        let input = "foo" :: ByteString
+        evaluate (input.read! :: Int) `shouldThrow?` invalidValue ["ByteString.read!"] "no parse"
+        evaluate (ByteString.read! @Int input) `shouldThrow?` invalidValue ["read!"] "no parse"

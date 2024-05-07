@@ -201,12 +201,12 @@ effectiveQualification = \ case
   QualifiedPost -> QualifiedImport
   Unqualified -> UnqualifiedImport
 
+foreach :: Foldable sequence_of => (a -> r -> r) -> sequence_of a -> r -> r
+foreach f xs set = foldr f set xs
+
 implicitImports :: Module BufferSpan-> ImplicitImports
 implicitImports = ($ mempty) . fromModule . void
   where
-    foreach :: Foldable sequence_of => (a -> ImplicitImports -> ImplicitImports) -> sequence_of a -> ImplicitImports -> ImplicitImports
-    foreach f xs set = foldr f set xs
-
     fromModule :: Module () -> ImplicitImports -> ImplicitImports
     fromModule (Module header imports nodes) = foreach (fromImport . effectiveImport) imports . fromModuleHeader header . fromNodes nodes
 
@@ -400,22 +400,46 @@ pp moduleName = ppNodes
 
     formatMethod :: Method BufferSpan -> Builder
     formatMethod method =
-         "instance " <> formatType WithColumnPragma 0 (addContext instanceHead method.context)
+         "instance " <> formatType WithColumnPragma 0 instanceHeadWithContext
       <> instanceBody
       <> linePragma method.dot.startLoc
       where
+        instanceHeadWithContext :: Type BufferSpan
+        instanceHeadWithContext = case liberalCoverageCondition of
+          True -> addContext instanceHead method.context
+          False -> addContext instanceHead (instanceHead : method.context)
+
+        liberalCoverageCondition :: Bool
+        liberalCoverageCondition = Set.null (typeVariables methodType Set.\\ typeVariables method.subject)
+
         addContext :: Type loc -> [Type loc] -> Type loc
         addContext t = \ case
           [] -> t
           [context] -> TypeContext context t
           context -> TypeContext (Tuple context) t
 
+        typeVariables :: Type loc -> Set FastString
+        typeVariables = ($ mempty) . go
+          where
+            go = \ case
+              TypeVariable a -> Set.insert a
+              TypeName _ _ _ -> id
+              TypeLiteral _ -> id
+              Tuple ts -> foreach go ts
+              ListOf t -> go t
+              TypeApplication t1 t2 -> go t1 <> go t2
+              FunctionType t1 t2 -> go t1 <> go t2
+              TypeContext t1 t2 -> go t1 <> go t2
+
+        methodType :: Type BufferSpan
+        methodType = foldr FunctionType method.result method.arguments
+
         instanceHead :: Type BufferSpan
         instanceHead = foldl1' TypeApplication [
             TypeName method.dot Nothing "HasField"
           , TypeLiteral (show nameAsText)
           , method.subject
-          , foldr FunctionType method.result method.arguments
+          , methodType
           ]
 
         nameAsText :: Text
