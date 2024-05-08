@@ -19,11 +19,11 @@ instance IsList (Annotated a) where
   fromList = Annotated
   toList (Annotated chunks) = chunks
 
-empty? :: Annotated a -> Bool
-empty? (Annotated chunks) = chunks.empty?
+.empty? :: Annotated a -> Bool
+.empty? (Annotated chunks) = chunks.empty?
 
-splitAt :: Int -> Annotated a -> (Annotated a, Annotated a)
-splitAt n = bimap (Annotated . reverse) Annotated . go 0 [] . toList
+.splitAt :: Int -> Annotated a -> (Annotated a, Annotated a)
+.splitAt n = bimap (Annotated . reverse) Annotated . go 0 [] . toList
   where
     go :: Int -> [(a, String)] -> [(a, String)] -> ([(a, String)], [(a, String)])
     go i acc = \ case
@@ -35,18 +35,9 @@ splitAt n = bimap (Annotated . reverse) Annotated . go 0 [] . toList
             (xs, ys) -> ((a, xs) : acc, (a, ys) : chunks)
         where j = i + chunk.length
 
-chunksOf :: Int -> Annotated a -> [Annotated a]
-chunksOf n = go
+.chunksOf :: Int -> Annotated a -> [Annotated a]
+.chunksOf n = go
   where
     go (splitAt n -> (as, bs))
       | as.empty? = []
       | otherwise = as : go bs
-
-instance HasField "empty\660" (Annotated a) Bool where
-  getField = empty?
-
-instance HasField "splitAt" (Annotated a) (Int -> (Annotated a, Annotated a)) where
-  getField = flip splitAt
-
-instance HasField "chunksOf" (Annotated a) (Int -> [Annotated a]) where
-  getField = flip chunksOf
