@@ -459,8 +459,8 @@ when you want to use existing Haskell code from Solid.
 **Example:**
 
 ```haskell top
-import Data.Text qualified as Text
-import Haskell qualified as Haskell
+use Data.Text
+use Haskell
 ```
 
 ```haskell
@@ -486,7 +486,7 @@ to use existing C code from Solid.
 **Example:**
 
 ```haskell top
-import Solid.Foreign.C qualified as C
+use Solid.Foreign.C
 ```
 
 ```haskell
@@ -507,14 +507,24 @@ wcwidth = fromEnum . c_wcwidth . C.toWChar
 ## Revised import syntax
 
 Solid encourages the use of qualified imports.  For that reason Solid
-eventually intends to desugar import statements as follows:
+supports `use`-statements which are desugared as follows:
 
-1. `import Foo` ~> `import Foo qualified`
-1. `import Foo as Bar` ~> `import Foo qualified as Bar`
-1. `import Foo (Foo)` ~> `import qualified Foo (Foo)`
-1. `import (foo, bar) from Foo` ~> `import Foo (foo, bar)`
-1. `import (..) from Foo` ~> `import Foo (..)`
+1. `use Foo` ~> `import qualified Foo`
+1. `use Foo as Bar` ~> `import qualified Foo as Bar`
+1. `use Foo (Foo)` ~> `import qualified Foo (Foo)`
 
+## Automatic imports
+
+```haskell top
+use IO.Handle
+```
+
+```repl
+>>> handle <- Handle.open "README.md" IO.ReadMode
+>>> handle.open?
+True
+>>> handle.close
+```
 
 [ansi]: ../src/Solid/Ansi.hs
 [string]: ../src/String.hs
