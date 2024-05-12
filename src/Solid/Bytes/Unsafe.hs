@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-{-# LANGUAGE DerivingStrategies #-}
 module Solid.Bytes.Unsafe where
 
 import Solid.Common

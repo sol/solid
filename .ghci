@@ -1,13 +1,21 @@
 :set -isrc -iimport -ivendor/hspec-hedgehog/src -itest
 
 :set -XNoImplicitPrelude
-:set -XDataKinds
 :set -XDeriveAnyClass
 :set -XDuplicateRecordFields
-:set -XLambdaCase
 :set -XLexicalNegation
 :set -XOverloadedRecordDot
 :set -XOverloadedStrings
 :set -XNoFieldSelectors
 
 :set -Werror=operator-whitespace
+
+-- GHC2024
+:set -XDataKinds
+:set -XDerivingStrategies
+:set -XDisambiguateRecordFields
+:set -XExplicitNamespaces
+:set -XGADTs
+:set -XMonoLocalBinds
+:set -XLambdaCase
+:set -XRoleAnnotations
