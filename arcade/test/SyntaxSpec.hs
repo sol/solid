@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedLists #-}
 module SyntaxSpec (spec) where
 
-import           Test.Hspec
+import Test.Hspec
 
-import           Syntax
+import Syntax
+
+import Arcade ()
 
 spec :: Spec
 spec = do

@@ -23,6 +23,8 @@ use Rope
 
 use Syntax.Vim
 
+use HIE
+
 highlight :: Int -> Int -> Rope -> [Annotated (Maybe Color)]
 highlight offset _height = colorize dark . map annotate . Rope.lines . Rope.dropLines offset
 

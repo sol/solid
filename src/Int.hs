@@ -24,7 +24,7 @@ use Solid.Common
 .plus = (+)
 
 .minus :: Int -> Int -> Int
-.minus = (-)
+.minus = flip (-)
 
 .times :: Int -> Int -> Int
 .times = (*)
