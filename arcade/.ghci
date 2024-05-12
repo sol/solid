@@ -1,3 +1,4 @@
+:set -fwrite-ide-info -hiedir .arcade
 :set -isrc -itest -DTEST
 
 :set -F -pgmF=solid-pp

@@ -13,6 +13,16 @@ dependencies:
   - unix
   - text-rope
 
+  - attoparsec
+  - text
+  - aeson
+  - directory
+  - yaml
+  - ghc
+  - logging-facade
+  - process
+  - transformers
+
 source-dirs: src
 
 executable:
@@ -26,4 +36,5 @@ tests:
       - test
     dependencies:
       - hspec == 2.*
-      - QuickCheck
+      # - QuickCheck
+      - interpolate

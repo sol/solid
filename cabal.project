@@ -9,9 +9,6 @@ packages:
 package solid
   ghc-options: -Werror
 
-package arcade
-  ghc-options: -Werror
-
 package solid-pp
   ghc-options: -Werror
 
