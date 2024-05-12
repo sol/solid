@@ -73,10 +73,8 @@ library
       import
   default-extensions:
       NoImplicitPrelude
-      DataKinds
       DeriveAnyClass
       DuplicateRecordFields
-      LambdaCase
       LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
@@ -105,6 +103,18 @@ library
     , unix ==2.8.1.0
     , unliftio-core
   default-language: GHC2021
+  if impl(ghc < 9.10)
+    default-extensions:
+        DataKinds
+        DerivingStrategies
+        DisambiguateRecordFields
+        ExplicitNamespaces
+        GADTs
+        MonoLocalBinds
+        LambdaCase
+        RoleAnnotations
+  else
+    default-language: GHC2024
 
 executable solid
   main-is: Main.hs
@@ -112,10 +122,8 @@ executable solid
       driver
   default-extensions:
       NoImplicitPrelude
-      DataKinds
       DeriveAnyClass
       DuplicateRecordFields
-      LambdaCase
       LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
@@ -124,8 +132,7 @@ executable solid
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
-      Cabal
-    , async
+      async
     , bytestring
     , cabal-install >=3.10.3.0
     , containers
@@ -134,14 +141,10 @@ executable solid
     , file-io
     , filepath
     , haskell-base
-    , hpack
     , markdown-unlit
-    , optparse-applicative
-    , pantry
     , primitive >=0.9.1
     , process
     , random
-    , rio
     , simdutf
     , solid
     , solid-pp
@@ -152,6 +155,18 @@ executable solid
     , unix ==2.8.1.0
     , unliftio-core
   default-language: GHC2021
+  if impl(ghc < 9.10)
+    default-extensions:
+        DataKinds
+        DerivingStrategies
+        DisambiguateRecordFields
+        ExplicitNamespaces
+        GADTs
+        MonoLocalBinds
+        LambdaCase
+        RoleAnnotations
+  else
+    default-language: GHC2024
 
 test-suite spec
   type: exitcode-stdio-1.0
@@ -256,10 +271,8 @@ test-suite spec
       vendor/hspec-hedgehog/src
   default-extensions:
       NoImplicitPrelude
-      DataKinds
       DeriveAnyClass
       DuplicateRecordFields
-      LambdaCase
       LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
@@ -301,3 +314,15 @@ test-suite spec
     , unix ==2.8.1.0
     , unliftio-core
   default-language: GHC2021
+  if impl(ghc < 9.10)
+    default-extensions:
+        DataKinds
+        DerivingStrategies
+        DisambiguateRecordFields
+        ExplicitNamespaces
+        GADTs
+        MonoLocalBinds
+        LambdaCase
+        RoleAnnotations
+  else
+    default-language: GHC2024
