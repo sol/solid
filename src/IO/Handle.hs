@@ -28,6 +28,8 @@ module IO.Handle (
 , setBuffering
 , getContents
 , get
+, getSome
+, getNonBlocking
 , getByte
 , getChar
 , withLock
@@ -105,6 +107,12 @@ open = OsPath.openFile . coerce
 
 .get :: Int -> Handle -> IO ByteString
 .get n h = Haskell.fromByteString <$> B.hGet h n
+
+.getSome :: Int -> Handle -> IO ByteString
+.getSome n h = Haskell.fromByteString <$> B.hGetSome h n
+
+.getNonBlocking :: Int -> Handle -> IO ByteString
+.getNonBlocking n h = Haskell.fromByteString <$> B.hGetNonBlocking h n
 
 .getByte :: Handle -> IO (Maybe Word8)
 .getByte h = ByteString.head <$> get 1 h
