@@ -27,7 +27,7 @@ dependencies:
   - file-io
   - directory
   - containers
-  - unix == 2.8.1.0 # remove CPP from src/Env/Raw.hs when >= 2.8.1.1
+  - unix
   - process
   - time
   - random
@@ -70,7 +70,7 @@ tests:
     dependencies:
       - hspec == 2.*
 
-      - hedgehog
+      - hedgehog >= 1.5
       - hedgehog-classes
       - hspec-core
       - splitmix

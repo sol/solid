@@ -26,8 +26,8 @@ package ghc-bin
   ghc-options: -Werror
   executable-dynamic: true
 
-allow-newer: *:primitive
-allow-newer: *:unix
+allow-newer: hedgehog-classes:hedgehog
+allow-newer: hedgehog-classes:primitive
 
 tests: True
 
@@ -36,9 +36,3 @@ source-repository-package
   type: git
   location: https://github.com/haskell/primitive
   tag: 0ea3f6507251a0115db6127e5a65f7c1fcf9479a
-
-source-repository-package
-  type: git
-  location: https://github.com/hedgehogqa/haskell-hedgehog
-  tag: 328a07f509ce1ae4c2996bfd67dbd1a545bb3b88
-  subdir: hedgehog
