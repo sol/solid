@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
-{-# LANGUAGE CPP #-}
 module Env.Raw (
   get
 , set

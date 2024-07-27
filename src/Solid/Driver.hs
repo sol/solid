@@ -23,7 +23,7 @@ ghc :: String
 ghc = "9.8.2"
 
 revision :: String
-revision = "7ca1816163017ac7b806a9355b6b5c71179d4122"
+revision = "1bc5e26be7788e9bb68048d8fe0964154bd6ff1c"
 
 libraries :: [String]
 libraries = [
