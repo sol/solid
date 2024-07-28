@@ -66,12 +66,12 @@ tests:
       - src
       - import
       - test
-      - vendor/hspec-hedgehog/src
     dependencies:
       - hspec == 2.*
 
       - hedgehog >= 1.5
       - hedgehog-classes
+      - hspec-hedgehog >= 0.2
       - hspec-core
       - splitmix
       - QuickCheck
