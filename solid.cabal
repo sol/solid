@@ -263,12 +263,10 @@ test-suite spec
       StringSpec
       TempSpec
       Word8Spec
-      Test.Hspec.Hedgehog
   hs-source-dirs:
       src
       import
       test
-      vendor/hspec-hedgehog/src
   default-extensions:
       NoImplicitPrelude
       DeriveAnyClass
@@ -298,6 +296,7 @@ test-suite spec
     , hedgehog-classes
     , hspec ==2.*
     , hspec-core
+    , hspec-hedgehog >=0.2
     , markdown-unlit
     , mockery
     , primitive >=0.9.1
