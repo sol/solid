@@ -3,6 +3,8 @@ module MaybeSpec (spec) where
 
 import Helper
 
+use IORef
+
 nothing :: Maybe Int
 nothing = Nothing
 
@@ -49,3 +51,17 @@ spec = do
       it "returns True" $ do
         value.just? `shouldBe` True
         Maybe.just? value `shouldBe` True
+
+  describe "foreach" $ do
+    it "traverses a Maybe, applying an action to any value, discarding results" $ do
+      let
+        input = Just (23 :: Int)
+      ref <- IORef.new 0
+      input.foreach $ ref.modify . (+)
+      ref.read `shouldReturn` 23
+
+  describe "traverse" $ do
+    it "traverses a Maybe, applying an action to any value, collecting results" $ do
+      let
+        input = Just (23 :: Int)
+      input.traverse return `shouldReturn` input

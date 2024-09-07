@@ -3,6 +3,8 @@ module ListSpec (spec) where
 
 import Helper
 
+use IORef
+
 spec :: Spec
 spec = do
   describe "empty?" $ do
@@ -73,3 +75,17 @@ spec = do
         expected = input.sort
       List.sort . List.nub <$> replicateM 100 (List.randomChoice input) `shouldReturn` expected
       List.sort . List.nub <$> replicateM 100 input.randomChoice `shouldReturn` expected
+
+  describe "foreach" $ do
+    it "traverses a list, applying an action to each element, discarding results" $ do
+      let
+        input = [23, 42 :: Int]
+      ref <- IORef.new 0
+      input.foreach $ ref.modify . (+)
+      ref.read `shouldReturn` 65
+
+  describe "traverse" $ do
+    it "traverses a list, applying an action to each element, collecting results" $ do
+      let
+        input = [23, 42 :: Int]
+      input.traverse return `shouldReturn` input
