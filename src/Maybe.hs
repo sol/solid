@@ -8,9 +8,15 @@ module Maybe (
 
 , nothing?
 , just?
+
+, foreach
+, traverse
 ) where
 
-import Solid.Common
+import Solid.Common hiding (traverse)
+use Solid.Common
+use Data.Foldable
+
 import Data.Maybe
 
 .fold :: b -> (a -> b) -> Maybe a -> b
@@ -21,3 +27,9 @@ import Data.Maybe
 
 .just? :: Maybe a -> Bool
 .just? = isJust
+
+.foreach :: Applicative m => (a -> m b) -> Maybe a -> m ()
+.foreach = Foldable.traverse_
+
+.traverse :: Applicative m => (a -> m b) -> Maybe a -> m (Maybe b)
+.traverse = Common.traverse

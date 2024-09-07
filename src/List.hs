@@ -24,13 +24,14 @@ module List (
 , select
 , discard
 
-, for
-, for_
+, foreach
 , traverse
-, traverse_
 ) where
 
 import Solid.Common hiding (empty, null, traverse)
+use Solid.Common
+use Data.Foldable
+
 import Solid.String
 use Solid.Bytes
 use Solid.StackTrace
@@ -40,9 +41,6 @@ import GHC.OldList as Data.List (null, length)
 import Data.List qualified as Haskell
 import Data.Set qualified as Set
 import System.Random.Stateful qualified as Haskell
-
-use Data.Foldable
-use Data.Traversable
 
 empty :: [a]
 empty = []
@@ -168,30 +166,8 @@ instance HasField "intersperse" [a] (a -> [a]) where
 instance HasField "intercalate" [[a]] ([a] -> [a]) where
   getField = flip intercalate
 
-traverse :: Applicative m => (a -> m b) -> [a] -> m [b]
-traverse = Traversable.traverse
+.foreach :: Applicative m => (a -> m b) -> [a] -> m ()
+.foreach = Foldable.traverse_
 
-for :: Applicative m => [a] -> (a -> m b) -> m [b]
-for = Traversable.for
-
-traverse_ :: Applicative m => (a -> m b) -> [a] -> m ()
-traverse_ = Foldable.traverse_
-
-for_ :: Applicative m => [a] -> (a -> m b) -> m ()
-for_ = Foldable.for_
-
-instance (HasField "for" [a] ((a -> m b) -> m [b]), Applicative m)
-      =>  HasField "for" [a] ((a -> m b) -> m [b]) where
-  getField = for
-
-instance (HasField "traverse" [a] ((a -> m b) -> m [b]), Applicative m)
-      =>  HasField "traverse" [a] ((a -> m b) -> m [b]) where
-  getField = for
-
-instance (HasField "for_" [a] ((a -> m b) -> m ()), Applicative m)
-      =>  HasField "for_" [a] ((a -> m b) -> m ()) where
-  getField = for_
-
-instance (HasField "traverse_" [a] ((a -> m b) -> m ()), Applicative m)
-      =>  HasField "traverse_" [a] ((a -> m b) -> m ()) where
-  getField = for_
+.traverse :: Applicative m => (a -> m b) -> [a] -> m [b]
+.traverse = Common.traverse

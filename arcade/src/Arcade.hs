@@ -100,7 +100,7 @@ renderView view =
           xs -> xs
 
 drawView :: View -> IO ()
-drawView view = (renderView view).for_ $ \ line -> do
+drawView view = (renderView view).foreach $ \ line -> do
   case line of
     Line n xs -> stdout.write "{n.toString.rjust(3).ansi.yellow} " >> printBufferLine xs
     LineContinuation xs -> stdout.write "    " >> printBufferLine xs
@@ -109,7 +109,7 @@ drawView view = (renderView view).for_ $ \ line -> do
   where
     printBufferLine :: Annotated (Maybe Ansi.Color) -> IO ()
     printBufferLine (Annotated chunks) =
-      chunks.for_ $ stdout.write . uncurry (maybe id colorize)
+      chunks.foreach $ stdout.write . uncurry (maybe id colorize)
 
     colorize :: Ansi.Color -> String -> String
     colorize color = String.ansi >>> Ansi.foreground color >>> toString
