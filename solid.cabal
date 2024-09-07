@@ -241,6 +241,7 @@ test-suite spec
       Gen
       Helper
       IO.HandleSpec
+      IORefSpec
       IOSpec
       ListSpec
       MaybeSpec
