@@ -81,7 +81,7 @@ spec = do
       let
         input = [23, 42 :: Int]
       ref <- IORef.new 0
-      input.foreach $ ref.modify . (+)
+      input.foreach $ ref.atomic.modify_ . (+)
       ref.read `shouldReturn` 65
 
   describe "traverse" $ do

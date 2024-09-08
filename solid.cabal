@@ -33,6 +33,7 @@ library
       IO
       IO.Handle
       IORef
+      IORef.Atomic
       List
       Maybe
       Platform
@@ -191,6 +192,7 @@ test-suite spec
       IO
       IO.Handle
       IORef
+      IORef.Atomic
       List
       Maybe
       Platform
