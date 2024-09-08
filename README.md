@@ -50,7 +50,7 @@ Read: [`book/README.md`](book/README.md)
 
 # Tooling
 
-`solid` installs GHC `9.8.2` to a private location.  It does not use any system
+`solid` installs GHC `9.10.1` to a private location.  It does not use any system
 provided GHC.
 
 `solid` caches packages in `~/.local/state/solid/store/`.  It does not use the

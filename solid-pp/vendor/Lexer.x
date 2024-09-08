@@ -41,7 +41,6 @@
 -- Alex "Haskell code fragment top"
 
 {
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
@@ -1816,6 +1815,21 @@ qvarsym, qconsym :: StringBuffer -> Int -> Token
 qvarsym buf len = ITqvarsym $! splitQualName buf len False
 qconsym buf len = ITqconsym $! splitQualName buf len False
 
+
+errSuffixAt :: PsSpan -> P a
+errSuffixAt span = do
+    input <- getInput
+    failLocMsgP start (go input start) (\srcSpan -> mkPlainErrorMsgEnvelope srcSpan $ PsErrSuffixAT)
+  where
+    start = psRealLoc (psSpanStart span)
+    go inp loc
+      | Just (c, i) <- alexGetChar inp
+      , let next = advanceSrcLoc loc c =
+          if c == ' '
+          then go i next
+          else next
+      | otherwise = loc
+
 -- See Note [Whitespace-sensitive operator parsing]
 varsym :: OpWs -> Action
 varsym opws@OpWsPrefix = sym $ \span exts s ->
@@ -1849,7 +1863,7 @@ varsym opws@OpWsPrefix = sym $ \span exts s ->
          do { warnOperatorWhitespace opws span s
             ; return (ITvarsym s) }
 varsym opws@OpWsSuffix = sym $ \span _ s ->
-  if | s == fsLit "@" -> failMsgP (\srcLoc -> mkPlainErrorMsgEnvelope srcLoc $ PsErrSuffixAT)
+  if | s == fsLit "@" -> errSuffixAt span
      | s == fsLit "." -> return ITdot
      | otherwise ->
          do { warnOperatorWhitespace opws span s
@@ -3095,6 +3109,7 @@ data ExtBits
   | OverloadedRecordDotBit
   | OverloadedRecordUpdateBit
   | ExtendedLiteralsBit
+  | ListTuplePunsBit
 
   -- Flags that are updated once parsing starts
   | InRulePragBit
@@ -3175,6 +3190,7 @@ mkParserOpts extensionFlags diag_opts supported
       .|. OverloadedRecordDotBit      `xoptBit` LangExt.OverloadedRecordDot
       .|. OverloadedRecordUpdateBit   `xoptBit` LangExt.OverloadedRecordUpdate  -- Enable testing via 'getBit OverloadedRecordUpdateBit' in the parser (RecordDotSyntax parsing uses that information).
       .|. ExtendedLiteralsBit         `xoptBit` LangExt.ExtendedLiterals
+      .|. ListTuplePunsBit            `xoptBit` LangExt.ListTuplePuns
     optBits =
           HaddockBit        `setBitIf` isHaddock
       .|. RawTokenStreamBit `setBitIf` rawTokStream
@@ -3292,6 +3308,7 @@ instance MonadP P where
   getBit ext = P $ \s -> let b =  ext `xtest` pExtsBitmap (options s)
                          in b `seq` POk s b
   allocateCommentsP ss = P $ \s ->
+    if null (comment_q s) then POk s emptyComments else  -- fast path
     let (comment_q', newAnns) = allocateComments ss (comment_q s) in
       POk s {
          comment_q = comment_q'
@@ -3836,7 +3853,8 @@ warn_unknown_prag prags span buf len buf2 = do
 -- 'AddEpAnn' values for the opening and closing bordering on the start
 -- and end of the span
 mkParensEpAnn :: RealSrcSpan -> (AddEpAnn, AddEpAnn)
-mkParensEpAnn ss = (AddEpAnn AnnOpenP (EpaSpan lo Strict.Nothing),AddEpAnn AnnCloseP (EpaSpan lc Strict.Nothing))
+mkParensEpAnn ss = (AddEpAnn AnnOpenP (EpaSpan (RealSrcSpan lo Strict.Nothing)),
+                    AddEpAnn AnnCloseP (EpaSpan (RealSrcSpan lc Strict.Nothing)))
   where
     f = srcSpanFile ss
     sl = srcSpanStartLine ss

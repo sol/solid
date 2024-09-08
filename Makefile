@@ -1,5 +1,5 @@
-ghc_old = 9.8.2
-ghc_new = 9.8.2
+ghc_old = 9.10.1
+ghc_new = 9.10.1
 
 .PHONY: *
 
@@ -9,8 +9,6 @@ all:
 update-ghc:
 	make create-patch
 	make copy-new
-	make constraints
-	git add constraints
 	git commit -m 'Copy vendored files from from GHC $(ghc_new)'
 	git stash apply && git stash drop
 	make commit
@@ -19,8 +17,8 @@ commit:
 	git commit -a -m 'Depend on GHC $(ghc_new)'
 
 constraints:
-	@echo -ne "constraints:\n  , " > constraints
-	@ghc-pkg-$(ghc_new) list --global --simple-output | sed 's/ /\n  , /g' | sed 's/-\([0-9]\)/ == \1/g' >> constraints
+	@echo -ne "constraints:\n  , " >> cabal.project
+	@ghc-pkg-$(ghc_new) list --global --simple-output | sed 's/ /\n  , /g' | sed 's/-[0-9].*/ installed/g' >> cabal.project
 
 create-patch:
 	make copy-old

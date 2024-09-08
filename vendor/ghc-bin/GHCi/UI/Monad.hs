@@ -52,10 +52,11 @@ import GHC.Driver.Make (ModIfaceCache(..))
 import GHC.Unit
 import GHC.Types.Name.Reader as RdrName (mkOrig)
 import qualified GHC.Types.Name.Ppr as Ppr (mkNamePprCtx)
-import GHC.Builtin.Names (gHC_GHCI_HELPERS)
+import GHC.Builtin.Names (gHC_INTERNAL_GHCI_HELPERS)
 import GHC.Runtime.Interpreter
 import GHC.Runtime.Context
 import GHCi.RemoteTypes
+import GHCi.UI.Exception (printGhciException)
 import GHC.Hs (ImportDecl, GhcPs, GhciLStmt, LHsDecl)
 import GHC.Hs.Utils
 import GHC.Utils.Misc
@@ -399,7 +400,7 @@ runStmt
   => GhciLStmt GhcPs -> String -> GHC.SingleStep -> m (Maybe GHC.ExecResult)
 runStmt stmt stmt_text step = do
   st <- getGHCiState
-  GHC.handleSourceError (\e -> do GHC.printException e; return Nothing) $ do
+  GHC.handleSourceError (\e -> do printGhciException e; return Nothing) $ do
     let opts = GHC.execOptions
                   { GHC.execSourceFile = progname st
                   , GHC.execLineNumber = line_number st
@@ -415,7 +416,7 @@ runDecls decls = do
     withProgName (progname st) $
     withArgs (args st) $
       reflectGHCi x $ do
-        GHC.handleSourceError (\e -> do GHC.printException e;
+        GHC.handleSourceError (\e -> do printGhciException e
                                         return Nothing) $ do
           r <- GHC.runDeclsWithLocation (progname st) (line_number st) decls
           return (Just r)
@@ -428,7 +429,7 @@ runDecls' decls = do
     withArgs (args st) $
     reflectGHCi x $
       GHC.handleSourceError
-        (\e -> do GHC.printException e;
+        (\e -> do printGhciException e
                   return Nothing)
         (Just <$> GHC.runParsedDecls decls)
 
@@ -514,7 +515,7 @@ initInterpBuffering = do
   let mkHelperExpr :: OccName -> Ghc ForeignHValue
       mkHelperExpr occ =
         GHC.compileParsedExprRemote
-        $ GHC.nlHsVar $ RdrName.mkOrig gHC_GHCI_HELPERS occ
+        $ GHC.nlHsVar $ RdrName.mkOrig gHC_INTERNAL_GHCI_HELPERS occ
   nobuf <- mkHelperExpr $ mkVarOccFS (fsLit "disableBuffering")
   flush <- mkHelperExpr $ mkVarOccFS (fsLit "flushAll")
   return (nobuf, flush)
@@ -545,7 +546,7 @@ mkEvalWrapper progname' args' =
   where
     nlHsString = nlHsLit . mkHsString
     evalWrapper' =
-      GHC.nlHsVar $ RdrName.mkOrig gHC_GHCI_HELPERS (mkVarOccFS (fsLit "evalWrapper"))
+      GHC.nlHsVar $ RdrName.mkOrig gHC_INTERNAL_GHCI_HELPERS (mkVarOccFS (fsLit "evalWrapper"))
 
 -- | Run a 'GhcMonad' action to compile an expression for internal usage.
 runInternal :: GhcMonad m => m a -> m a
