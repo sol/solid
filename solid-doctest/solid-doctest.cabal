@@ -11,10 +11,8 @@ build-type:     Simple
 executable solid-doctest
   main-is: Main.hs
   default-extensions:
-      DataKinds
       DeriveAnyClass
       DuplicateRecordFields
-      LambdaCase
       LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
@@ -24,4 +22,4 @@ executable solid-doctest
       solid-pp:solid-pp
   build-depends:
       solid
-  default-language: GHC2021
+  default-language: GHC2024

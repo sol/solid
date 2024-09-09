@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -22,10 +22,8 @@ executable arcade
   hs-source-dirs:
       src
   default-extensions:
-      DataKinds
       DeriveAnyClass
       DuplicateRecordFields
-      LambdaCase
       LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
@@ -40,7 +38,7 @@ executable arcade
     , solid-pp
     , text-rope
     , unix
-  default-language: GHC2021
+  default-language: GHC2024
 
 test-suite spec
   type: exitcode-stdio-1.0
@@ -58,10 +56,8 @@ test-suite spec
       src
       test
   default-extensions:
-      DataKinds
       DeriveAnyClass
       DuplicateRecordFields
-      LambdaCase
       LexicalNegation
       OverloadedRecordDot
       OverloadedStrings
@@ -79,4 +75,4 @@ test-suite spec
     , solid-pp
     , text-rope
     , unix
-  default-language: GHC2021
+  default-language: GHC2024

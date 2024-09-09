@@ -20,7 +20,7 @@ import qualified Data.Text as T
 import           Data.Char
 import qualified Data.List as List
 
-import           Solid.PP (extensions)
+import           Solid.PP (language, extensions)
 import           Solid.PP.Lexer (Token(..))
 import qualified Solid.PP.Lexer as Lexer
 import           Solid.PP.Parser hiding (parseModule)
@@ -99,14 +99,14 @@ nameWith :: FastString -> Arguments () -> Node ()
 nameWith n args = MethodChain (Name () n args) []
 
 parseModule :: Text -> Either String (Module BufferSpan)
-parseModule input = Parser.parseModule extensions (InputFile "main.hs" input) (InputFile "main.hs" input)
+parseModule input = Parser.parseModule language extensions (InputFile "main.hs" input) (InputFile "main.hs" input)
 
 parse :: HasCallStack => Text -> (Module () -> Expectation) -> Expectation
 parse input action = annotated $ do
   either assertFailure (return . void) (parseModule input) >>= action
   where
     annotated :: IO a -> IO a
-    annotated = either (const id) (annotate . formatTokens) $ Lexer.tokenize extensions "main.hs" 1 input
+    annotated = either (const id) (annotate . formatTokens) $ Lexer.tokenize language extensions "main.hs" 1 input
 
     formatTokens :: Lexer.LexerResult -> String
     formatTokens result = "\ESC[31mtokens: \ESC[36m" <> List.intercalate "  " (map formatToken result.tokens) <> "\ESC[39m"

@@ -30,9 +30,7 @@ library
       src
       vendor
   default-extensions:
-      DataKinds
       OverloadedRecordDot
-      LambdaCase
   ghc-options: -Wall
   build-tools:
       alex
@@ -47,16 +45,14 @@ library
     , parser-combinators
     , text
     , transformers
-  default-language: GHC2021
+  default-language: GHC2024
 
 executable solid-pp
   main-is: driver/Main.hs
   other-modules:
       Paths_solid_pp
   default-extensions:
-      DataKinds
       OverloadedRecordDot
-      LambdaCase
   ghc-options: -Wall
   build-tools:
       alex
@@ -72,7 +68,7 @@ executable solid-pp
     , solid-pp
     , text
     , transformers
-  default-language: GHC2021
+  default-language: GHC2024
 
 test-suite spec
   type: exitcode-stdio-1.0
@@ -101,9 +97,7 @@ test-suite spec
       vendor
       test
   default-extensions:
-      DataKinds
       OverloadedRecordDot
-      LambdaCase
   ghc-options: -Wall
   cpp-options: -DTEST
   build-tools:
@@ -127,4 +121,4 @@ test-suite spec
     , parser-combinators
     , text
     , transformers
-  default-language: GHC2021
+  default-language: GHC2024

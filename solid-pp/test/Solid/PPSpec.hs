@@ -71,7 +71,7 @@ spec = do
   describe "implicitImports" $ do
     let
       modules :: HasCallStack => Text -> ImplicitImports
-      modules input = implicitImports . either error id $ parseModule extensions (InputFile "src.hs" input) (InputFile "src.hs" input)
+      modules input = implicitImports . either error id $ parseModule language extensions (InputFile "src.hs" input) (InputFile "src.hs" input)
 
     context "with a qualified identifier" $ do
       it "extracts module name" $ do

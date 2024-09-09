@@ -3,10 +3,8 @@
 :set -F -pgmF=solid-pp
 :set -hide-package base
 
-:set -XDataKinds
 :set -XDeriveAnyClass
 :set -XDuplicateRecordFields
-:set -XLambdaCase
 :set -XLexicalNegation
 :set -XOverloadedRecordDot
 :set -XOverloadedStrings

@@ -104,19 +104,7 @@ library
     , time
     , unix
     , unliftio-core
-  default-language: GHC2021
-  if impl(ghc < 9.10)
-    default-extensions:
-        DataKinds
-        DerivingStrategies
-        DisambiguateRecordFields
-        ExplicitNamespaces
-        GADTs
-        MonoLocalBinds
-        LambdaCase
-        RoleAnnotations
-  else
-    default-language: GHC2024
+  default-language: GHC2024
 
 executable solid
   main-is: Main.hs
@@ -157,19 +145,7 @@ executable solid
     , time
     , unix
     , unliftio-core
-  default-language: GHC2021
-  if impl(ghc < 9.10)
-    default-extensions:
-        DataKinds
-        DerivingStrategies
-        DisambiguateRecordFields
-        ExplicitNamespaces
-        GADTs
-        MonoLocalBinds
-        LambdaCase
-        RoleAnnotations
-  else
-    default-language: GHC2024
+  default-language: GHC2024
 
 test-suite spec
   type: exitcode-stdio-1.0
@@ -318,16 +294,4 @@ test-suite spec
     , time
     , unix
     , unliftio-core
-  default-language: GHC2021
-  if impl(ghc < 9.10)
-    default-extensions:
-        DataKinds
-        DerivingStrategies
-        DisambiguateRecordFields
-        ExplicitNamespaces
-        GADTs
-        MonoLocalBinds
-        LambdaCase
-        RoleAnnotations
-  else
-    default-language: GHC2024
+  default-language: GHC2024

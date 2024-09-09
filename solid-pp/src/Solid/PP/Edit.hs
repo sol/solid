@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE NoFieldSelectors #-}
 module Solid.PP.Edit (
   insert

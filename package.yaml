@@ -4,7 +4,7 @@ name: solid
 copyright: (c) 2022-2024 Simon Hengel
 author: Simon Hengel <sol@typeful.net>
 
-defaults: sol/ghc2024@v0.1.0
+language: GHC2024
 
 default-extensions:
   - NoImplicitPrelude

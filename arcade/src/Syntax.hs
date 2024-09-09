@@ -12,7 +12,7 @@ import Data.Maybe (mapMaybe, listToMaybe)
 use Haskell
 import Solid.Ansi (Color(..))
 
-import Solid.PP (extensions)
+import Solid.PP (language, extensions)
 import Solid.PP.SrcLoc
 import Solid.PP.Lexer (LexerResult, Token(..))
 use Solid.PP.Lexer
@@ -299,4 +299,4 @@ breakOnCharacterEscape input = case input.breakOn "\\" of
       ]
 
 tokenize :: String -> Either [Char] LexerResult
-tokenize = Lexer.tokenizeWithComments extensions "main.hs" 1 . Haskell.toText
+tokenize = Lexer.tokenizeWithComments language extensions "main.hs" 1 . Haskell.toText

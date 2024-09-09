@@ -27,7 +27,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}

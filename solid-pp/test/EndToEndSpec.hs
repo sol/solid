@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-x-partial #-}
-{-# LANGUAGE DataKinds #-}
 module EndToEndSpec (spec) where
 
 import           Test.Hspec
