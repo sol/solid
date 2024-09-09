@@ -24,13 +24,13 @@ use Solid.Common
 .plus = (+)
 
 .minus :: Int -> Int -> Int
-.minus = (-)
+.minus = flip (-)
 
 .times :: Int -> Int -> Int
 .times = (*)
 
 .div :: Int -> Int -> Int
-.div = Common.div
+.div = flip Common.div
 
 .min :: Int -> Int -> Int
 .min = Common.min
