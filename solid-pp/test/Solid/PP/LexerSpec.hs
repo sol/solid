@@ -15,7 +15,7 @@ import           GHC.IsList
 import           GHC.Data.EnumSet (EnumSet)
 import qualified GHC.Data.EnumSet as EnumSet
 
-import           Solid.PP (extensions)
+import           Solid.PP (Language(..), language, extensions)
 import           Solid.PP.Lexer hiding (tokenize)
 import qualified Solid.PP.Lexer as Lexer
 
@@ -37,7 +37,7 @@ instance Enum a => IsList (EnumSet a) where
   toList = EnumSet.toList
 
 tokenize :: String -> [Token]
-tokenize = either error (map unLoc . (.tokens)) . Lexer.tokenize extensions "" 1 . fromString
+tokenize = either error (map unLoc . (.tokens)) . Lexer.tokenize language extensions "" 1 . fromString
 
 instance IsString Token where
   fromString = \ case
@@ -98,7 +98,7 @@ spec = do
 
       it "attaches source ranges" $ do
         let range = ((.start) &&& (.end)) . getLoc
-        let Right [foo, foobar, _23] = (.tokens) <$> Lexer.tokenize extensions "" 1 "  \"foo\"  \"foobar\" 23"
+        let Right [foo, foobar, _23] = (.tokens) <$> Lexer.tokenize language extensions "" 1 "  \"foo\"  \"foobar\" 23"
         range foo `shouldBe` (2, 7)
         range foobar `shouldBe` (9, 17)
         range _23 `shouldBe` (18, 20)
@@ -237,16 +237,16 @@ spec = do
           ]
 
       it "reports missing extensions" $ do
-        (.errors) <$> Lexer.tokenize [] "main.hs" 1 input `shouldBe` Right "main.hs:2:9: error: [GHC-51179] Illegal \\case"
+        (.errors) <$> Lexer.tokenize GHC2021 [] "main.hs" 1 input `shouldBe` Right "main.hs:2:9: error: [GHC-51179] Illegal \\case"
 
       it "takes provided extensions into account" $ do
-        (.errors) <$> Lexer.tokenize [Enable LambdaCase] "main.hs" 1 input `shouldBe` Right ""
+        (.errors) <$> Lexer.tokenize GHC2021 [Enable LambdaCase] "main.hs" 1 input `shouldBe` Right ""
 
       it "takes LANGUAGE pragmas into account" $ do
-        (.errors) <$> Lexer.tokenize [] "main.hs" 1 ("{-# LANGUAGE LambdaCase #-}\n" <> input) `shouldBe` Right ""
+        (.errors) <$> Lexer.tokenize GHC2021 [] "main.hs" 1 ("{-# LANGUAGE LambdaCase #-}\n" <> input) `shouldBe` Right ""
 
       it "takes negated LANGUAGE pragmas into account" $ do
-        (.errors) <$> Lexer.tokenize [Enable LambdaCase] "main.hs" 1 ("{-# LANGUAGE NoLambdaCase #-}\n" <> input) `shouldBe` Right "main.hs:3:9: error: [GHC-51179] Illegal \\case"
+        (.errors) <$> Lexer.tokenize GHC2021 [Enable LambdaCase] "main.hs" 1 ("{-# LANGUAGE NoLambdaCase #-}\n" <> input) `shouldBe` Right "main.hs:3:9: error: [GHC-51179] Illegal \\case"
 
   describe "applyLanguagePragmas" $ do
     it "applies module LANGUAGE pragmas" $ do

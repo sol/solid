@@ -1,6 +1,4 @@
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -188,15 +186,15 @@ data InputFile a = InputFile {
 , contents :: Text
 } deriving (Eq, Show)
 
-parseModule :: [LanguageFlag] -> InputFile Original -> InputFile Current -> Either String (Module BufferSpan)
-parseModule extensions = parse pModule extensions 1
+parseModule :: Language -> [LanguageFlag] -> InputFile Original -> InputFile Current -> Either String (Module BufferSpan)
+parseModule language extensions = parse pModule language extensions 1
 
-parseExpression :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String [Node BufferSpan]
-parseExpression extensions src line input = parse pModuleBody extensions line (InputFile src input) (InputFile src input)
+parseExpression :: Language -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String [Node BufferSpan]
+parseExpression language extensions src line input = parse pModuleBody language extensions line (InputFile src input) (InputFile src input)
 
-parse :: Parser a -> [LanguageFlag] -> Int -> InputFile Original -> InputFile Current -> Either String a
-parse parser extensions line original current = do
-  result <- tokenize extensions original.name line current.contents
+parse :: Parser a -> Language -> [LanguageFlag] -> Int -> InputFile Original -> InputFile Current -> Either String a
+parse parser language extensions line original current = do
+  result <- tokenize language extensions original.name line current.contents
   let
     stream :: TokenStream
     stream = TokenStream original.contents result.tokens

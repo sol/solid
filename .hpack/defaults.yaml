@@ -1,11 +1,9 @@
 spec-version: 0.36.0
 
-language: GHC2021
+language: GHC2024
 default-extensions:
-  - DataKinds
   - DeriveAnyClass
   - DuplicateRecordFields
-  - LambdaCase
   - LexicalNegation
   - OverloadedRecordDot
   - OverloadedStrings

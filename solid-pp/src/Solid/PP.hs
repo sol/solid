@@ -1,6 +1,5 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -12,7 +11,7 @@ module Solid.PP (
 , Result(..)
 , run
 
-, Language
+, Language(..)
 , language
 
 , LanguageFlag(..)
@@ -32,6 +31,7 @@ module Solid.PP (
 import           Prelude ()
 import           Solid.PP.IO hiding (concatMap)
 
+import           GHC.Driver.Session (Language(..))
 import qualified GHC.Data.FastString as GHC
 import           Data.Coerce (coerce)
 import           Control.Monad.Trans.Writer.CPS (execWriter, tell)
@@ -50,12 +50,13 @@ import qualified Solid.PP.Edit as Edit
 import           Solid.PP.Lexer
 import           Solid.PP.Parser
 
+language :: Language
+language = GHC2024
+
 extensions :: [LanguageFlag]
 extensions = [
-    Enable DataKinds
-  , Enable DeriveAnyClass
+    Enable DeriveAnyClass
   , Enable DuplicateRecordFields
-  , Enable LambdaCase
   , Enable LexicalNegation
   , Enable OverloadedRecordDot
   , Enable OverloadedStrings
@@ -106,7 +107,7 @@ data Result = Failure String | Success
   deriving (Eq, Show)
 
 desugarExpression :: FilePath -> Int -> Text -> Either String Text
-desugarExpression src line input = execWriter . edit tell input . (.build) . pp Nothing <$> parseExpression extensions src line input
+desugarExpression src line input = execWriter . edit tell input . (.build) . pp Nothing <$> parseExpression language extensions src line input
 
 main :: String -> String -> String -> IO ()
 main src cur dst = run src cur dst >>= \ case
@@ -128,7 +129,7 @@ formatLinePragma :: Int -> FilePath -> Builder
 formatLinePragma line src = "{-# LINE " <> Builder.int line <> " " <> Builder.show src <> " #-}\n"
 
 preProcesses :: FilePath -> InputFile Original -> InputFile Current -> IO Result
-preProcesses dst original current = case parseModule extensions original current of
+preProcesses dst original current = case parseModule language extensions original current of
   Left err -> return (Failure err)
   Right module_ -> withFile dst WriteMode $ \ h -> do
     edit (hPutStr h) current.contents (addImplicitImports module_ <> ppModule module_).build

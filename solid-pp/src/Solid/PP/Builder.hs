@@ -1,4 +1,3 @@
-{-# LANGUAGE DerivingStrategies #-}
 module Solid.PP.Builder (
   Builder
 , fromText

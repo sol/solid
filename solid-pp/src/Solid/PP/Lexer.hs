@@ -4,11 +4,9 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE DisambiguateRecordFields #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Lexer (
   Language
-, language
 , LanguageFlag(..)
 , Extension(..)
 , showExtension
@@ -116,11 +114,8 @@ data LexerResult = LexerResult {
 , errors :: String
 } deriving Show
 
-language :: Language
-language = GHC2021
-
-defaultExtensions :: EnumSet Extension
-defaultExtensions = EnumSet.fromList (languageExtensions (Just language))
+defaultExtensions :: Language -> EnumSet Extension
+defaultExtensions language = EnumSet.fromList (languageExtensions (Just language))
 
 pattern InfixProjection :: Token
 pattern InfixProjection = ITproj False
@@ -134,14 +129,14 @@ change_any_projections_after_a_trailing_bang_to_infix = fix $ \ rec -> \ case
   token : tokens -> token : rec tokens
   [] -> []
 
-tokenize :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
+tokenize :: Language -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
 tokenize = tokenize_ False
 
-tokenizeWithComments :: [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
+tokenizeWithComments :: Language -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
 tokenizeWithComments = tokenize_ True
 
-tokenize_ :: Bool -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
-tokenize_ keepComments languageFlags src line input = do
+tokenize_ :: Bool -> Language -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
+tokenize_ keepComments language languageFlags src line input = do
   case lexTokenStream opts buffer loc of
     POk state tokens -> return LexerResult {
       tokens = change_any_projections_after_a_trailing_bang_to_infix tokens
@@ -157,7 +152,7 @@ tokenize_ keepComments languageFlags src line input = do
     opts = makeOpts keepComments (not keepComments) (applyLanguagePragmas extensions src buffer)
 
     extensions :: EnumSet Extension
-    extensions = applyLanguageFlags defaultExtensions languageFlags
+    extensions = applyLanguageFlags (defaultExtensions language) languageFlags
 
     loc :: RealSrcLoc
     loc = mkRealSrcLoc (mkFastString src) line 1

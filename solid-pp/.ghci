@@ -1,5 +1,5 @@
 :set -DTEST
 :set -isrc -ivendor -itest
-:set -XDataKinds
+
+:set -XGHC2024
 :set -XOverloadedRecordDot
-:set -XLambdaCase

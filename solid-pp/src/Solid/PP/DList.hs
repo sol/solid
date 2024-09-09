@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds #-}
 module Solid.PP.DList where
 
 import           Prelude ()
