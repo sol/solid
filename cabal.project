@@ -6,24 +6,13 @@ packages:
   solid-doctest
   vendor/ghc-bin
 
-package solid
-  ghc-options: -Werror
-
-package arcade
-  ghc-options: -Werror
-
-package solid-pp
-  ghc-options: -Werror
-
-package haskell-base
+program-options
   ghc-options: -Werror
 
 package solid-doctest
-  ghc-options: -Werror
   executable-dynamic: true
 
 package ghc-bin
-  ghc-options: -Werror
   executable-dynamic: true
 
 allow-newer: hedgehog-classes:*

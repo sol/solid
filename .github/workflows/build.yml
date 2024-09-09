@@ -54,7 +54,11 @@ jobs:
           key: ${{ steps.cache.outputs.cache-primary-key }}
 
       - run: cabal build all
+
       - run: cabal test all --test-show-details=direct
+        env:
+          HSPEC_FAIL_ON: pending,focused,empty-description
+
       - run: cabal haddock
 
       - run: cabal install doctest
