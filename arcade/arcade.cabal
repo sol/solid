@@ -15,6 +15,8 @@ executable arcade
   main-is: Arcade.hs
   other-modules:
       Annotated
+      Config
+      Data.Location
       Rope
       Syntax
       Syntax.Vim
@@ -32,12 +34,21 @@ executable arcade
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
-      containers
+      aeson
+    , attoparsec
+    , containers
+    , directory
+    , ghc
     , haskell-base
+    , logging-facade
+    , process
     , solid
     , solid-pp
+    , text
     , text-rope
+    , transformers
     , unix
+    , yaml
   default-language: GHC2024
 
 test-suite spec
@@ -46,11 +57,14 @@ test-suite spec
   other-modules:
       Annotated
       Arcade
+      Config
+      Data.Location
       Rope
       Syntax
       Syntax.Vim
       Terminal
       AnnotatedSpec
+      ArcadeSpec
       SyntaxSpec
   hs-source-dirs:
       src
@@ -67,12 +81,21 @@ test-suite spec
       hspec-discover:hspec-discover
     , solid-pp:solid-pp
   build-depends:
-      QuickCheck
+      aeson
+    , attoparsec
     , containers
+    , directory
+    , ghc
     , haskell-base
     , hspec ==2.*
+    , interpolate
+    , logging-facade
+    , process
     , solid
     , solid-pp
+    , text
     , text-rope
+    , transformers
     , unix
+    , yaml
   default-language: GHC2024
