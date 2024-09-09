@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -41,7 +41,7 @@ library
     , base ==4.*
     , bytestring
     , containers
-    , ghc ==9.8.2
+    , ghc ==9.10.1
     , ghc-boot
     , megaparsec
     , parser-combinators
@@ -65,7 +65,7 @@ executable solid-pp
     , base ==4.*
     , bytestring
     , containers
-    , ghc ==9.8.2
+    , ghc ==9.10.1
     , ghc-boot
     , megaparsec
     , parser-combinators
@@ -118,7 +118,7 @@ test-suite spec
     , bytestring
     , call-stack
     , containers
-    , ghc ==9.8.2
+    , ghc ==9.10.1
     , ghc-boot
     , hspec ==2.*
     , hspec-expectations >=0.8.3

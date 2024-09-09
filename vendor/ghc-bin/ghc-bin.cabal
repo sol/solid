@@ -2,7 +2,7 @@
 -- ./configure.  Make sure you are editing ghc-bin.cabal.in, not ghc-bin.cabal.
 
 Name: ghc-bin
-Version: 9.8.2
+Version: 9.10.1
 Copyright: XXX
 -- License: XXX
 -- License-File: XXX
@@ -28,7 +28,7 @@ Flag threaded
     Manual: True
 
 Executable repl
-    Default-Language: Haskell2010
+    Default-Language: GHC2021
 
     Build-Depends: text, solid-pp
 
@@ -38,14 +38,14 @@ Executable repl
                    bytestring >= 0.9 && < 0.13,
                    directory  >= 1   && < 1.4,
                    process    >= 1   && < 1.7,
-                   filepath   >= 1   && < 1.5,
-                   containers >= 0.5 && < 0.7,
+                   filepath   >= 1   && < 1.6,
+                   containers >= 0.5 && < 0.8,
                    transformers >= 0.5 && < 0.7,
-                   ghc-boot      == 9.8.2,
-                   ghc           == 9.8.2
+                   ghc-boot      == 9.10.1,
+                   ghc           == 9.10.1
 
     if os(windows)
-        Build-Depends: Win32  >= 2.3 && < 2.14
+        Build-Depends: Win32  >= 2.3 && < 2.15
     else
         Build-Depends: unix   >= 2.7 && < 2.9
 
@@ -60,7 +60,7 @@ Executable repl
         Build-depends:
             deepseq        >= 1.4 && < 1.6,
             ghc-prim       >= 0.5.0 && < 0.12,
-            ghci           == 9.8.2,
+            ghci           == 9.10.1,
             haskeline      == 0.8.*,
             exceptions     == 0.10.*,
             time           >= 1.8 && < 1.13
