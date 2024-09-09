@@ -18,9 +18,10 @@ getExecutablePath = sequence executablePath >>= maybe (String.asFilePath <$> Pro
 
 main :: IO ()
 main = Process.args >>= \ case
+  [src, cur, dst, command] | command == Driver.desugarCommand -> PP.main src.unpack cur.unpack dst.unpack
   "cabal" : args -> withProgName "solid cabal" $ Cabal.main args.map(unpack)
   "stack" : args -> withProgName "solid stack" $ withArgs args Stack.main
-  [src, cur, dst, command] | command == Driver.desugarCommand -> PP.main src.unpack cur.unpack dst.unpack
+  ["ghc-path"] -> (solid GhcPath -< getExecutablePath) []
   "ghc-options" : args -> (solid GhcOptions -< getExecutablePath) args
   "repl" : args -> (solid Repl -< getExecutablePath) args
   "doctest" : args -> (solid Doctest -< getExecutablePath) args
