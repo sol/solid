@@ -9,6 +9,9 @@ import Hedgehog.Gen as Gen hiding (enum, ascii, unicodeAll, bytes, string)
 import Hedgehog.Gen qualified as HedgehogGen
 import Range
 
+import System.Random (Random, randomR)
+import Hedgehog.Internal.Gen (generate)
+
 ascii :: MonadGen m => m Char
 ascii = enum '\0' '\127'
 
@@ -52,3 +55,18 @@ bytes = fmap Haskell.fromByteString . HedgehogGen.bytes
 
 string :: MonadGen m => Range Int -> m Char -> m String
 string range = fmap pack . HedgehogGen.list range
+
+enum'fast :: (MonadGen m, Random a) => a -> a -> m a
+enum'fast lo hi = integral_fast (Range.constant lo hi)
+
+integral_fast :: (MonadGen m, Random a) => Range a -> m a
+integral_fast =
+  generate . integralHelper_fast
+
+integralHelper_fast :: Random a => Range a -> Size -> Seed -> a
+integralHelper_fast range size seed =
+  let
+    (x, y) =
+      Range.bounds size range
+  in
+    fst $ randomR (x, y) seed

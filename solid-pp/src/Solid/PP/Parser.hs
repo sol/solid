@@ -666,3 +666,11 @@ instance HasField "start" (Subject BufferSpan) SrcLoc where
     Bracketed _ loc _ -> loc.startLoc
     Name loc _ _ -> loc.startLoc
     QualifiedName loc _ _ _ -> loc.startLoc
+
+-- better error message for e.g
+--
+--     use Data.asByteString.Char8
+--
+-- or
+--
+--     import Data.asByteString.Char8
