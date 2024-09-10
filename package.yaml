@@ -15,7 +15,7 @@ default-extensions:
   - OverloadedStrings
   - NoFieldSelectors
 
-ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace
+ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace -threaded
 
 dependencies:
   - haskell-base

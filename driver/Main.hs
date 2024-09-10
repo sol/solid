@@ -16,13 +16,21 @@ import qualified Solid.Driver as Driver
 getExecutablePath :: IO FilePath
 getExecutablePath = sequence executablePath >>= maybe (String.asFilePath <$> Process.name) return . join
 
+cabal :: [String] -> IO ()
+cabal args = withProgName "solid cabal" $ Cabal.main args.map(unpack)
+
 main :: IO ()
-main = Process.args >>= \ case
-  "cabal" : args -> withProgName "solid cabal" $ Cabal.main args.map(unpack)
-  "stack" : args -> withProgName "solid stack" $ withArgs args Stack.main
-  [src, cur, dst, command] | command == Driver.desugarCommand -> PP.main src.unpack cur.unpack dst.unpack
-  "ghc-options" : args -> (solid GhcOptions -< getExecutablePath) args
-  "repl" : args -> (solid Repl -< getExecutablePath) args
-  "doctest" : args -> (solid Doctest -< getExecutablePath) args
-  "with" : name : args -> (solid (With name.asFilePath) -< getExecutablePath) args
-  args -> (solid Run -< getExecutablePath) args
+main = do
+  args0 <- Process.args
+  case args0 of
+    [src, cur, dst, command] | command == Driver.desugarCommand -> PP.main src.unpack cur.unpack dst.unpack
+
+    "cabal" : args -> cabal args
+    "act-as-setup" : _ -> cabal args0
+
+    "stack" : args -> withProgName "solid stack" $ withArgs args Stack.main
+    "ghc-options" : args -> (solid GhcOptions -< getExecutablePath) args
+    "repl" : args -> (solid Repl -< getExecutablePath) args
+    "doctest" : args -> (solid Doctest -< getExecutablePath) args
+    "with" : name : args -> (solid (With name.asFilePath) -< getExecutablePath) args
+    args -> (solid Run -< getExecutablePath) args
