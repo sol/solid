@@ -195,8 +195,8 @@ createPackageEnv console store self paths = do
         git ["remote", "add", "origin", repository]
         git ["fetch", "--depth", "1", "origin", revision, "-q"]
         git ["checkout", "FETCH_HEAD", "-q"]
-        cabal $ "install" : "--package-env={paths.package_env}" : "--lib" : libraries
-        cabal $ "install" : "--installdir={paths.bindir}" : "--install-method=copy" : executables
+        install $ "--package-env={paths.package_env}" : "--lib" : libraries
+        install $ "--installdir={paths.bindir}" : "--install-method=copy" : executables
         remove_base_package paths.package_env
   where
     git :: [String] -> IO ()
@@ -204,6 +204,9 @@ createPackageEnv console store self paths = do
 
     verbosity :: [String] -> [String]
     verbosity = console.tty?.fold ("-v0" :) id
+
+    install :: [String] -> IO ()
+    install args = cabal $ "install" : "-j" : "--semaphore" : args
 
     cabal :: [String] -> IO ()
     cabal args = (console.command self ("cabal" : "--store-dir" : store.toString : verbosity args)).run

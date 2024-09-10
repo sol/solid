@@ -80,7 +80,7 @@ library
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-  ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace
+  ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace -threaded
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
@@ -118,7 +118,7 @@ executable solid
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-  ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace
+  ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace -threaded
   build-tool-depends:
       solid-pp:solid-pp
   build-depends:
@@ -257,7 +257,7 @@ test-suite spec
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-  ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace
+  ghc-options: -Wall -fhide-source-paths -Werror=operator-whitespace -threaded
   build-tools:
       solid
   build-tool-depends:
