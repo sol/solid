@@ -68,7 +68,7 @@ data ExitStatusException = ExitStatusException {
 } deriving (Eq, Show, Exception)
 
 instance ToString ExitStatusException where
-  toString err = "Command `{err.command}` returned non-zero exit status {err.status}."
+  toString err = "Command `\{err.command}` returned non-zero exit status \{err.status}."
 
 throwExitStatusException :: Process stdin stdout stderr -> Int -> IO ()
 throwExitStatusException process st = throwIO ExitStatusException {

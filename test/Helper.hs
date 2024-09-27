@@ -45,7 +45,7 @@ shouldThrow :: (WithStackTrace, Eq e, Exception e) => IO a -> e -> Expectation
 action `shouldThrow` e = do
   r <- try action
   case r of
-    Right _ -> expectationFailure $ unpack "did not get expected exception: {typeOf e}"
+    Right _ -> expectationFailure $ unpack "did not get expected exception: \{typeOf e}"
     Left err -> err `shouldBe` e
 
 isADirectoryError :: FilePath -> IOException

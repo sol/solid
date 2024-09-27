@@ -27,7 +27,7 @@ import           Solid.PP.SrcLoc
 import           Solid.PP.Lexer.Extensions
 
 import           Lexer hiding (lexTokenStream)
-import           GHC.Data.FastString as FastString
+import           GHC.Data.FastString as FastString hiding (unpackFS, fastStringToShortByteString)
 import           GHC.Types.SourceText
 import           GHC.Data.StringBuffer hiding (cur)
 import           GHC.Types.SrcLoc hiding (SrcLoc)

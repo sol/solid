@@ -164,7 +164,7 @@ With this you can simplify the example from above to:
 
 ```haskell
 say_hey :: String -> IO ()
-say_hey name = stdout.writeLine "Hey {name} 👋"
+say_hey name = stdout.writeLine "Hey \{name} 👋"
 ```
 ```repl
 >>> say_hey "Joe"
@@ -234,9 +234,9 @@ reportError :: String -> IO ()
 reportError message = do
   stderr.tty? >>= \ case
     False -> do
-      stderr.writeLine "error: {message}"
+      stderr.writeLine "error: \{message}"
     True -> do
-      stderr.writeLine "error: {message.ansi.red}"
+      stderr.writeLine "error: \{message.ansi.red}"
 ```
 
 > __Note:__

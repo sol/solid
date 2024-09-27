@@ -116,9 +116,9 @@ prettyCallStack stack = Bytes.intercalate "\n" $ case GHC.getCallStack stack of
   stk -> "StackTrace (from WithStackTrace):" : map prettyCallSite stk
   where
     prettyCallSite :: ([Char], GHC.SrcLoc) -> String
-    prettyCallSite (name, loc) = "  {pack name}, called at {prettySrcLoc loc}"
+    prettyCallSite (name, loc) = "  \{pack name}, called at \{prettySrcLoc loc}"
 
     prettySrcLoc :: GHC.SrcLoc -> String
     prettySrcLoc loc
       | loc == unknownLocation = "<unknown location>"
-      | otherwise = "{pack loc.srcLocFile}:{loc.srcLocStartLine}:{loc.srcLocStartCol} in {pack loc.srcLocPackage}:{pack loc.srcLocModule}"
+      | otherwise = "\{pack loc.srcLocFile}:\{loc.srcLocStartLine}:\{loc.srcLocStartCol} in \{pack loc.srcLocPackage}:\{pack loc.srcLocModule}"

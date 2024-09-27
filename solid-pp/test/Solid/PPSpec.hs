@@ -95,7 +95,7 @@ spec = do
 
     context "within an interpolated string" $ do
       it "extracts module names" $ do
-        modules "foo \"some {Foo.x} test {Bar.x} input\"" `shouldBe` Set.fromList ["Solid.ToString", "Bar", "Foo"]
+        modules "foo \"some \\{Foo.x} test \\{Bar.x} input\"" `shouldBe` Set.fromList ["Solid.ToString", "Bar", "Foo"]
 
     context "when a qualified name references the current module" $ do
       it "does not extract that module name" $ do
@@ -171,7 +171,7 @@ spec = do
       desugarExpression "src.hs" 1 "foo!" `shouldBe` Right "fooᴉ"
 
     it "desugars string literals" $ do
-      desugarExpression "src.hs" 1 "\"foo {23} bar\"" `shouldBe` Right "(\"foo \" <> Solid.ToString.toString ({-# COLUMN 7 #-}23) <> \" bar\"{-# COLUMN 14 #-})"
+      desugarExpression "src.hs" 1 "\"foo \\{23} bar\"" `shouldBe` Right "(\"foo \" <> Solid.ToString.toString ({-# COLUMN 8 #-}23) <> \" bar\"{-# COLUMN 15 #-})"
 
   describe "run" $ around_ inTempDirectory $ do
     context "when lexing fails" $ do
@@ -650,43 +650,39 @@ spec = do
 
     context "when pre-processing string literals" $ do
       it "desugars string interpolation" $ do
-        "foo = \"foo {bar 23} baz\".toUpper" `interpolationShouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}bar 23) <> \" baz\"{-# COLUMN 24 #-}).toUpper"
+        "foo = \"foo \\{bar 23} baz\".toUpper" `interpolationShouldDesugarTo` mconcat [
+            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 14 #-}bar 23) <> \" baz\"{-# COLUMN 25 #-}).toUpper"
           ]
 
       it "desugars interpolation abstractions" $ do
-        "foo = \"foo {} bar {} baz\"" `interpolationShouldDesugarTo` mconcat [
-            "foo = (\\ _1 _2 -> \"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}_1{-# COLUMN 13 #-}) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 20 #-}_2{-# COLUMN 20 #-}) <> \" baz\"{-# COLUMN 25 #-})"
+        "foo = \"foo \\{} bar \\{} baz\"" `interpolationShouldDesugarTo` mconcat [
+            "foo = (\\ _1 _2 -> \"foo \" <> Solid.ToString.toString ({-# COLUMN 14 #-}_1{-# COLUMN 14 #-}) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 22 #-}_2{-# COLUMN 22 #-}) <> \" baz\"{-# COLUMN 27 #-})"
           ]
 
       it "accepts string literals with multiple interpolations" $ do
-        "foo = \"foo { 23 } bar { 42 } baz\"" `interpolationShouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} 23 ) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 24 #-} 42 ) <> \" baz\"{-# COLUMN 33 #-})"
+        "foo = \"foo \\{ 23 } bar \\{ 42 } baz\"" `interpolationShouldDesugarTo` mconcat [
+            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 14 #-} 23 ) <> \" bar \" <> Solid.ToString.toString ({-# COLUMN 26 #-} 42 ) <> \" baz\"{-# COLUMN 35 #-})"
           ]
 
       it "accepts nested interpolations" $ do
-        "foo = \"foo { \"x-{23}-x\" } baz\"" `interpolationShouldDesugarTo` mconcat [
-            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} (\"x-\" <> Solid.ToString.toString ({-# COLUMN 18 #-}23) <> \"-x\"{-# COLUMN 23 #-}) ) <> \" baz\"{-# COLUMN 30 #-})"
+        "foo = \"foo \\{ \"x-\\{23}-x\" } baz\"" `interpolationShouldDesugarTo` mconcat [
+            "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 14 #-} (\"x-\" <> Solid.ToString.toString ({-# COLUMN 20 #-}23) <> \"-x\"{-# COLUMN 25 #-}) ) <> \" baz\"{-# COLUMN 32 #-})"
           ]
 
       context "with an interpolated expression at the beginning of a string" $ do
         it "omits empty string segments" $ do
-          "foo = \"{bar 23} baz\".toUpper" `interpolationShouldDesugarTo` mconcat [
-              "foo = (Solid.ToString.toString ({-# COLUMN 9 #-}bar 23) <> \" baz\"{-# COLUMN 20 #-}).toUpper"
+          "foo = \"\\{bar 23} baz\".toUpper" `interpolationShouldDesugarTo` mconcat [
+              "foo = (Solid.ToString.toString ({-# COLUMN 10 #-}bar 23) <> \" baz\"{-# COLUMN 21 #-}).toUpper"
             ]
 
       context "with an interpolated expression at the end of a string" $ do
         it "omits empty string segments" $ do
-          "foo = \"foo {bar 23}\".toUpper" `interpolationShouldDesugarTo` mconcat [
-              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-}bar 23){-# COLUMN 20 #-}).toUpper"
+          "foo = \"foo \\{bar 23}\".toUpper" `interpolationShouldDesugarTo` mconcat [
+              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 14 #-}bar 23){-# COLUMN 21 #-}).toUpper"
             ]
 
       context "when two interpolated expressions are next to each other" $ do
         it "omits empty string segments" $ do
-          "foo = \"foo { 23 }{ 42 } baz\"" `interpolationShouldDesugarTo` mconcat [
-              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 13 #-} 23 ) <> Solid.ToString.toString ({-# COLUMN 19 #-} 42 ) <> \" baz\"{-# COLUMN 28 #-})"
+          "foo = \"foo \\{ 23 }\\{ 42 } baz\"" `interpolationShouldDesugarTo` mconcat [
+              "foo = (\"foo \" <> Solid.ToString.toString ({-# COLUMN 14 #-} 23 ) <> Solid.ToString.toString ({-# COLUMN 21 #-} 42 ) <> \" baz\"{-# COLUMN 30 #-})"
             ]
-
-      context "when an opening curly bracket is preceded by a backslash" $ do
-        it "treats the opening curly bracket as a literal '{'" $ do
-          "foo = \"foo \\{bar} baz\"" `shouldDesugarTo` "foo = \"foo {bar} baz\"{-# COLUMN 23 #-}"

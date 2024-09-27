@@ -11,6 +11,8 @@ module Solid.PP.Builder (
 , join
 , unlines
 , concatMap
+
+, unpackFS
 ) where
 
 import           Prelude ()
@@ -25,7 +27,7 @@ import qualified Data.Text.Internal.StrictBuilder as T
 import           Data.ByteString.Short (ShortByteString(..))
 import qualified Data.ByteString.Short as ShortByteString
 
-import           Solid.PP.Lexer (FastString, fastStringToShortByteString)
+import           Solid.PP.Lexer (FastString(..))
 
 newtype Builder = Builder { unBuilder :: StrictBuilder }
   deriving newtype (Semigroup, Monoid)
@@ -49,10 +51,7 @@ char :: Char -> Builder
 char = Builder . T.fromChar
 
 fastString :: FastString -> Builder
-fastString = unsafeFromShortByteString . fastStringToShortByteString
-
-unsafeFromShortByteString :: ShortByteString -> Builder
-unsafeFromShortByteString bs = fromText $ text bs.unShortByteString 0 (ShortByteString.length bs)
+fastString = fromText . unpackFS
 
 join :: Builder -> [Builder] -> Builder
 join separator = mconcat . intersperse separator
@@ -62,3 +61,9 @@ unlines = mconcat . foldr (\ x xs -> x : char '\n' : xs) []
 
 concatMap :: (a -> Builder) -> [a] -> Builder
 concatMap p = mconcat . map p
+
+unpackFS :: FastString -> Text
+unpackFS = unsafeShortByteStringAsText . fs_sbs
+
+unsafeShortByteStringAsText :: ShortByteString -> Text
+unsafeShortByteStringAsText bs = text bs.unShortByteString 0 (ShortByteString.length bs)

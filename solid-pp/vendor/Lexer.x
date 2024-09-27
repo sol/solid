@@ -2226,7 +2226,7 @@ lex_string_tok span buf _len _buf2 = do
       _ -> False
 
     is_interpolation_begin = case reverse src_string of
-      '{' : _ -> True
+      '{' : '\\' : _ -> True
       _ -> False
 
   when (is_interpolation_end) $ void popLexState
@@ -2279,17 +2279,14 @@ lex_string_helper s start = do
   case alexGetChar' i of
     Nothing -> lit_error i
 
-    Just ('{',i)  -> do
-      setInput i
-      return (reverse s)
-
     Just ('"',i)  -> do
       setInput i
       return (reverse s)
 
     Just ('\\',i)
         | Just ('{',i) <- next -> do
-                setInput i; lex_string_helper ('{' : s) start
+                setInput i
+                return (reverse s)
         | Just ('&',i) <- next -> do
                 setInput i; lex_string_helper s start
         | Just (c,i) <- next, c <= '\x7f' && is_space c -> do

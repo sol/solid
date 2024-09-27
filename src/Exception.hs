@@ -91,7 +91,7 @@ instance Show InvalidValue where
 instance Exception InvalidValue
 
 instance ToString InvalidValue where
-  toString (InvalidValue trace message) = "{if trace.empty? then "" else "\n\n{trace}\n\n"}InvalidValue: {message}"
+  toString (InvalidValue trace message) = "\{if trace.empty? then "" else "\n\n\{trace}\n\n"}InvalidValue: \{message}"
 
 instance HasField "toString" InvalidValue String where
   getField = toString
