@@ -16,7 +16,7 @@ main = Process.args >>= \ case
   [file] -> withRawMode stdin . withAlternativeScreenBuffer . withoutCursor $ do
     view <- viewFile 150 50 file.asFilePath
     run view
-  _ -> Process.exit "Usage: {} FILE"
+  _ -> Process.exit "Usage: \{} FILE"
 
 run :: View -> IO ()
 run view = do
@@ -27,7 +27,7 @@ run view = do
   where
     drawStatusLine :: IO ()
     drawStatusLine = do
-      stdout.write "{view.line},{view.column}".ansi.inverse.toString
+      stdout.write "\{view.line},\{view.column}".ansi.inverse.toString
       stdout.write newlineErase
 
     processInput :: IO ()
@@ -43,7 +43,7 @@ run view = do
       | c == ctrl 'f' = run view.moveDown(view.height - 2)
       | exit? c = pass
       | otherwise = do
-          stdout.write "{c.ord.toString.rjust 3} ({show c})\r\n"
+          stdout.write "\{c.ord.toString.rjust 3} (\{show c})\r\n"
           processInput
 
     exit? :: Char -> Bool
@@ -102,7 +102,7 @@ renderView view =
 drawView :: View -> IO ()
 drawView view = (renderView view).foreach $ \ line -> do
   case line of
-    Line n xs -> stdout.write "{n.toString.rjust(3).ansi.yellow} " >> printBufferLine xs
+    Line n xs -> stdout.write "\{n.toString.rjust(3).ansi.yellow} " >> printBufferLine xs
     LineContinuation xs -> stdout.write "    " >> printBufferLine xs
     EmptyLine -> stdout.write "~"
   stdout.write newlineErase

@@ -67,8 +67,8 @@ modifierSet = \ case
   Foreground Magenta -> "35"
   Foreground Cyan -> "36"
   Foreground White -> "37"
-  Foreground (RGB r g b) -> "38;2;{r};{g};{b}"
-  Foreground (PaletteColor n) -> "38;5;{n}"
+  Foreground (RGB r g b) -> "38;2;\{r};\{g};\{b}"
+  Foreground (PaletteColor n) -> "38;5;\{n}"
 
   Background Black -> "40"
   Background Red -> "41"
@@ -78,11 +78,11 @@ modifierSet = \ case
   Background Magenta -> "45"
   Background Cyan -> "46"
   Background White -> "47"
-  Background (RGB r g b) -> "48;2;{r};{g};{b}"
-  Background (PaletteColor n) -> "48;5;{n}"
+  Background (RGB r g b) -> "48;2;\{r};\{g};\{b}"
+  Background (PaletteColor n) -> "48;5;\{n}"
 
 instance ToString Modifier where
-  toString m = "\ESC[{modifierSet m}m"
+  toString m = "\ESC[\{modifierSet m}m"
 
 modifierUnset :: Modifier -> String
 modifierUnset = \ case
@@ -94,10 +94,10 @@ modifierUnset = \ case
   Background _ -> "49"
 
 instance HasField "set" Modifier String where
-  getField m = "\ESC[{modifierSet m}m"
+  getField m = "\ESC[\{modifierSet m}m"
 
 instance HasField "reset" Modifier String where
-  getField m = "\ESC[{modifierUnset m}m"
+  getField m = "\ESC[\{modifierUnset m}m"
 
 instance ToString a => ToString (Ansi a) where
   toString (Ansi modifiers a) = set <> toString a <> unset
@@ -105,12 +105,12 @@ instance ToString a => ToString (Ansi a) where
       set :: String
       set
         | modifiers.empty? = ""
-        | otherwise = "\ESC[{ (modifiers.map modifierSet).join ";"}m"
+        | otherwise = "\ESC[\{ (modifiers.map modifierSet).join ";"}m"
 
       unset :: String
       unset
         | modifiers.empty? = ""
-        | otherwise = "\ESC[{ (modifiers.reverse.map modifierUnset).join ";" }m"
+        | otherwise = "\ESC[\{ (modifiers.reverse.map modifierUnset).join ";" }m"
 
 instance ToString a => HasField "toString" (Ansi a) String where
   getField = toString

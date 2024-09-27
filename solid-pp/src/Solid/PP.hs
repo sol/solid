@@ -41,7 +41,7 @@ import qualified Data.ByteString.Short as SB
 import           Data.Set (Set)
 import qualified Data.Set as Set
 
-import           Solid.PP.Builder (Builder)
+import           Solid.PP.Builder (Builder, unpackFS)
 import qualified Solid.PP.Builder as Builder
 import           Solid.PP.DList
 import           Solid.PP.Edit (Edit(..), edit)
@@ -306,7 +306,7 @@ desugarIdentifierMaybe identifier
   | otherwise = Nothing
   where
     lastChar :: Word8
-    lastChar = SB.last $ fastStringToShortByteString identifier
+    lastChar = SB.last identifier.fs_sbs
 
     qmark :: Word8
     qmark = fromIntegral $ ord '?'
@@ -315,7 +315,7 @@ desugarIdentifierMaybe identifier
     bang = fromIntegral $ ord '!'
 
     replacement :: Text
-    replacement = T.pack $ map replaceChar $ unpackFS identifier
+    replacement = T.pack $ map replaceChar $ GHC.unpackFS identifier
 
     replaceChar :: Char -> Char
     replaceChar c = case c of
@@ -325,21 +325,6 @@ desugarIdentifierMaybe identifier
 
 desugarQualifiedName :: BufferSpan -> FastString -> FastString -> DList Edit
 desugarQualifiedName loc (succ . lengthFS -> offset) identifier = desugarIdentifier (loc.start + offset) loc.end identifier
-
-unescapeString :: String -> String
-unescapeString = go
-  where
-    go = \ case
-      [] -> []
-      '\\' : '{' : xs -> '{' : go xs
-      x : xs -> x : go xs
-
-unescapeStringLiteral :: BufferSpan -> FastString -> DList Edit
-unescapeStringLiteral loc (unpackFS -> old)
-  | new == old = mempty
-  | otherwise = Edit.replaceText loc (pack new)
-  where
-    new = unescapeString old
 
 ppModule :: Module BufferSpan -> DList Edit
 ppModule (Module header imports nodes) = ppHeader header <> concatMap ppImport imports <> pp (Just moduleName) nodes
@@ -508,7 +493,7 @@ pp moduleName = ppNodes
                     names = [x : xs | xs <- "" : names, x <- ['a' .. 'z']]
 
     desugarMethodName :: MethodName loc -> Text
-    desugarMethodName (MethodName _ name) = fromMaybe (pack $ unpackFS name) $ desugarIdentifierMaybe name
+    desugarMethodName (MethodName _ name) = fromMaybe (unpackFS name) $ desugarIdentifierMaybe name
 
     formatTypeForStackTrace :: Type BufferSpan -> Builder
     formatTypeForStackTrace = go
@@ -582,7 +567,7 @@ pp moduleName = ppNodes
 
     ppLiteralString :: LiteralString BufferSpan -> DList Edit
     ppLiteralString = \ case
-      Literal loc src -> unescapeStringLiteral loc src
+      Literal _ _ -> mempty
       Begin loc src expression -> Edit.replace loc (lambdaAbstract expression <> beginInterpolation src) <> ppExpression 1 expression
 
     ppExpression :: Int -> Expression BufferSpan -> DList Edit
@@ -595,25 +580,20 @@ pp moduleName = ppNodes
       End loc src -> endInterpolation loc src
       EndBegin loc src expression -> Edit.replace loc (endBeginInterpolation src) <> ppExpression n expression
 
-    unescape :: String -> (Maybe Builder)
-    unescape (init . drop 1 -> string)
-      | null string = Nothing
-      | otherwise = Just (fromString $ unescapeString string)
-
     beginInterpolation :: FastString -> Builder
     beginInterpolation src = literal <> "Solid.ToString.toString ("
       where
-        literal = case unescape (unpackFS src) of
-          Nothing -> ""
-          Just string -> "\"" <> string <> "\" <> "
+        literal = case (T.drop 1 >>> T.dropEnd 2 $ unpackFS src) of
+          "" -> ""
+          string -> "\"" <> Builder.fromText string <> "\" <> "
 
     endInterpolation :: BufferSpan -> FastString -> DList Edit
     endInterpolation loc src = Edit.replace_ loc end <> close_paren loc.endLoc
       where
         end :: Builder
-        end = case unescape (unpackFS src) of
-          Nothing -> ")"
-          Just string -> ") <> \"" <> string <> "\""
+        end = case (T.drop 1 >>> T.dropEnd 1 $ unpackFS src) of
+          "" -> ")"
+          string -> ") <> \"" <> Builder.fromText string <> "\""
 
     endBeginInterpolation :: FastString -> Builder
     endBeginInterpolation src = ") <> " <> beginInterpolation src
