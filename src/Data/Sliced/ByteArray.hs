@@ -106,7 +106,7 @@ module Data.Sliced.ByteArray (
 , compact
 ) where
 
-import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl', foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, span, elem)
+import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl', foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, elem)
 import Int ()
 
 import HaskellPrelude (error)

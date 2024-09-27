@@ -34,6 +34,8 @@ import           HaskellPrelude as Imports hiding (
   , error
   , pred
   , succ
+
+  , span
   )
 import           Data.Function as Imports ((&))
 import           Data.Functor as Imports ((<&>))
