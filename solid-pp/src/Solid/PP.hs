@@ -319,21 +319,6 @@ desugarIdentifierMaybe identifier
 desugarQualifiedName :: BufferSpan -> FastString -> FastString -> DList Edit
 desugarQualifiedName loc (succ . lengthFS -> offset) identifier = desugarIdentifier (loc.start + offset) loc.end identifier
 
-unescapeString :: String -> String
-unescapeString = go
-  where
-    go = \ case
-      [] -> []
-      '\\' : '{' : xs -> '{' : go xs
-      x : xs -> x : go xs
-
-unescapeStringLiteral :: BufferSpan -> FastString -> DList Edit
-unescapeStringLiteral loc (unpackFS -> old)
-  | new == old = mempty
-  | otherwise = Edit.replaceText loc (pack new)
-  where
-    new = unescapeString old
-
 ppModule :: Module BufferSpan -> DList Edit
 ppModule (Module header imports nodes) = ppHeader header <> concatMap ppImport imports <> pp (Just moduleName) nodes
   where
@@ -550,7 +535,7 @@ pp moduleName = ppNodes
 
     ppLiteralString :: LiteralString BufferSpan -> DList Edit
     ppLiteralString = \ case
-      Literal loc src -> unescapeStringLiteral loc src
+      Literal _ _ -> mempty
       Begin loc src expression -> Edit.replace loc (lambdaAbstract expression <> beginInterpolation src) <> ppExpression 1 expression
 
     ppExpression :: Int -> Expression BufferSpan -> DList Edit
@@ -563,25 +548,20 @@ pp moduleName = ppNodes
       End loc src -> endInterpolation loc src
       EndBegin loc src expression -> Edit.replace loc (endBeginInterpolation src) <> ppExpression n expression
 
-    unescape :: String -> (Maybe Builder)
-    unescape (init . drop 1 -> string)
-      | null string = Nothing
-      | otherwise = Just (fromString $ unescapeString string)
-
     beginInterpolation :: FastString -> Builder
     beginInterpolation src = literal <> "Solid.ToString.toString ("
       where
-        literal = case unescape (unpackFS src) of
-          Nothing -> ""
-          Just string -> "\"" <> string <> "\" <> "
+        literal = case (drop 1 >>> init >>> init $ unpackFS src) of
+          "" -> ""
+          string -> "\"" <> fromString string <> "\" <> "
 
     endInterpolation :: BufferSpan -> FastString -> DList Edit
     endInterpolation loc src = Edit.replace_ loc end <> close_paren loc.endLoc
       where
         end :: Builder
-        end = case unescape (unpackFS src) of
-          Nothing -> ")"
-          Just string -> ") <> \"" <> string <> "\""
+        end = case (drop 1 >>> init $ unpackFS src) of
+          "" -> ")"
+          string -> ") <> \"" <> fromString string <> "\""
 
     endBeginInterpolation :: FastString -> Builder
     endBeginInterpolation src = ") <> " <> beginInterpolation src

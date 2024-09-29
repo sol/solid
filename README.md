@@ -25,12 +25,12 @@ names = ["Jane", "Joe"]
 main :: IO ()
 main = do
   name <- names.randomChoice
-  stdout.writeLine "Hey {name} 👋"
+  stdout.writeLine "Hey \{name} 👋"
 ```
 ```haskell ignore
 -- or point-free
 main :: IO ()
-main = stdout.writeLine . "Hey {} 👋" =<< names.randomChoice
+main = stdout.writeLine . "Hey \{} 👋" =<< names.randomChoice
 ```
 
 ```

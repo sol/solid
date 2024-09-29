@@ -10,5 +10,5 @@ spec = do
     it "exits with an error message" $ do
       withProgName "foo" $ do
         hCapture_ [stderr] $ do
-          Process.exit "{}: some error" `shouldThrow` Process.ExitFailure 1
+          Process.exit "\{}: some error" `shouldThrow` Process.ExitFailure 1
         `shouldReturn` "foo: some error\n"
