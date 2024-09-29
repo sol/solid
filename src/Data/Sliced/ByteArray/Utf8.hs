@@ -17,6 +17,12 @@ module Data.Sliced.ByteArray.Utf8 (
 , ByteArray.null
 , length
 
+-- * Transformations
+, map
+
+-- ** Case conversion
+, toLower
+, toUpper
 
 -- * Folds
 -- ** Special folds
@@ -102,6 +108,15 @@ unsnoc = fmap (first fromText) . Text.unsnoc . unsafeToText
 
 length :: ByteArray -> Int
 length bytes = Utf8.length bytes.arr bytes.off bytes.len
+
+map :: (Char -> Char) -> ByteArray -> ByteArray
+map f = fromText . Text.map f . unsafeToText
+
+toLower :: ByteArray -> ByteArray
+toLower = fromText . Text.toLower . unsafeToText
+
+toUpper :: ByteArray -> ByteArray
+toUpper = fromText . Text.toUpper . unsafeToText
 
 any :: (Char -> Bool) -> ByteArray -> Bool
 any p = Text.any p . unsafeToText

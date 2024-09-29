@@ -43,6 +43,19 @@ null = coerce Utf8.null
 .length = coerce Utf8.length
 
 -- |
+-- >>> let message = "I am not angry. Not at all." :: String
+-- >>> message.map (\c -> if c == '.' then '!' else c)
+-- "I am not angry! Not at all!"
+.map :: (Char -> Char) -> String -> String
+.map = coerce Utf8.map
+
+.toLower :: String -> String
+.toLower = coerce Utf8.toLower
+
+.toUpper :: String -> String
+.toUpper = coerce Utf8.toUpper
+
+-- |
 -- >>> String.take 2 "foobar"
 -- "fo"
 .take :: Int -> String -> String

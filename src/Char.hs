@@ -10,6 +10,12 @@ module Char (
 , valid?
 , ascii?
 , space?
+
+, lower?
+, upper?
+
+, toLower
+, toUpper
 ) where
 
 import Solid.Common hiding (replicate)
@@ -35,8 +41,20 @@ import Data.Char
 .space? :: Char -> Bool
 .space? = isSpace
 
+.lower? :: Char -> Bool
+.lower? = isLower
+
+.upper? :: Char -> Bool
+.upper? = isUpper
+
 instance HasField "ord" Char Int where
   getField = ord
 
 .replicate :: Int -> Char -> String
 .replicate n = String.times n . pack . return
+
+instance HasField "toLower" Char Char where
+  getField = toLower
+
+instance HasField "toUpper" Char Char where
+  getField = toUpper

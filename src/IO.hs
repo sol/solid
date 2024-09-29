@@ -1,4 +1,6 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module IO (
   readFile
 , writeFile
@@ -8,10 +10,12 @@ module IO (
 
 , IO.try
 
+, map
+
 , module IO.Handle
 ) where
 
-import Solid.Common
+import Solid.Common hiding (map)
 import Solid.Bytes.Unsafe
 import Solid.String
 import Solid.ByteString
@@ -40,3 +44,6 @@ writeBinaryFile path content = Haskell.toFilePath path >>= (`B.writeFile` Haskel
 
 try :: IO a -> IO (Either Exception.IOException a)
 try = Exception.try
+
+.map :: (a -> b) -> IO a -> IO b
+.map = fmap
