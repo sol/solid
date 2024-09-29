@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Data.Sliced.ByteArray.Utf8Spec (spec, arbitrary) where
 
-import Helper hiding (pack, Bytes, lines, unlines, words, unwords, take, drop)
+import Helper hiding (pack, Bytes, map, lines, unlines, words, unwords, take, drop)
 
 import Data.Sliced.ByteArray.Unsafe
 
@@ -60,22 +60,22 @@ spec = do
   describe "lines" $ do
     it "behaves like Data.Text.lines" $ do
       input <- unlines <$> forAll (Gen.list (Range.linear 0 10) arbitrary)
-      lines input === map fromText (Text.lines (unsafeToText input))
+      lines input === List.map fromText (Text.lines (unsafeToText input))
 
   describe "words" $ do
     it "behaves like Data.Text.words" $ do
       input <- unwords <$> forAll (Gen.list (Range.linear 0 10) arbitrary)
-      words input === map fromText (Text.words (unsafeToText input))
+      words input === List.map fromText (Text.words (unsafeToText input))
 
   describe "unlines" $ do
     it "behaves like Data.Text.unlines" $ do
       xs <- forAll $ Gen.list (Range.linear 0 10) arbitrary
-      unlines xs === fromText (Text.unlines $ map unsafeToText xs)
+      unlines xs === fromText (Text.unlines $ List.map unsafeToText xs)
 
   describe "unwords" $ do
     it "behaves like Data.Text.unwords" $ do
       xs <- forAll $ Gen.list (Range.linear 0 10) arbitrary
-      unwords xs === fromText (Text.unwords $ map unsafeToText xs)
+      unwords xs === fromText (Text.unwords $ List.map unsafeToText xs)
 
   describe "take" $ do
     context "with a non-negative number" $ do
