@@ -23,6 +23,9 @@ char = Gen.choice [Gen.ascii, Gen.latin1, Gen.unicodeScalar]
 utf8 :: MonadGen m => Range Int -> m ByteArray
 utf8 = bytesWith pack char
 
+repetitiveInput :: MonadGen m => Range Int -> m ByteArray
+repetitiveInput = bytesWith pack $ (Gen.element @[] "abcλ")
+
 arbitrary :: MonadGen m => m ByteArray
 arbitrary = utf8 (Range.linear 0 10)
 
@@ -56,6 +59,32 @@ spec = do
     it "behaves like Data.Text.length" $ do
       input <- forAll arbitrary
       Utf8.length input === Text.length (unsafeToText input)
+
+  describe "replace" $ do
+    it "replaces every occurrence of a pattern with a substitute" $ do
+      replace "bλ" "-" "fλλbλrbλz" `shouldBe` "fλλ-r-z"
+
+    it "works for arbitrary input" $ do
+      pat <- forAll $ repetitiveInput (Range.linear 0 10)
+      sub <- forAll $ repetitiveInput (Range.linear 0 10)
+      input <- forAll $ repetitiveInput (Range.linear 0 100)
+      replace pat sub input === intercalate sub (split pat input)
+
+    context "when replacing a pattern with itself" $ do
+      it "returns the original input" $ do
+        pat <- forAll $ repetitiveInput (Range.linear 0 10)
+        input <- forAll $ repetitiveInput (Range.linear 0 100)
+        replace pat pat input === input
+
+    context "when replacing the input with a substitute" $ do
+      it "returns the substitute" $ do
+        sub <- forAll arbitrary
+        input <- forAll arbitrary
+        replace input sub input === sub
+
+    context "with the empty string as the pattern" $ do
+      it "inserts the substitute at every position" $ do
+        replace "" "-" "fλλbλrbλz" `shouldBe` "-f-λ-λ-b-λ-r-b-λ-z-"
 
   describe "lines" $ do
     it "behaves like Data.Text.lines" $ do
@@ -144,9 +173,35 @@ spec = do
         Utf8.splitAt n input === (Utf8.drop n &&& Utf8.take n) input
 
   describe "split" $ do
+    it "splits the input at every occurrence of a pattern" $ do
+      split ", " "fλλ, bλr, bλz" `shouldBe` ["fλλ", "bλr", "bλz"]
+
+    it "is reversed by intercalate" $ do
+      pat <- forAll $ repetitiveInput (Range.linear 0 10)
+      input <- forAll $ repetitiveInput (Range.linear 0 100)
+      intercalate pat (split pat input) === input
+
+    context "when the input itself is used as the pattern" $ do
+      it "creates 2 empty chunks" $ do
+        input <- forAll arbitrary
+        split input input === ["", ""]
+
+    context "when the separator is repeated n times in the input" $ do
+      it "creates n+1 empty chunks" $ do
+        split "fλλ" "fλλfλλfλλ" `shouldBe` ["", "", "", ""]
+
+    context "when pattern does not match" $ do
+      it "returns a singleton list" $ do
+        split "fλλ" "" `shouldBe` [""]
+        split "fλλ" "bλr" `shouldBe` ["bλr"]
+
     context "with an empty separator" $ do
-      it "splits into chunks of size one" $ do
-        Utf8.split "" "fλλbλrbλz" `shouldBe` ["f", "λ", "λ", "b", "λ", "r", "b", "λ", "z"]
+      it "splits into chunks of size one, starting and ending with the empty chunk" $ do
+        split "" "fλλbλrbλz" `shouldBe` ["", "f", "λ", "λ", "b", "λ", "r", "b", "λ", "z", ""]
+
+      it "works for arbitrary input" $ do
+        input <- forAll arbitrary
+        List.length (split "" input) === length input + 2
 
   describe "chunksOf" $ do
     it "splits a byte array into chunks of a specified size" $ do
@@ -169,3 +224,10 @@ spec = do
     context "with a negative chunk size" $ do
       it "returns the empty list" $ do
         Utf8.chunksOf -3 "fλλbλrbλz" `shouldBe` []
+
+  describe "indices" $ do
+    it "returns a list of positions where a pattern matches" $ do
+      indices "bλ" "fλλbλrbλz" `shouldBe` [5, 9]
+
+    it "works for empty input" $ do
+      indices "" "fλλ" `shouldBe` [0, 1, 3, 5]

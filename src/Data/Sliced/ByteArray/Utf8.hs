@@ -19,6 +19,8 @@ module Data.Sliced.ByteArray.Utf8 (
 
 -- * Transformations
 , map
+, ByteArray.intercalate
+, replace
 
 -- ** Case conversion
 , toLower
@@ -68,6 +70,10 @@ module Data.Sliced.ByteArray.Utf8 (
 
 -- * Searching
 , elem
+, indices
+
+-- * Indexing
+, count
 ) where
 
 import Solid.Common hiding (empty, take, drop, last, tail, init, null, head, splitAt, concat, replicate, map, reverse, foldr, foldr1, foldl, foldl1, concatMap, any, all, maximum, minimum, takeWhile, dropWhile, break, elem)
@@ -78,8 +84,12 @@ import Data.Sliced.ByteArray.Unsafe
 import Data.Sliced.ByteArray.Conversion (unsafeToText, fromText)
 
 use Data.Sliced.ByteArray
+use Data.Sliced.ByteArray.Common
 use Data.Text
+use Data.Text.Array
 import Data.Text.Unsafe (reverseIter_)
+import Data.Text.Internal.Encoding.Utf8 (utf8LengthByLeader)
+use Data.Text.Internal.Search
 use Simd.Utf8
 
 pack :: [Char] -> ByteArray
@@ -111,6 +121,9 @@ length bytes = Utf8.length bytes.arr bytes.off bytes.len
 
 map :: (Char -> Char) -> ByteArray -> ByteArray
 map f = fromText . Text.map f . unsafeToText
+
+replace :: ByteArray -> ByteArray -> ByteArray -> ByteArray
+replace old new bytes = Common.replace (indices old bytes) old.len new bytes
 
 toLower :: ByteArray -> ByteArray
 toLower = fromText . Text.toLower . unsafeToText
@@ -188,24 +201,34 @@ dropWhileEnd p = fromText . Text.dropWhileEnd p . unsafeToText
 elem :: Char -> ByteArray -> Bool
 elem c = Text.elem c . unsafeToText
 
-split :: ByteArray -> ByteArray -> [ByteArray]
-split needle bytes
-  | needle.len == 0 = elements bytes
-  | otherwise = ByteArray.split needle bytes
+count :: ByteArray -> ByteArray -> Int
+count pat = List.length . indices pat
 
-elements :: ByteArray -> [ByteArray]
-elements = go
-  where
-    go bytes
-      | bytes.len > 0 = unsafeTake off bytes : go (unsafeDrop off bytes)
-      | otherwise = []
-      where off = measureOff 1 bytes
+split :: ByteArray -> ByteArray -> [ByteArray]
+split pat bytes = Common.split bytes pat.len (indices pat bytes)
 
 measureOff :: Int -> ByteArray -> Int
 measureOff n = Text.measureOff n . unsafeToText
 
 chunksOf :: Int -> ByteArray -> [ByteArray]
 chunksOf n = List.map fromText . Text.chunksOf n . unsafeToText
+
+indices :: ByteArray -> ByteArray -> [Int]
+indices pat bytes
+  | pat.len == 0 = offsets 0
+  | otherwise = Search.indices (unsafeToText pat) (unsafeToText bytes)
+  where
+    offsets :: Int -> [Int]
+    offsets off = off : if off < bytes.len then offsets next_off else []
+      where
+        next_off = advance bytes off
+
+advance :: ByteArray -> Int -> Int
+advance bytes current_off = next_off
+  where
+    next_off = current_off + utf8LengthByLeader c
+    c = Array.unsafeIndex bytes.arr (bytes.off + current_off)
+{-# INLINE advance #-}
 
 -- copy of Data.Text.iterNEnd
 iterNEnd :: Int -> ByteArray -> Int

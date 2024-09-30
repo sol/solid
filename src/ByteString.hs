@@ -6,7 +6,7 @@ module ByteString (
 , module ByteString
 ) where
 
-import Solid.Common hiding (read, head, take, drop, takeWhile, dropWhile, splitAt)
+import Solid.Common hiding (join, concat, read, head, take, drop, takeWhile, dropWhile, splitAt)
 import Solid.String (String)
 import Solid.ByteString
 import Solid.Bytes.Unsafe
@@ -22,7 +22,9 @@ import Data.Coerce (coerce)
 import Data.ByteString.Internal (isSpaceWord8)
 
 -- $setup
--- >>> import Solid
+-- >>> import Solid ()
+-- >>> import Test.QuickCheck
+-- >>> instance Arbitrary ByteString where arbitrary = pack <$> arbitrary
 
 instance Show ByteString where
   showsPrec n = showsPrec n . unBytes
@@ -140,16 +142,44 @@ null = coerce ByteArray.null
 .unlines :: [ByteString] -> ByteString
 .unlines = coerce ByteArray.unlines
 
--- |
--- >>> let input = "hey-there" :: ByteString
+-- | Join a list of strings.
 --
+-- >>> ByteString.join "-" ["hey", "there"]
+-- "hey-there"
+--
+-- prop> join sep xs == concat (List.intersperse sep xs)
+.join :: ByteString -> [ByteString] -> ByteString
+.join = coerce ByteArray.intercalate
+
+.concat :: [ByteString] -> ByteString
+.concat = coerce ByteArray.concat
+
+-- | Split the /input/ at every occurrence of a /pattern/.
+--
+-- >>> let input = "hey-there" :: ByteString
 -- >>> input.split "-"
 -- ["hey","there"]
 --
--- >>> input.split ""
--- ["h","e","y","-","t","h","e","r","e"]
+-- prop> split input input == ["", ""]
+-- prop> join pat (split pat input) == input
 .split :: ByteString -> ByteString -> [ByteString]
 .split = coerce ByteArray.split
+
+-- | Replace every occurrence of a /pattern/ with a /substitute/.
+--
+-- >>> let message = "I am not angry. Not at all." :: ByteString
+-- >>> message.replace "." "!"
+-- "I am not angry! Not at all!"
+--
+-- >>> let hey = "hey" :: ByteString
+-- >>> hey.replace "" "-"
+-- "-h-e-y-"
+--
+-- prop> replace pat pat input == input
+-- prop> replace input sub input == sub
+-- prop> replace pat sub input == (input.split pat).join sub
+.replace :: ByteString -> ByteString -> ByteString -> ByteString
+.replace = coerce ByteArray.replace
 
 .strip :: ByteString -> ByteString
 .strip = dropWhile asciiSpace? . dropWhileEnd asciiSpace?

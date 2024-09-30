@@ -18,7 +18,6 @@ module List (
 
 , enumerate
 , enumerateFrom
-, List.join
 , randomChoice
 
 , select
@@ -32,8 +31,6 @@ import Solid.Common hiding (empty, null, traverse)
 use Solid.Common
 use Data.Foldable
 
-import Solid.String
-use Solid.Bytes
 use Solid.StackTrace
 
 import Data.List hiding (nub, nubBy, null, length)
@@ -85,18 +82,6 @@ nubOn f = go Set.empty
 
 .discard :: (a -> Bool) -> [a] -> [a]
 .discard p = filter (not . p)
-
--- | Join a list of strings.
---
--- Examples:
---
--- >>> List.join ", " ["foo", "bar", "baz"]
--- "foo, bar, baz"
---
--- >>> ["foo", "bar", "baz" :: String].join ", "
--- "foo, bar, baz"
-join :: String -> [String] -> String
-join = Bytes.intercalate
 
 .randomChoice :: [a] -> IO a
 .randomChoice xs = (xs !!) <$> Haskell.uniformRM (0, pred xs.length) Haskell.globalStdGen
@@ -156,9 +141,6 @@ instance HasField "zip" [b] ([a] -> [(a, b)])
 
 instance HasField "filter" [a] ((a -> Bool) -> [a]) where
   getField = flip filter
-
-instance HasField "join" [String] (String -> String) where
-  getField = flip List.join
 
 instance HasField "intersperse" [a] (a -> [a]) where
   getField = flip intersperse

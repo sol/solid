@@ -13,6 +13,8 @@ module Solid.Common (
 , pred!
 , succ
 , succ!
+
+, equals
 ) where
 
 import           HaskellPrelude as Imports hiding (
@@ -79,6 +81,7 @@ infixl 1 -<
 
 pass :: Applicative m => m ()
 pass = pure ()
+{-# INLINE pass #-}
 
 with :: HasField "release" resource (IO ()) => IO resource -> (resource -> IO a) -> IO a
 with acquire = bracket acquire (.release)
@@ -98,6 +101,10 @@ succ n = n + 1
 succ! :: Enum a => a -> a
 succ! = Enum.succ
 {-# INLINE succ! #-}
+
+equals :: Eq a => a -> a -> Bool
+equals = (==)
+{-# INLINE equals #-}
 
 instance HasField "curry" ((a, b) -> c) (a -> b -> c) where
   getField = curry

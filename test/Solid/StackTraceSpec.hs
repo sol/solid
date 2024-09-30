@@ -28,7 +28,7 @@ spec = do
     context "when non-empty" $ do
       it "converts to a String" $ do
         let
-          expected = List.join "\n" [
+          expected = String.join "\n" [
               "StackTrace (from WithStackTrace):"
             , "  foo, called at test/ExceptionSpec.hs:19:11 in main:ExceptionSpec"
             , "  bar, called at test/ExceptionSpec.hs:22:11 in main:ExceptionSpec"

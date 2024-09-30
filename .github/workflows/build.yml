@@ -61,8 +61,9 @@ jobs:
 
       - run: cabal haddock
 
-      - run: cabal install doctest
-      - run: cabal repl --build-depends=QuickCheck --build-depends=template-haskell --with-ghc=doctest --repl-options='-w -Wdefault'
+      - run: cabal install solid-pp
+      - run: cabal install -z doctest -fcabal-doctest
+      - run: cabal doctest
 
       - run: cabal install
       - run: cabal install markdown-unlit

@@ -8,7 +8,7 @@ module Data.Sliced.ByteArray.Util (
 , runST
 , Array
 , MArray
-, create
+, copySlice
 , checkedAdd
 , checkedSum
 , checkedMultiply
@@ -25,12 +25,9 @@ import Data.Text.Array (MArray, Array)
 use Data.List
 use Data.Text.Array
 
-create :: Int -> (forall s. MArray s -> ST s ()) -> Array
-create !len action = Array.run $ do
-  marr <- Array.new len
-  action marr
-  return marr
-{-# INLINE create #-}
+copySlice :: MArray s -> Int -> Array -> Int -> Int -> ST s ()
+copySlice dst dst_off src src_off len = if len == 0 then pass else Array.copyI len dst dst_off src src_off
+{-# INLINE copySlice #-}
 
 checkedAdd :: [Char] -> Int -> Int -> Int
 checkedAdd name x y

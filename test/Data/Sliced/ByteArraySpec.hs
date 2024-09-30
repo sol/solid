@@ -36,14 +36,14 @@ word8 = Gen.word8 Range.constantBounded
 bytes :: MonadGen m => Range Int -> m ByteArray
 bytes = bytesWith pack word8
 
-smallBytes :: MonadGen m => Range Int -> m ByteArray
-smallBytes = bytesWith pack $ Gen.word8 (Range.constant 0 5)
+repetitiveInput :: MonadGen m => Range Int -> m ByteArray
+repetitiveInput = bytesWith pack $ Gen.word8 (Range.constant 65 70)
 
 bytesWith :: MonadGen m => ([item] -> ByteArray) -> m item -> Range Int -> m ByteArray
 bytesWith packItems gen range = do
   prefix <- ByteArray.pack <$> Gen.frequency [(2, pure []), (1, Gen.list (Range.constant 0 5) word8)]
   suffix <- ByteArray.pack <$> Gen.frequency [(2, pure []), (1, Gen.list (Range.constant 0 5) word8)]
-  thing  <- packItems <$> Gen.list range gen
+  thing <- packItems <$> Gen.list range gen
   return $ ByteArray (prefix.arr <> thing.arr <> suffix.arr) prefix.len thing.len
 
 arbitrary :: MonadGen m => m ByteArray
@@ -234,7 +234,7 @@ spec = do
     it "intersperses a byte between the elements of a ByteArray" $ do
       ByteArray.intersperse (ord8 '-') "foobar" `shouldBe` "f-o-o-b-a-r"
 
-    it "works with arbitrary input" $ do
+    it "works for arbitrary input" $ do
       x <- forAll word8
       xs <- forAll arbitrary
       ByteArray.intersperse x xs === (pack . List.intersperse x . unpack) xs
@@ -243,10 +243,36 @@ spec = do
     it "intersperses a ByteArray between the elements of a list of byte arrays" $ do
       ByteArray.intercalate " - " ["foo", "bar", "baz"] `shouldBe` "foo - bar - baz"
 
-    it "works with arbitrary input" $ do
+    it "works for arbitrary input" $ do
       x <- forAll arbitrary
       xs <- forAll $ Gen.list (Range.constant 0 10) arbitrary
       ByteArray.intercalate x xs === mconcat (List.intersperse x xs)
+
+  describe "replace" $ do
+    it "replaces every occurrence of a pattern with a substitute" $ do
+      replace "ba" "-" "foobarbaz" `shouldBe` "foo-r-z"
+
+    it "works for arbitrary input" $ do
+      pat <- forAll $ repetitiveInput (Range.linear 0 10)
+      sub <- forAll $ repetitiveInput (Range.linear 0 10)
+      input <- forAll $ repetitiveInput (Range.linear 0 100)
+      replace pat sub input === intercalate sub (split pat input)
+
+    context "when replacing a pattern with itself" $ do
+      it "returns the original input" $ do
+        pat <- forAll $ repetitiveInput (Range.linear 0 10)
+        input <- forAll $ repetitiveInput (Range.linear 0 100)
+        replace pat pat input === input
+
+    context "when replacing the input with a substitute" $ do
+      it "returns the substitute" $ do
+        sub <- forAll arbitrary
+        input <- forAll arbitrary
+        replace input sub input === sub
+
+    context "with the empty string as the pattern" $ do
+      it "inserts the substitute at every position" $ do
+        replace "" "-" "foo" `shouldBe` "-f-o-o-"
 
   describe "foldl" $ do
     it "folds from left to right" $ do
@@ -489,32 +515,40 @@ spec = do
       ByteArray.stripSuffix "baz" "foobarbaz" `shouldBe` (Just "foobar")
 
   describe "split" $ do
-    it "splits a byte array" $ do
-      ByteArray.split ", " "foo, bar, baz" `shouldBe` ["foo", "bar", "baz"]
+    it "splits the input at every occurrence of a pattern" $ do
+      split ", " "foo, bar, baz" `shouldBe` ["foo", "bar", "baz"]
 
     it "is reversed by intercalate" $ do
-      needle <- forAll $ smallBytes (Range.linear 0 10)
-      input  <- forAll $ smallBytes (Range.linear 0 100)
-      ByteArray.intercalate needle (ByteArray.split needle input) === input
+      pat <- forAll $ repetitiveInput (Range.linear 0 10)
+      input <- forAll $ repetitiveInput (Range.linear 0 100)
+      intercalate pat (split pat input) === input
 
     it "works on invalid UTF-8" $ do
       let input = [223, 242, 223]
       isValidUtf8 input `shouldBe` False
-      ByteArray.split [242] input `shouldBe` [[223], [223]]
+      split [242] input `shouldBe` [[223], [223]]
+
+    context "when the input itself is used as the pattern" $ do
+      it "creates 2 empty chunks" $ do
+        input <- forAll arbitrary
+        split input input === ["", ""]
 
     context "when the separator is repeated n times in the input" $ do
       it "creates n+1 empty chunks" $ do
-        ByteArray.split "foo" "foofoofoo" `shouldBe` ["", "", "", ""]
+        split "foo" "foofoofoo" `shouldBe` ["", "", "", ""]
 
     context "when pattern does not match" $ do
       it "returns a singleton list" $ do
-        ByteArray.split "foo" "" `shouldBe` [""]
-        ByteArray.split "foo" "bar" `shouldBe` ["bar"]
+        split "foo" "" `shouldBe` [""]
+        split "foo" "bar" `shouldBe` ["bar"]
 
     context "with an empty separator" $ do
-      it "splits into chunks of size one" $ do
+      it "splits into chunks of size one, starting and ending with the empty chunk" $ do
+        split "" "foo" `shouldBe` ["", "f", "o", "o", ""]
+
+      it "works for arbitrary input" $ do
         input <- forAll arbitrary
-        ByteArray.split "" input === List.map ByteArray.singleton (ByteArray.unpack input)
+        List.length (split "" input) === length input + 2
 
   describe "chunksOf" $ do
     it "splits a byte array into chunks of a specified size" $ do
@@ -561,8 +595,8 @@ spec = do
       isPrefixOf (take n input) input === True
 
     prop "isPrefixOf prefix input == isSuffixOf (reverse prefix) (reverse input)" $ do
-      prefix <- forAll $ smallBytes (Range.linear 0 10)
-      input <- forAll $ smallBytes (Range.linear 0 100)
+      prefix <- forAll $ repetitiveInput (Range.linear 0 10)
+      input <- forAll $ repetitiveInput (Range.linear 0 100)
       isPrefixOf prefix input === isSuffixOf (reverse prefix) (reverse input)
 
   describe "isSuffixOf" $ do
@@ -575,14 +609,14 @@ spec = do
       isSuffixOf (take -n input) input === True
 
     prop "isSuffixOf suffix input == isPrefixOf (reverse suffix) (reverse input)" $ do
-      suffix <- forAll $ smallBytes (Range.linear 0 10)
-      input <- forAll $ smallBytes (Range.linear 0 100)
+      suffix <- forAll $ repetitiveInput (Range.linear 0 10)
+      input <- forAll $ repetitiveInput (Range.linear 0 100)
       isSuffixOf suffix input === isPrefixOf (reverse suffix) (reverse input)
 
   describe "isInfixOf" $ do
     it "tests whether a byte array contains given pattern" $ do
-      needle <- forAll $ smallBytes (Range.linear 0 10)
-      input <- forAll $ smallBytes (Range.linear 0 100)
+      needle <- forAll $ repetitiveInput (Range.linear 0 10)
+      input <- forAll $ repetitiveInput (Range.linear 0 100)
       isInfixOf needle input === List.isInfixOf (unpack needle) (unpack input)
 
   describe "elem" $ do
@@ -590,6 +624,13 @@ spec = do
       c <- forAll word8
       input <- forAll arbitrary
       ByteArray.elem c input === List.elem c (unpack input)
+
+  describe "indices" $ do
+    it "returns a list of positions where a pattern matches" $ do
+      ByteArray.indices "bar" "foobarbaz" `shouldBe` [3]
+
+    it "works for empty input" $ do
+      ByteArray.indices "" "foo" `shouldBe` [0, 1, 2, 3]
 
   describe "times" $ do
     it "throws an exception on overflow" $ do
