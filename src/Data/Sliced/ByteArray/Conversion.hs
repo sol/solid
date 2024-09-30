@@ -72,7 +72,7 @@ toLazyByteString = Lazy.fromStrict . toByteString
 {-# INLINE toLazyByteString #-}
 
 fromLazyByteString :: LazyByteString -> ByteArray
-fromLazyByteString input = ByteArray arr 0 len
+fromLazyByteString input = arr
   where
     len = lazyByteStringLength input
     arr = create len $ \ marr -> do

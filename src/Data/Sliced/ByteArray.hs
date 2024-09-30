@@ -41,6 +41,7 @@ module Data.Sliced.ByteArray (
 , reverse
 , intersperse
 , intercalate
+, replace
 
 -- * Folds
 , foldl
@@ -99,6 +100,9 @@ module Data.Sliced.ByteArray (
 , elem
 , indices
 
+-- * Indexing
+, count
+
 -- * Others
 , times
 , replicate
@@ -128,6 +132,7 @@ use Simd.Utf8
 import Data.Sliced.ByteArray.Util
 import Data.Sliced.ByteArray.Unsafe
 import Data.Sliced.ByteArray.Conversion
+use Data.Sliced.ByteArray.Common
 
 instance Show ByteArray where
   showsPrec :: Int -> ByteArray -> ShowS
@@ -197,17 +202,14 @@ unpack bytes = go bytes.off
       else []
 
 singleton :: Word8 -> ByteArray
-singleton c = ByteArray arr 0 1
-  where
-    arr :: Array
-    arr = create 1 $ \ marr -> do
-      Array.unsafeWrite marr 0 c
+singleton c = create 1 $ \ marr -> do
+  Array.unsafeWrite marr 0 c
 
 append :: ByteArray -> ByteArray -> ByteArray
 append a b
   | a.len == 0 = b
   | b.len == 0 = a
-  | otherwise = ByteArray arr 0 len
+  | otherwise = arr
   where
     len = checkedAdd "append" a.len b.len
     arr = create len $ \ marr -> do
@@ -218,7 +220,7 @@ concat :: [ByteArray] -> ByteArray
 concat (discardEmpty -> xs) = case xs of
   [] -> empty
   [t] -> t
-  _ -> ByteArray arr 0 len
+  _ -> arr
   where
     len = checkedSum "concat" $ List.map (.len) xs
     arr = create len $ \ marr -> do
@@ -236,7 +238,7 @@ times n bytes
   | n <= 0 || bytes.len <= 0 = empty
   | n == 1 = bytes
   | bytes.len == 1 = unsafeReplicate n (unsafeHead bytes)
-  | otherwise = ByteArray arr 0 len
+  | otherwise = arr
   where
     len = checkedMultiply "times" n bytes.len
     arr = create len $ \ marr -> do
@@ -258,18 +260,16 @@ infixr 5 `cons`
 infixl 5 `snoc`
 
 cons :: Word8 -> ByteArray -> ByteArray
-cons x xs = ByteArray {..}
+cons x xs = arr
   where
-    off = 0
     len = succ xs.len
     arr = create len $ \ marr -> do
       copyTo marr 1 xs
       Array.unsafeWrite marr 0 x
 
 snoc :: ByteArray -> Word8 -> ByteArray
-snoc xs x = ByteArray {..}
+snoc xs x = arr
   where
-    off = 0
     len = succ xs.len
     arr = create len $ \ marr -> do
       copyTo marr 0 xs
@@ -314,30 +314,24 @@ length bytes = bytes.len
 {-# INLINE length #-}
 
 map :: (Word8 -> Word8) -> ByteArray -> ByteArray
-map f bytes = ByteArray arr 0 bytes.len
-  where
-    arr :: Array
-    arr = create bytes.len $ \ marr -> do
-      let
-        go i
-          | i < bytes.len = do
-              Array.unsafeWrite marr i (f $ unsafeIndex i bytes)
-              go i.succ
-          | otherwise = pass
-      go 0
+map f bytes = create bytes.len $ \ marr -> do
+  let
+    go i
+      | i < bytes.len = do
+          Array.unsafeWrite marr i (f $ unsafeIndex i bytes)
+          go i.succ
+      | otherwise = pass
+  go 0
 
 reverse :: ByteArray -> ByteArray
-reverse bytes = ByteArray arr 0 bytes.len
-  where
-    arr :: Array
-    arr = create bytes.len $ \ marr -> do
-      let
-        go from to
-          | to < bytes.len = do
-              Array.unsafeWrite marr to (unsafeIndex from bytes)
-              go from.pred to.succ
-          | otherwise = pass
-      go (bytes.len - 1) 0
+reverse bytes = create bytes.len $ \ marr -> do
+  let
+    go from to
+      | to < bytes.len = do
+          Array.unsafeWrite marr to (unsafeIndex from bytes)
+          go from.pred to.succ
+      | otherwise = pass
+  go (bytes.len - 1) 0
 
 intersperse :: Word8 -> ByteArray -> ByteArray
 intersperse c bytes
@@ -359,20 +353,22 @@ intersperse c bytes
 intercalate :: ByteArray -> [ByteArray] -> ByteArray
 intercalate _ [] = mempty
 intercalate _ [chunk] = chunk
-intercalate sep (firstChunk : chunks) = ByteArray arr 0 len
+intercalate sep (firstChunk : chunks) = create len $ \ marr -> do
+  copyTo marr 0 firstChunk
+  let
+    go _ [] = pure ()
+    go i (x : xs) = do
+      copyTo marr i sep
+      let j = i + sep.len
+      copyTo marr j x
+      go (j + x.len) xs
+  go firstChunk.len chunks
   where
     plus = checkedAdd "intercalate"
     len = List.foldl' (\ acc chunk -> acc `plus` sep.len `plus` chunk.len) firstChunk.len chunks
-    arr = create len $ \ marr -> do
-      copyTo marr 0 firstChunk
-      let
-        go _ [] = pure ()
-        go i (x : xs) = do
-          copyTo marr i sep
-          let j = i + sep.len
-          copyTo marr j x
-          go (j + x.len) xs
-      go firstChunk.len chunks
+
+replace :: ByteArray -> ByteArray -> ByteArray -> ByteArray
+replace old new bytes = Common.replace (indices old bytes) old.len new bytes
 
 foldl :: (a -> Word8 -> a) -> a -> ByteArray -> a
 foldl f start = \ case -- the lambda is crucial as GHC only inlines functions that are "fully applied"
@@ -573,22 +569,7 @@ stripSuffix suffix bytes
 {-# INLINE stripSuffix #-}
 
 split :: ByteArray -> ByteArray -> [ByteArray]
-split needle bytes
-  | needle.len == 0 = elements bytes
-  | bytes.len == 0 = [empty]
-  | otherwise = go 0 $ indices needle bytes
-  where
-    go off = \ case
-      [] -> [unsafeDrop off bytes]
-      n : xs -> unsafeSlice off n bytes : go (n + needle.len) xs
-
-elements :: ByteArray -> [ByteArray]
-elements bytes = go 0
-  where
-    go n
-      | n < bytes.len = unsafeSlice n m bytes : go m
-      | otherwise = []
-      where m = n.succ
+split pat bytes = Common.split bytes pat.len (indices pat bytes)
 
 chunksOf :: Int -> ByteArray -> [ByteArray]
 chunksOf n
@@ -600,12 +581,10 @@ chunksOf n
       | otherwise = xs : go ys
 
 breakOn :: ByteArray -> ByteArray -> (ByteArray, ByteArray)
-breakOn needle bytes
-  | null needle  = (empty, bytes)
-  | otherwise = case indices needle bytes of
-      [] -> (bytes, empty)
-      0 : _ -> (empty, bytes)
-      n : _ -> (unsafeTake n bytes, unsafeDrop n bytes)
+breakOn pat bytes = case indices pat bytes of
+  [] -> (bytes, empty)
+  0 : _ -> (empty, bytes)
+  n : _ -> (unsafeTake n bytes, unsafeDrop n bytes)
 {-# INLINE breakOn #-}
 
 isPrefixOf :: ByteArray -> ByteArray -> Bool
@@ -623,13 +602,18 @@ isSuffixOf suffix bytes
     off = bytes.off + bytes.len - suffix.len
 
 isInfixOf :: ByteArray -> ByteArray -> Bool
-isInfixOf needle haystack
-  | needle.len == 0 = True
-  | needle.len == 1 = elem (unsafeHead needle) haystack
-  | otherwise = not . List.null $ indices needle haystack
+isInfixOf pat bytes
+  | pat.len == 0 = True
+  | pat.len == 1 = elem (unsafeHead pat) bytes
+  | otherwise = not . List.null $ indices pat bytes
 
 indices :: ByteArray -> ByteArray -> [Int]
-indices needle haystack = Search.indices (unsafeToText needle) (unsafeToText haystack)
+indices pat bytes
+  | pat.len == 0 = [0 .. bytes.len]
+  | otherwise = Search.indices (unsafeToText pat) (unsafeToText bytes)
+
+count :: ByteArray -> ByteArray -> Int
+count pat = List.length . indices pat
 
 elem :: Word8 -> ByteArray -> Bool
 elem c bytes = memchr bytes.arr bytes.off bytes.len c >= 0
@@ -661,7 +645,7 @@ lines :: ByteArray -> [ByteArray]
 lines = List.map fromText . Text.lines . unsafeToText
 
 unlines :: [ByteArray] -> ByteArray
-unlines chunks = ByteArray arr 0 len
+unlines chunks = arr
   where
     plus = checkedAdd "unlines"
     len = List.foldl' (\ acc chunk -> acc `plus` chunk.len `plus` 1) 0 chunks

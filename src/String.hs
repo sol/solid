@@ -8,7 +8,7 @@ module String (
 , unpack
 ) where
 
-import Solid.Common hiding (read, empty, replicate, take, drop, splitAt)
+import Solid.Common hiding (join, concat, read, empty, replicate, take, drop, splitAt)
 import Solid.String
 import Solid.ByteString (ByteString)
 import Solid.Bytes.Unsafe
@@ -25,7 +25,9 @@ import Text.Read (readMaybe)
 use Data.Sliced.ByteArray.Utf8
 
 -- $setup
--- >>> import Solid
+-- >>> import Solid ()
+-- >>> import Test.QuickCheck
+-- >>> instance Arbitrary String where arbitrary = pack <$> arbitrary
 
 asByteString :: String -> ByteString
 asByteString = Bytes.asByteString
@@ -130,16 +132,44 @@ null = coerce Utf8.null
 .unlines :: [String] -> String
 .unlines = coerce Utf8.unlines
 
--- |
--- >>> let input = "hey-there" :: String
+-- | Join a list of strings.
 --
+-- >>> String.join "-" ["hey", "there"]
+-- "hey-there"
+--
+-- prop> join sep xs == concat (List.intersperse sep xs)
+.join :: String -> [String] -> String
+.join = coerce Utf8.intercalate
+
+.concat :: [String] -> String
+.concat = coerce Utf8.concat
+
+-- | Split the /input/ at every occurrence of a /pattern/.
+--
+-- >>> let input = "hey-there" :: String
 -- >>> input.split "-"
 -- ["hey","there"]
 --
--- >>> input.split ""
--- ["h","e","y","-","t","h","e","r","e"]
+-- prop> split input input == ["", ""]
+-- prop> join pat (split pat input) == input
 .split :: String -> String -> [String]
 .split = coerce Utf8.split
+
+-- | Replace every occurrence of a /pattern/ with a /substitute/.
+--
+-- >>> let message = "I am not angry. Not at all." :: String
+-- >>> message.replace "." "!"
+-- "I am not angry! Not at all!"
+--
+-- >>> let hey = "hey" :: String
+-- >>> hey.replace "" "-"
+-- "-h-e-y-"
+--
+-- prop> replace pat pat input == input
+-- prop> replace input sub input == sub
+-- prop> replace pat sub input == (input.split pat).join sub
+.replace :: String -> String -> String -> String
+.replace = coerce Utf8.replace
 
 .ljust :: Int -> String -> String
 .ljust n string = string <> times (n - length string) " "

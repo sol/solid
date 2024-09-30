@@ -62,12 +62,6 @@ spec = do
       List.enumerate input `shouldBe` expected
       input.enumerate `shouldBe` expected
 
-  describe "join" $ do
-    it "joins a list of strings" $ do
-      let xs = ["foo", "bar", "baz"]
-      xs.join ", " `shouldBe` "foo, bar, baz"
-      List.join ", " xs `shouldBe` "foo, bar, baz"
-
   describe "randomChoice" $ do
     it "returns a random list element" $ do
       let

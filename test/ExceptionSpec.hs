@@ -26,7 +26,7 @@ spec = do
 
       context "with a StackTrace" $ do
         it "converts to a String" $ do
-          (Exception.InvalidValue trace "foo").toString `shouldBe` List.join "\n" [
+          (Exception.InvalidValue trace "foo").toString `shouldBe` String.join "\n" [
               ""
             , ""
             , "StackTrace (from WithStackTrace):"

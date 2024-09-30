@@ -27,6 +27,7 @@ instance Ord ByteArray where
 
 empty :: ByteArray
 empty = ByteArray mempty 0 0
+{-# NOINLINE empty #-}
 
 pin :: ByteArray -> ByteArray
 pin bytes
@@ -39,10 +40,8 @@ pin bytes
       return marr
 
 copy :: ByteArray -> ByteArray
-copy bytes = ByteArray arr 0 bytes.len
-  where
-    arr = create bytes.len $ \ marr -> do
-      copyTo marr 0 bytes
+copy bytes = create bytes.len $ \ marr -> do
+  copyTo marr 0 bytes
 
 compact :: ByteArray -> ByteArray
 compact bytes
@@ -50,9 +49,18 @@ compact bytes
   | bytes.len == sizeofByteArray bytes.arr = bytes
   | otherwise = copy bytes
 
+create :: Int -> (forall s. MArray s -> ST s ()) -> ByteArray
+create !len action = if len == 0 then empty else ByteArray arr 0 len
+  where
+    arr :: Array
+    arr = Array.run $ do
+      marr <- Array.new len
+      action marr
+      return marr
+{-# INLINE create #-}
+
 copyTo :: MArray s -> Int -> ByteArray -> ST s ()
-copyTo marr off bytes = do
-  Array.copyI bytes.len marr off bytes.arr bytes.off
+copyTo marr off bytes = copySlice marr off bytes.arr bytes.off bytes.len
 {-# INLINE copyTo #-}
 
 unsafeIndex :: Int -> ByteArray -> Word8
