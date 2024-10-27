@@ -73,7 +73,10 @@ type ImplicitImports = Set ImplicitImport
 
 wellKnownModules :: ImplicitImports
 wellKnownModules = Set.fromList [
-    "ByteString"
+    "Solid"
+  , "Haskell"
+
+  , "ByteString"
   , "Char"
   , "Directory"
   , "Either"
