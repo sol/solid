@@ -3,12 +3,16 @@ module Haskell (
   Haskell.String
 
 , Haskell.ByteString
-, asByteString
+, toByteString
 , fromByteString
 
 , Haskell.LazyByteString
 , toLazyByteString
 , fromLazyByteString
+
+, Haskell.ShortByteString
+, toShortByteString
+, fromShortByteString
 
 , Text
 , toText
@@ -46,6 +50,7 @@ import System.IO.Unsafe (unsafePerformIO)
 use Data.String as Haskell
 use Data.ByteString as Haskell
 use Data.ByteString.Lazy as Haskell (LazyByteString)
+use Data.ByteString.Short as Haskell (ShortByteString)
 use System.FilePath as Haskell
 use System.OsPath as Haskell
 use System.OsPath.Types as Haskell
@@ -57,11 +62,13 @@ use Data.Sliced.ByteArray.Conversion
 import Data.Coerce (coerce)
 import Solid.Bytes.Unsafe
 
-asByteString :: Bytes a -> Haskell.ByteString
-asByteString = coerce Conversion.toByteString
+toByteString :: Bytes a -> Haskell.ByteString
+toByteString = coerce Conversion.toByteString
+{-# INLINE toByteString #-}
 
 fromByteString :: Haskell.ByteString -> ByteString
 fromByteString = coerce Conversion.fromByteString
+{-# INLINE fromByteString #-}
 
 toLazyByteString :: Bytes a -> Haskell.LazyByteString
 toLazyByteString = coerce Conversion.toLazyByteString
@@ -70,6 +77,14 @@ toLazyByteString = coerce Conversion.toLazyByteString
 fromLazyByteString :: Haskell.LazyByteString -> ByteString
 fromLazyByteString = coerce Conversion.fromLazyByteString
 {-# INLINE fromLazyByteString #-}
+
+toShortByteString :: Bytes a -> Haskell.ShortByteString
+toShortByteString = coerce Conversion.toShortByteString
+{-# INLINE toShortByteString #-}
+
+fromShortByteString :: Haskell.ShortByteString -> ByteString
+fromShortByteString = coerce Conversion.fromShortByteString
+{-# INLINE fromShortByteString #-}
 
 toText :: String -> Text
 toText = coerce Conversion.unsafeToText

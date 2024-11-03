@@ -40,7 +40,7 @@ readBinaryFile :: FilePath -> IO ByteString
 readBinaryFile = Haskell.toFilePath >=> fmap Haskell.fromByteString . B.readFile
 
 writeBinaryFile :: FilePath -> Bytes a -> IO ()
-writeBinaryFile path content = Haskell.toFilePath path >>= (`B.writeFile` Haskell.asByteString content)
+writeBinaryFile path content = Haskell.toFilePath path >>= (`B.writeFile` Haskell.toByteString content)
 
 try :: IO a -> IO (Either Exception.IOException a)
 try = Exception.try

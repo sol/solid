@@ -21,13 +21,13 @@ import System.Posix.Env.ByteString qualified as Haskell
 use Haskell
 
 get :: ByteString -> IO (Maybe ByteString)
-get = fmap (fmap Haskell.fromByteString) . Haskell.getEnv . Haskell.asByteString
+get = fmap (fmap Haskell.fromByteString) . Haskell.getEnv . Haskell.toByteString
 
 set :: ByteString -> ByteString -> IO ()
-set name value = Haskell.setEnv (Haskell.asByteString name) (Haskell.asByteString value) True
+set name value = Haskell.setEnv (Haskell.toByteString name) (Haskell.toByteString value) True
 
 unset :: ByteString -> IO ()
-unset = Haskell.unsetEnv . Haskell.asByteString
+unset = Haskell.unsetEnv . Haskell.toByteString
 
 without :: ByteString -> IO a -> IO a
 without name action = bracket (get name) (maybe pass (set name)) $ \ _ -> do
@@ -55,7 +55,7 @@ modify f action = bracket Haskell.getEnvironment Haskell.setEnvironment $ \ env 
   action
 
 toHaskellEnvironment :: [(ByteString, ByteString)] -> [(Haskell.ByteString, Haskell.ByteString)]
-toHaskellEnvironment = map (bimap Haskell.asByteString Haskell.asByteString)
+toHaskellEnvironment = map (bimap Haskell.toByteString Haskell.toByteString)
 
 fromHaskellEnvironment :: [(Haskell.ByteString, Haskell.ByteString)] -> [(ByteString, ByteString)]
 fromHaskellEnvironment = map (bimap Haskell.fromByteString Haskell.fromByteString)

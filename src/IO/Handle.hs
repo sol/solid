@@ -62,7 +62,7 @@ type Mode = Haskell.IOMode
 .print = writeLine . toString
 
 .write :: String -> Handle -> IO ()
-.write xs h = B.hPut h (Haskell.asByteString xs)
+.write xs h = B.hPut h (Haskell.toByteString xs)
 
 .writeLine :: String -> Handle -> IO ()
 .writeLine str self = do
