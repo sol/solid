@@ -25,7 +25,7 @@ fingerprintByteString bs = unsafeDupablePerformIO $
   BS.unsafeUseAsCStringLen bs $ \(ptr, len) -> fingerprintData (castPtr ptr) len
 
 fingerprintBytes :: Bytes a -> Fingerprint
-fingerprintBytes = fingerprintByteString . Haskell.asByteString
+fingerprintBytes = fingerprintByteString . Haskell.toByteString
 
 instance HasField "md5sum" (Bytes a) Fingerprint where
   getField = fingerprintBytes
