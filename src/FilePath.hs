@@ -25,7 +25,15 @@ module FilePath (
 , open
 
 , parent
+
 , directory
+, takeDirectory
+
+, split
+, splitPath
+
+, components
+, splitDirectories
 ) where
 
 import Solid.Common hiding (IsString(..))
@@ -83,6 +91,24 @@ rename = Import.renamePath
 
 .directory :: FilePath -> FilePath
 .directory = Import.takeDirectory
+
+takeDirectory :: FilePath -> FilePath
+takeDirectory = directory
+{-# DEPRECATED takeDirectory "Use `directory` instead." #-}
+
+.split :: FilePath -> [FilePath]
+.split = Import.splitPath
+
+splitPath :: FilePath -> [FilePath]
+splitPath = split
+{-# DEPRECATED splitPath "Use `split` instead." #-}
+
+.components :: FilePath -> [FilePath]
+.components = Import.splitDirectories
+
+splitDirectories :: FilePath -> [FilePath]
+splitDirectories = components
+{-# DEPRECATED splitDirectories "Use `components` instead." #-}
 
 instance HasField "rename" FilePath (FilePath -> IO ()) where
   getField = rename
