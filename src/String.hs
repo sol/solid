@@ -141,6 +141,10 @@ null = coerce Utf8.null
 .join :: String -> [String] -> String
 .join = coerce Utf8.intercalate
 
+intercalate :: String -> [String] -> String
+intercalate = join
+{-# DEPRECATED intercalate "Use `join` instead." #-}
+
 .concat :: [String] -> String
 .concat = coerce Utf8.concat
 
@@ -183,22 +187,6 @@ null = coerce Utf8.null
 .strip :: String -> String
 .strip = coerce Utf8.strip
 
-intercalate :: String -> [String] -> String
-intercalate = join
-{-# DEPRECATED intercalate "Use `join` instead." #-}
-
-isPrefixOf :: String -> String -> Bool
-isPrefixOf = startsWith
-{-# DEPRECATED isPrefixOf "Use `startsWith` instead." #-}
-
-isSuffixOf :: String -> String -> Bool
-isSuffixOf = endsWith
-{-# DEPRECATED isSuffixOf "Use `endsWith` instead." #-}
-
-isInfixOf :: String -> String -> Bool
-isInfixOf = contains
-{-# DEPRECATED isInfixOf "Use `contains` instead." #-}
-
 .stripPrefix :: String -> String -> Maybe String
 .stripPrefix = coerce Utf8.stripPrefix
 
@@ -208,11 +196,23 @@ isInfixOf = contains
 startsWith :: String -> String -> Bool
 startsWith = Bytes.startsWith
 
+isPrefixOf :: String -> String -> Bool
+isPrefixOf = startsWith
+{-# DEPRECATED isPrefixOf "Use `startsWith` instead." #-}
+
 endsWith :: String -> String -> Bool
 endsWith = Bytes.endsWith
 
+isSuffixOf :: String -> String -> Bool
+isSuffixOf = endsWith
+{-# DEPRECATED isSuffixOf "Use `endsWith` instead." #-}
+
 .contains :: String -> String -> Bool
 .contains = coerce Utf8.isInfixOf
+
+isInfixOf :: String -> String -> Bool
+isInfixOf = contains
+{-# DEPRECATED isInfixOf "Use `contains` instead." #-}
 
 .asFilePath :: String -> FilePath
 .asFilePath = Bytes.asFilePath
