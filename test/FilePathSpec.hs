@@ -134,6 +134,17 @@ spec = do
             dir.remove!
             dir.exists? `shouldReturn` False
 
+  describe "split" $ do
+    it "splits a path into segments" $ do
+      FilePath.split "/foo/bar/baz" `shouldBe` ["/", "foo", "bar", "baz"]
+
+    context "with a relative path" $ do
+      it "splits a path into segments" $ do
+        FilePath.split "foo/bar/baz" `shouldBe` ["foo", "bar", "baz"]
+
+    it "ignores trailing slashes" $ do
+      FilePath.split "foo/bar/baz/" `shouldBe` ["foo", "bar", "baz"]
+
   describe "rename" $ do
     let dst = "bar"
     context "with a non-existing path" $ do
