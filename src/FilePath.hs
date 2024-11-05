@@ -30,13 +30,14 @@ module FilePath (
 , takeDirectory
 
 , split
+, splitDirectories
 , splitPath
 
-, components
-, splitDirectories
+, join
+, joinPath
 ) where
 
-import Solid.Common hiding (IsString(..))
+import Solid.Common hiding (IsString(..), join)
 import Solid.FilePath
 import Solid.ToString qualified as Solid
 import Solid.Bytes.Unsafe
@@ -96,19 +97,44 @@ takeDirectory :: FilePath -> FilePath
 takeDirectory = directory
 {-# DEPRECATED takeDirectory "Use `directory` instead." #-}
 
+-- | Split a `FilePath` at every occurrence of the /path separator/.
+--
+-- >>> FilePath.split "/foo/bar"
+-- ["/","foo","bar"]
+--
+-- >>> FilePath.split "foo/bar"
+-- ["foo","bar"]
+--
+-- >>> FilePath.split "foo//bar"
+-- ["foo","bar"]
+--
+-- >>> FilePath.split "foo/bar/"
+-- ["foo","bar"]
+--
+-- >>> FilePath.split ""
+-- []
 .split :: FilePath -> [FilePath]
-.split = Import.splitPath
+.split = Import.splitDirectories
+
+splitDirectories :: FilePath -> [FilePath]
+splitDirectories = split
+{-# DEPRECATED splitDirectories "Use `split` instead." #-}
 
 splitPath :: FilePath -> [FilePath]
 splitPath = split
-{-# DEPRECATED splitPath "Use `split` instead." #-}
+{-# DEPRECATED splitPath "Use `split` instead. It provides the same functionality, albeit without retaining path separators." #-}
 
-.components :: FilePath -> [FilePath]
-.components = Import.splitDirectories
+-- | Join path segments with the /path separator/.
+--
+-- @
+-- `join` = `foldr` `(Import.</>)` ""
+-- @
+.join :: [FilePath] -> FilePath
+.join = Import.joinPath
 
-splitDirectories :: FilePath -> [FilePath]
-splitDirectories = components
-{-# DEPRECATED splitDirectories "Use `components` instead." #-}
+joinPath :: [FilePath] -> FilePath
+joinPath = join
+{-# DEPRECATED joinPath "Use `join` instead." #-}
 
 instance HasField "rename" FilePath (FilePath -> IO ()) where
   getField = rename
