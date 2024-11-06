@@ -22,6 +22,7 @@ module Solid.PP.Parser (
 , ImportName(..)
 , PackageName(..)
 , ImportList(..)
+, ImportExportItems(..)
 
 , Method(..)
 , MethodName(..)
@@ -223,7 +224,7 @@ pModuleName = token \ case
   _ -> Nothing
 
 pExportList :: Parser (ExportList BufferSpan)
-pExportList = oparen *> (ExportList <$> pBracketedInner) <* cparen <|> pure NoExportList
+pExportList = ExportList <$> pImportExportItems <|> pure NoExportList
 
 pUse :: Parser (Import BufferSpan)
 pUse = Import <$> require (ITvarid "use") <*> pure Use <*> pImportName <*> optional pImportAs <*> pImportList <* many (require ITsemi)
@@ -253,10 +254,12 @@ pImportAs :: Parser (ModuleName BufferSpan)
 pImportAs = require ITas *> pModuleName
 
 pImportList :: Parser (ImportList BufferSpan)
-pImportList = importList <*> items <|> pure NoImportList
+pImportList = importList <*> pImportExportItems <|> pure NoImportList
   where
     importList = require IThiding *> pure HidingList <|> pure ImportList
-    items = oparen *> pBracketedInner <* cparen
+
+pImportExportItems :: Parser (ImportExportItems BufferSpan)
+pImportExportItems = oparen *> (ImportExportItems <$> pBracketedInner) <* cparen
 
 pModuleBody :: Parser [Node BufferSpan]
 pModuleBody = many pNode <* eof
@@ -634,7 +637,7 @@ data ModuleHeader loc = NoModuleHeader | ModuleHeader loc (ModuleName loc) (Expo
 data ModuleName loc = ModuleName loc (Maybe FastString) FastString
   deriving (Eq, Show, Functor)
 
-data ExportList loc = NoExportList | ExportList [[Node loc]]
+data ExportList loc = NoExportList | ExportList (ImportExportItems loc)
   deriving (Eq, Show, Functor)
 
 data Import loc = Import {
@@ -656,7 +659,10 @@ data ImportName loc = ImportName {
 data PackageName = NoPackageName | PackageName FastString
   deriving (Eq, Show)
 
-data ImportList loc = NoImportList | ImportList [[Node loc]] | HidingList [[Node loc]]
+data ImportList loc = NoImportList | ImportList (ImportExportItems loc) | HidingList (ImportExportItems loc)
+  deriving (Eq, Show, Functor)
+
+data ImportExportItems loc = ImportExportItems [[Node loc]]
   deriving (Eq, Show, Functor)
 
 data Node loc =
