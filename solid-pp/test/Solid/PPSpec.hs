@@ -9,6 +9,7 @@ import           Test.Mockery.Directory
 import           Data.Char
 import qualified Data.Set as Set
 import           Data.List (stripPrefix)
+import qualified Data.Text as Text
 
 import           Solid.PP.Parser
 
@@ -156,6 +157,12 @@ spec = do
       it "filters out renamed use-statements" $ do
         modules (unlines [
             "use Data.Text as String"
+          , "foo = String.length"
+          ]) `shouldBe` Set.fromList []
+
+      it "filters out use-with-statements" $ do
+        modules (unlines [
+            "use String with (pack)"
           , "foo = String.length"
           ]) `shouldBe` Set.fromList []
 
@@ -568,6 +575,35 @@ spec = do
       context "with `as` specified" $ do
         it "desugars the use-statement" $ do
           "use Foo.Bar as Baz" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar{-# COLUMN 1 #-}qualified{-# COLUMN 12 #-} as Baz"
+
+    context "when pre-processing use-with-statements" $ do
+      context "with an unqualified module name" $ do
+        it "desugars the use-with-statement" $ do
+          "use String with (String)" `shouldDesugarTo` Text.intercalate "\n" [
+              "import{-# COLUMN 4 #-} String{-# COLUMN 1 #-}qualified{-# COLUMN 11 #-} {-# LINE 1 \"main.hs\" #-}"
+            , "import{-# COLUMN 5 #-}String{-# COLUMN 16 #-} (String)"
+            ]
+
+      context "with a qualified module name" $ do
+        it "desugars the use-with-statement" $ do
+          "use Data.Set with (Set)" `shouldDesugarTo` Text.intercalate "\n" [
+              "import{-# COLUMN 4 #-} Data.Set{-# COLUMN 1 #-}qualified as{-# COLUMN 10 #-}Set {-# LINE 1 \"main.hs\" #-}"
+            , "import{-# COLUMN 5 #-}Data.Set{-# COLUMN 18 #-} (Set)"
+            ]
+
+      context "with package imports" $ do
+        it "desugars the use-with-statement" $ do
+          "use \"containers\" Data.Set with (Set)" `shouldDesugarTo` Text.intercalate "\n" [
+              "import{-# COLUMN 4 #-} \"containers\" Data.Set{-# COLUMN 1 #-}qualified as{-# COLUMN 23 #-}Set {-# LINE 1 \"main.hs\" #-}"
+            , "import{-# COLUMN 5 #-}\"containers\"{-# COLUMN 18 #-}Data.Set{-# COLUMN 31 #-} (Set)"
+            ]
+
+      context "with `as` specified" $ do
+        it "desugars the use-with-statement" $ do
+          "use Data.Set as S with (Set)" `shouldDesugarTo` Text.intercalate "\n" [
+              "import{-# COLUMN 4 #-} Data.Set{-# COLUMN 1 #-}qualified{-# COLUMN 13 #-} as S {-# LINE 1 \"main.hs\" #-}"
+            , "import{-# COLUMN 5 #-}Data.Set{-# COLUMN 23 #-} (Set)"
+            ]
 
     context "when pre-processing function calls" $ do
       it "desugars a function call with a single argument" $ do

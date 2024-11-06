@@ -24,7 +24,7 @@ import GHC.Utils.Outputable
 import Solid.PP qualified as PP
 
 force :: Bool
-force = True
+force = False
 
 tryReadFile :: FilePath -> IO (Either IOError Text)
 tryReadFile = try . readFile
@@ -138,5 +138,6 @@ spec = do
   test "use-qualified-name"
   test "use-qualified-name-as"
   test "import-qualified-as"
+  test "use-with"
   where
     _ignore = ftest
