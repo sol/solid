@@ -1,0 +1,58 @@
+File: Foo.hs
+  |        _________
+2 | module Foo where
+3 | use "containers" Data.Map.Strict as StrictMap with (Map)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Foo.hs:(2,8)-(3,56): Source: From source
+                     {(annotations: {(Module, Module)}),  (types: []),
+                      (identifier info: {})}
+
+    |
+  2 | module Foo where
+    |        ^^^
+  Foo.hs:2:8-10: Source: From source
+                 {(annotations: {}),  (types: []),
+                  (identifier info: {(module Foo,  Details:  Nothing {export})})}
+
+    |
+  3 | use "containers" Data.Map.Strict as StrictMap with (Map)
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Foo.hs:3:1-56: Source: From source
+                 {(annotations: {(ImportDecl, ImportDecl)}),  (types: []),
+                  (identifier info: {})}
+
+      |
+    3 | use "containers" Data.Map.Strict as StrictMap with (Map)
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Foo.hs:3:1-45: Source: From source
+                   {(annotations: {(ImportDecl, ImportDecl)}),  (types: []),
+                    (identifier info: {})}
+
+        |
+      3 | use "containers" Data.Map.Strict as StrictMap with (Map)
+        |                  ^^^^^^^^^^^^^^^
+      Foo.hs:3:18-32: Source: From source
+                      {(annotations: {}),  (types: []),
+                       (identifier info: {(module Data.Map.Strict,  Details:  Nothing {import})})}
+
+        |
+      3 | use "containers" Data.Map.Strict as StrictMap with (Map)
+        |                                     ^^^^^^^^^
+      Foo.hs:3:37-45: Source: From source
+                      {(annotations: {}),  (types: []),
+                       (identifier info: {(module StrictMap,  Details:  Nothing {import as})})}
+
+      |
+    3 | use "containers" Data.Map.Strict as StrictMap with (Map)
+      |                                                    ^^^^^
+    Foo.hs:3:52-56: Source: From source
+                    {(annotations: {}),  (types: []),  (identifier info: {})}
+
+        |
+      3 | use "containers" Data.Map.Strict as StrictMap with (Map)
+        |                                                     ^^^
+      Foo.hs:3:53-55: Source: From source
+                      {(annotations: {(IEName, IEWrappedName), (IEThingAbs, IE)}),
+                       (types: []),
+                       (identifier info: {(name Map,  Details:  Nothing {import})})}
+

@@ -170,16 +170,17 @@ data EffectiveImport = EffectiveImport {
 , _imports :: Imports
 }
 
-data Qualification = QualifiedImport | UnqualifiedImport
+data Qualification = QualifiedImport | QualifiedImportWith | UnqualifiedImport
 
 data Imports = NoImports | Imports
 
 effectiveImport :: Import () -> EffectiveImport
 effectiveImport = \ case
   Import () qualification (ImportName package name) as imports -> case qualification of
-    Use -> effective $ maybe (useAsNameFromName name) (Just . implicitImport) as
+    Use _ -> effective $ maybe (useAsNameFromName name) (Just . implicitImport) as
     _   -> effective (implicitImport <$> as)
     where
+      effective :: Maybe ImplicitImport -> EffectiveImport
       effective as_ = EffectiveImport (effectiveQualification qualification) package (implicitImport name) as_ (effectiveImports imports)
 
 useAsNameFromName :: ModuleName () -> Maybe ImplicitImport
@@ -193,9 +194,10 @@ effectiveImports = \ case
   ImportList _ -> Imports
   HidingList _ -> Imports
 
-effectiveQualification :: ImportQualification -> Qualification
+effectiveQualification :: ImportQualification loc -> Qualification
 effectiveQualification = \ case
-  Use -> QualifiedImport
+  Use NoUseWith -> QualifiedImport
+  Use (UseWith _ _) -> QualifiedImportWith
   Qualified -> QualifiedImport
   QualifiedPost -> QualifiedImport
   Unqualified -> UnqualifiedImport
@@ -350,7 +352,7 @@ ppModule (Module header imports nodes) = ppHeader header <> concatMap ppImport i
 
 ppImport :: Import BufferSpan -> DList Edit
 ppImport = \ case
-  Import loc Use name as imports -> ppUseStatement loc name as <> ppImportList imports
+  Import loc (Use useWith) name as imports -> ppUseStatement loc name as <> ppImportList imports <> ppUseWith name useWith
   Import _ _ _ _ imports -> ppImportList imports
   where
     ppUseStatement :: BufferSpan -> ImportName BufferSpan -> Maybe (ModuleName BufferSpan) -> DList Edit
@@ -363,6 +365,22 @@ ppImport = \ case
       where
         startColumnPragma :: Builder
         startColumnPragma = columnPragma use.startColumn
+
+    ppUseWith :: ImportName BufferSpan -> UseWith BufferSpan -> DList Edit
+    ppUseWith name = \ case
+      NoUseWith -> mempty
+      UseWith loc _nodes -> Edit.replace loc (linePragma loc.endLoc <> "import" <> showImportName name)
+
+    showImportName :: ImportName BufferSpan -> Builder
+    showImportName (ImportName package (ModuleName loc qualified name)) = showPackageName package <> columnPragma loc.startColumn <> (case qualified of
+      Nothing -> mempty
+      Just q -> Builder.fastString q <> "."
+      ) <> Builder.fastString name
+
+    showPackageName :: PackageName BufferSpan -> Builder
+    showPackageName = \ case
+      NoPackageName -> mempty
+      PackageName loc name -> columnPragma loc.startColumn <> "\"" <> Builder.fastString name <> "\""
 
     ppImportList :: ImportList BufferSpan -> DList Edit
     ppImportList = \ case

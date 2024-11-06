@@ -167,8 +167,11 @@ spec = do
         parse "module Foo (bar, baz) where" `shouldBe` Module (ModuleHeader () "Foo" (ExportList [["bar"], ["baz"]])) [] []
 
     context "when parsing use statements" $ do
-      it "accepts a use-statement" $ do
-        parse "use Data.Foldable" `shouldBe` Module NoModuleHeader [Import () Use "Data.Foldable" Nothing NoImportList] []
+      it "accepts use-statements" $ do
+        parse "use Data.Foldable" `shouldBe` Module NoModuleHeader [Import () (Use NoUseWith) "Data.Foldable" Nothing NoImportList] []
+
+      it "accepts use-with-statements" $ do
+        parse "use Data.Foldable as Foo (foo, bar) with (baz)" `shouldBe` Module NoModuleHeader [Import () (Use $ UseWith () [["baz"]]) "Data.Foldable" (Just "Foo") (ImportList [["foo"], ["bar"]])] []
 
     context "when parsing imports" $ do
       it "accepts imports" $ do
