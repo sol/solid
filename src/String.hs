@@ -159,6 +159,10 @@ intercalate = join
 .split :: String -> String -> [String]
 .split = coerce Utf8.split
 
+splitOn :: String -> String -> [String]
+splitOn = split
+{-# DEPRECATED splitOn "Use `split` instead." #-}
+
 -- | Replace every occurrence of a /pattern/ with a /substitute/.
 --
 -- >>> let message = "I am not angry. Not at all." :: String

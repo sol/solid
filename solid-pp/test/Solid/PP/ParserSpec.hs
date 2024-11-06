@@ -32,6 +32,11 @@ instance IsList (Module ()) where
   fromList = Module NoModuleHeader []
   toList = undefined
 
+instance IsList (ImportExportItems ()) where
+  type Item (ImportExportItems ()) = [Node ()]
+  fromList = ImportExportItems
+  toList = undefined
+
 instance IsString (MethodName ()) where
   fromString = MethodName () . fromString
 

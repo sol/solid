@@ -223,7 +223,10 @@ implicitImports = ($ mempty) . fromModule . void
     fromExportList :: ExportList () -> ImplicitImports -> ImplicitImports
     fromExportList = \ case
       NoExportList -> id
-      ExportList nodes -> foreach fromNodes nodes
+      ExportList nodes -> fromImportExportItems nodes
+
+    fromImportExportItems :: ImportExportItems () -> ImplicitImports -> ImplicitImports
+    fromImportExportItems (ImportExportItems nodes) = foreach fromNodes nodes
 
     fromNodes :: [Node ()] -> ImplicitImports -> ImplicitImports
     fromNodes = foreach fromNode
@@ -357,8 +360,8 @@ ppImport = \ case
     ppImportList :: ImportList BufferSpan -> DList Edit
     ppImportList = \ case
       NoImportList -> mempty
-      ImportList names -> concatMap (pp Nothing) names
-      HidingList names -> concatMap (pp Nothing) names
+      ImportList names -> ppImportExportItems names
+      HidingList names -> ppImportExportItems names
 
 ppHeader :: ModuleHeader BufferSpan -> DList Edit
 ppHeader = \ case
@@ -368,7 +371,10 @@ ppHeader = \ case
 ppExportList :: ExportList BufferSpan -> DList Edit
 ppExportList = \ case
   NoExportList -> mempty
-  ExportList nodes -> concatMap (pp Nothing) nodes
+  ExportList names -> ppImportExportItems names
+
+ppImportExportItems :: ImportExportItems BufferSpan -> DList Edit
+ppImportExportItems (ImportExportItems nodes) = concatMap (pp Nothing) nodes
 
 data WithColumnPragma = WithColumnPragma | WithoutColumnPragma
 
