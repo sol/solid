@@ -10,6 +10,7 @@ import           Data.Char
 import qualified Data.Set as Set
 import           Data.List (stripPrefix)
 import qualified Data.List as List
+import qualified Data.Text as Text
 
 import           Solid.PP.Parser
 
@@ -605,6 +606,28 @@ spec = do
       context "with `as` specified" $ do
         it "desugars the use-statement" $ do
           "use Foo.Bar as Baz" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar qualified{-# COLUMN 12 #-} as Baz"
+
+      context "with `with`" $ do
+        it "desugars the use-statement" $ do
+          "use String with (String)" `shouldDesugarTo` Text.intercalate "\n" [
+              "import{-# COLUMN 4 #-} String qualified{-# COLUMN 11 #-} "
+            , "{-# LINE 1 \"main.hs\" #-}"
+            , "import String{-# COLUMN 16 #-} (String)"
+            ]
+
+        it "desugars the use-statement" $ do
+          "use Data.Set with (Set)" `shouldDesugarTo` Text.intercalate "\n" [
+              "import{-# COLUMN 4 #-} Data.Set qualified as Set{-# COLUMN 13 #-} "
+            , "{-# LINE 1 \"main.hs\" #-}"
+            , "import Data.Set{-# COLUMN 18 #-} (Set)"
+            ]
+
+        it "desugars the use-statement" $ do
+          "use \"containers\" Data.Set with (Set)" `shouldDesugarTo` Text.intercalate "\n" [
+              "import{-# COLUMN 4 #-} \"containers\" Data.Set qualified as Set{-# COLUMN 26 #-} "
+            , "{-# LINE 1 \"main.hs\" #-}"
+            , "import \"containers\" Data.Set{-# COLUMN 31 #-} (Set)"
+            ]
 
     context "when pre-processing function calls" $ do
       it "desugars a function call with a single argument" $ do

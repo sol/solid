@@ -179,7 +179,7 @@ data Imports = NoImports | Imports
 effectiveImport :: Import () -> EffectiveImport
 effectiveImport = \ case
   Import () qualification (ImportName package name) as imports -> case qualification of
-    Use -> effective $ maybe (useAsNameFromName name) (Just . implicitImport) as
+    Use _ -> effective $ maybe (useAsNameFromName name) (Just . implicitImport) as -- FIXME
     _   -> effective (implicitImport <$> as)
     where
       effective as_ = EffectiveImport (effectiveQualification qualification) package (implicitImport name) as_ (effectiveImports imports)
@@ -195,9 +195,9 @@ effectiveImports = \ case
   ImportList _ -> Imports
   HidingList _ -> Imports
 
-effectiveQualification :: ImportQualification -> Qualification
+effectiveQualification :: ImportQualification loc -> Qualification
 effectiveQualification = \ case
-  Use -> QualifiedImport
+  Use _ -> QualifiedImport
   Qualified -> QualifiedImport
   QualifiedPost -> QualifiedImport
   Unqualified -> UnqualifiedImport
@@ -348,7 +348,7 @@ ppModule (Module header imports nodes) = ppHeader header <> concatMap ppImport i
 
 ppImport :: Import BufferSpan -> DList Edit
 ppImport = \ case
-  Import loc Use name as imports -> ppUseStatement loc name as <> ppImportList imports
+  Import loc (Use useWith) name as imports -> ppUseStatement loc name as <> ppImportList imports <> ppUseWith name useWith
   Import _ _ _ _ imports -> ppImportList imports
   where
     ppUseStatement :: BufferSpan -> ImportName BufferSpan -> Maybe (ModuleName BufferSpan) -> DList Edit
@@ -356,6 +356,22 @@ ppImport = \ case
       (Nothing, _) -> " qualified"
       (Just _, Nothing) -> " qualified as " <> Builder.fastString name
       _ -> " qualified"
+
+    ppUseWith :: ImportName BufferSpan -> UseWith BufferSpan -> DList Edit
+    ppUseWith foo = \ case
+      NoUseWith -> mempty
+      UseWith loc _nodes -> Edit.replace loc ("\n" <> linePragma loc.endLoc <> "import " <> showImportName foo)
+
+    showImportName :: ImportName loc -> Builder
+    showImportName (ImportName package (ModuleName _ qualified name)) = showPackageName package <> (case qualified of
+      Nothing -> mempty
+      Just q -> Builder.fastString q <> "."
+      ) <> Builder.fastString name
+
+    showPackageName :: PackageName -> Builder
+    showPackageName = \ case
+      NoPackageName -> mempty
+      PackageName name -> "\"" <> Builder.fastString name <> "\" "
 
     ppImportList :: ImportList BufferSpan -> DList Edit
     ppImportList = \ case

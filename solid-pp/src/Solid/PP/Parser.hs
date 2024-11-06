@@ -25,6 +25,8 @@ module Solid.PP.Parser (
 , ImportList(..)
 , ImportExportItems(..)
 
+, UseWith(..)
+
 , Method(..)
 , MethodName(..)
 , WithStackTrace(..)
@@ -234,7 +236,22 @@ pExportList :: Parser (ExportList BufferSpan)
 pExportList = ExportList <$> pImportExportItems <|> pure NoExportList
 
 pUse :: Parser (Import BufferSpan)
-pUse = Import <$> require (ITvarid "use") <*> pure Use <*> pImportName <*> optional pImportAs <*> pImportList <* many (require ITsemi)
+pUse = do
+  loc <- require (ITvarid "use")
+  name <- pImportName
+  as <- optional pImportAs
+  imports <- pImportList
+  with <- pUseWith
+
+  let r = Import loc (Use with) name as imports
+  _ <- many (require ITsemi)
+  return r
+
+
+pUseWith :: Parser (UseWith BufferSpan)
+pUseWith = (UseWith <$> require (ITvarid "with") <*> pImportExportItems) <|> pure NoUseWith
+
+-- FIXME: check for impact on .hie-files !!!
 
 pImport :: Parser (Import BufferSpan)
 pImport = import_ <*> (qualified_name <|> name_qualified) <*> optional pImportAs <*> pImportList <* many (require ITsemi)
@@ -243,10 +260,10 @@ pImport = import_ <*> (qualified_name <|> name_qualified) <*> optional pImportAs
     qualified_name = (,) <$> pQualified <*> pImportName
     name_qualified =  flip (,) <$> pImportName <*> pQualifiedPost
 
-pQualified :: Parser ImportQualification
+pQualified :: Parser (ImportQualification loc)
 pQualified = require ITqualified *> pure Qualified
 
-pQualifiedPost :: Parser ImportQualification
+pQualifiedPost :: Parser (ImportQualification loc)
 pQualifiedPost = require ITqualified *> pure QualifiedPost <|> pure Unqualified
 
 pImportName :: Parser (ImportName BufferSpan)
@@ -593,14 +610,14 @@ data ExportList loc = NoExportList | ExportList (ImportExportItems loc)
 
 data Import loc = Import {
   start :: loc
-, qualification :: ImportQualification
+, qualification :: ImportQualification loc
 , name :: ImportName loc
 , as_name :: Maybe (ModuleName loc)
 , import_list :: ImportList loc
 } deriving (Eq, Show, Functor)
 
-data ImportQualification = Use | Qualified | QualifiedPost | Unqualified
-  deriving (Eq, Show)
+data ImportQualification loc = Use (UseWith loc) | Qualified | QualifiedPost | Unqualified
+  deriving (Eq, Show, Functor)
 
 data ImportName loc = ImportName {
   package :: PackageName
@@ -616,7 +633,7 @@ data ImportList loc = NoImportList | ImportList (ImportExportItems loc) | Hiding
 data ImportExportItems loc = ImportExportItems [[Node loc]]
   deriving (Eq, Show, Functor)
 
-data UseWith loc = NoUseWith | UseWith (ImportExportItems loc)
+data UseWith loc = NoUseWith | UseWith loc (ImportExportItems loc)
   deriving (Eq, Show, Functor)
 
 data Node loc =
