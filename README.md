@@ -133,6 +133,15 @@ you have to populate the cabal store manually, e.g. with `cabal repl
 $ echo | cabal repl --build-depends hspec,QuickCheck
 ```
 
+# Notable differences from Haskell
+
+This section lists semantic differences from Haskell that are not caught by the
+type system.
+
+- `ByteString.strip` and `ByteString.words` only consider ASCII spaces.  This
+  has the advantage that they can be safely used on UTF-8 input.  (unlike their
+  counterparts in `Data.ByteString.Char8`)
+
 # Limitations
 
 - The `where` in `module ... where` has to be followed by a newline, e.g. this
