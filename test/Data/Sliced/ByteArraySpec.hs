@@ -37,7 +37,7 @@ bytes :: MonadGen m => Range Int -> m ByteArray
 bytes = bytesWith pack word8
 
 repetitiveInput :: MonadGen m => Range Int -> m ByteArray
-repetitiveInput = bytesWith pack $ Gen.word8 (Range.constant 65 70)
+repetitiveInput = bytesWith pack $ (Gen.element @[] $ unpack "abcd")
 
 bytesWith :: MonadGen m => ([item] -> ByteArray) -> m item -> Range Int -> m ByteArray
 bytesWith packItems gen range = do
@@ -549,6 +549,22 @@ spec = do
       it "works for arbitrary input" $ do
         input <- forAll arbitrary
         List.length (split "" input) === length input + 2
+
+  describe "splitWith" $ do
+    let
+      a :: Word8
+      a = fromIntegral $ fromEnum 'a'
+
+    it "splits a byte array at every position where a predicate matches" $ do
+      splitWith (== a) "aabbaca" `shouldBe` ["","","bb","c",""]
+
+    it "is reversed by intercalate" $ do
+      input <- forAll $ repetitiveInput (Range.linear 0 10)
+      intercalate "a" (splitWith (== a) input) === input
+
+    context "with an empty byte array" $ do
+      it "returns the empty byte array" $ do
+        splitWith undefined "" `shouldBe` [""]
 
   describe "chunksOf" $ do
     it "splits a byte array into chunks of a specified size" $ do

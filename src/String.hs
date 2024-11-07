@@ -174,6 +174,15 @@ splitOn :: String -> String -> [String]
 splitOn = split
 {-# DEPRECATED splitOn "Use `split` instead." #-}
 
+-- |
+-- >>> splitWith (== 'a') "aabbaca"
+-- ["","","bb","c",""]
+--
+-- >>> splitWith undefined ""
+-- [""]
+.splitWith :: (Char -> Bool) -> String -> [String]
+.splitWith = coerce Utf8.splitWith
+
 -- | Replace every occurrence of a /pattern/ with a /substitute/.
 --
 -- >>> let message = "I am not angry. Not at all." :: String

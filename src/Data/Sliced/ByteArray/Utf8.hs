@@ -57,6 +57,7 @@ module Data.Sliced.ByteArray.Utf8 (
 
 -- ** Breaking into many substrings
 , split
+, splitWith
 , chunksOf
 
 -- ** Breaking into lines and words
@@ -214,6 +215,9 @@ count pat = List.length . indices pat
 
 split :: ByteArray -> ByteArray -> [ByteArray]
 split pat bytes = Common.split bytes pat.len (indices pat bytes)
+
+splitWith :: (Char -> Bool) -> ByteArray -> [ByteArray]
+splitWith p = List.map fromText . Text.split p . unsafeToText
 
 measureOff :: Int -> ByteArray -> Int
 measureOff n = Text.measureOff n . unsafeToText

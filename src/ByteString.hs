@@ -144,6 +144,12 @@ infixr 5 `cons`
 .lines :: ByteString -> [ByteString]
 .lines = coerce ByteArray.lines
 
+-- |
+-- >>> words "foo  bar \n baz"
+-- ["foo","bar","baz"]
+.words :: ByteString -> [ByteString]
+.words = List.filter (not . empty?) . splitWith asciiSpace?
+
 .unlines :: [ByteString] -> ByteString
 .unlines = coerce ByteArray.unlines
 
@@ -170,6 +176,15 @@ infixr 5 `cons`
 .split :: ByteString -> ByteString -> [ByteString]
 .split = coerce ByteArray.split
 
+-- |
+-- >>> splitWith (== 97) "aabbaca"
+-- ["","","bb","c",""]
+--
+-- >>> splitWith undefined ""
+-- [""]
+.splitWith :: (Word8 -> Bool) -> ByteString -> [ByteString]
+.splitWith = coerce ByteArray.splitWith
+
 -- | Replace every occurrence of a /pattern/ with a /substitute/.
 --
 -- >>> let message = "I am not angry. Not at all." :: ByteString
@@ -188,8 +203,6 @@ infixr 5 `cons`
 
 .strip :: ByteString -> ByteString
 .strip = dropWhile asciiSpace? . dropWhileEnd asciiSpace?
-  where
-    asciiSpace? c = c < 128 && isSpaceWord8 c
 
 .inits :: ByteString -> [ByteString]
 .inits = coerce ByteArray.inits
@@ -228,3 +241,7 @@ endsWith = Bytes.endsWith
 .read! input = case read input of
   Nothing -> StackTrace.suppress Exception.invalidValue! "no parse"
   Just a -> a
+
+asciiSpace? :: Word8 -> Bool
+asciiSpace? c = isSpaceWord8 c && c < 128
+{-# INLINE asciiSpace? #-}
