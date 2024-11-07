@@ -203,6 +203,18 @@ spec = do
         input <- forAll arbitrary
         List.length (split "" input) === length input + 2
 
+  describe "splitWith" $ do
+    it "splits a byte array at every position where a predicate matches" $ do
+      splitWith (== 'a') "aabbaca" `shouldBe` ["","","bb","c",""]
+
+    it "is reversed by intercalate" $ do
+      input <- forAll $ repetitiveInput (Range.linear 0 10)
+      intercalate "λ" (splitWith (== 'λ') input) === input
+
+    context "with an empty byte array" $ do
+      it "returns the empty byte array" $ do
+        splitWith undefined "" `shouldBe` [""]
+
   describe "chunksOf" $ do
     it "splits a byte array into chunks of a specified size" $ do
       Utf8.chunksOf 2 "fλλbλrbλz" `shouldBe` ["fλ", "λb", "λr", "bλ", "z"]
