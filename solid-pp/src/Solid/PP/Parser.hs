@@ -289,7 +289,53 @@ pModuleBody :: Parser [Node BufferSpan]
 pModuleBody = many pNode <* eof
 
 pNode :: Parser (Node BufferSpan)
-pNode = pMethodDefinition <|> pMethodChain <|> pAnyToken
+pNode = pPragma <|> pMethodDefinition <|> pMethodChain <|> pAnyToken
+
+pPragma :: Parser (Node BufferSpan)
+pPragma = pragma <$> open <*> (many exceptClose <* close)
+  where
+    pragma :: Token -> [Token] -> Node BufferSpan
+    pragma (L loc x) xs = Pragma loc x (map tokenAsNode xs)
+
+    open :: Parser Token
+    open = token \ t -> case unLoc t of
+      ITinline_prag {} -> Just t
+      ITopaque_prag {} -> Just t
+      ITspec_prag {} -> Just t
+      ITspec_inline_prag {} -> Just t
+      ITsource_prag {} -> Just t
+      ITrules_prag {} -> Just t
+      ITwarning_prag {} -> Just t
+      ITdeprecated_prag {} -> Just t
+      ITline_prag {} -> Just t
+      ITcolumn_prag {} -> Just t
+      ITscc_prag {} -> Just t
+      ITunpack_prag {} -> Just t
+      ITnounpack_prag {} -> Just t
+      ITann_prag {} -> Just t
+      ITcomplete_prag {} -> Just t
+      IToptions_prag {} -> Just t
+      ITinclude_prag {} -> Just t
+      ITlanguage_prag {} -> Just t
+      ITminimal_prag {} -> Just t
+      IToverlappable_prag {} -> Just t
+      IToverlapping_prag {} -> Just t
+      IToverlaps_prag {} -> Just t
+      ITincoherent_prag {} -> Just t
+      ITctype {} -> Just t
+      ITcomment_line_prag {} -> Just t
+      _ -> Nothing
+
+    exceptClose :: Parser Token
+    exceptClose = token \ case
+      L _ ITclose_prag -> Nothing
+      t -> Just t
+
+    close :: Parser ()
+    close = void (require ITclose_prag) <|> eof
+
+tokenAsNode :: Token -> Node BufferSpan
+tokenAsNode (L loc t) = Token loc t
 
 pMethodDefinition :: Parser (Node BufferSpan)
 pMethodDefinition = MethodDefinition <$> pMethod
@@ -491,7 +537,7 @@ pAnyToken = token \ case
   TokenEndBegin {} -> Nothing
   TokenEnd {} -> Nothing
   L _ t | Set.member t excluded -> Nothing
-  L loc t -> Just $ Token loc t
+  t -> Just $ tokenAsNode t
   where
     excluded :: Set Lexer.Token
     excluded = Set.fromList (map (.token) $ filter (.excludedByAnyToken) tokenMetadata)
@@ -638,6 +684,7 @@ data UseWith loc = NoUseWith | UseWith loc (ImportExportItems loc)
 
 data Node loc =
     Token loc Lexer.Token
+  | Pragma loc Lexer.Token [Node loc]
   | MethodDefinition (Method loc)
   | MethodChain (Subject loc) [MethodCall loc]
   deriving (Eq, Show, Functor)
@@ -682,6 +729,7 @@ instance HasField "loc" (End loc) loc where
 instance HasField "start" (Node BufferSpan) SrcLoc where
   getField = \ case
     Token loc _ -> loc.startLoc
+    Pragma loc _ _ -> loc.startLoc
     MethodDefinition method -> method.dot.startLoc
     MethodChain subject _ -> subject.start
 
