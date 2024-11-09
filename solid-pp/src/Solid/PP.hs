@@ -234,6 +234,7 @@ implicitImports = ($ mempty) . fromModule . void
       Token () (ITqvarid (m, _)) -> Set.insert (ImplicitImport m)
       Token () (ITqconid (m, _)) -> Set.insert (ImplicitImport m)
       Token () (_ :: Token) -> id
+      Pragma () nodes -> fromNodes nodes
       MethodDefinition method -> fromMethod method
       MethodChain subject methodCalls -> fromSubject subject . foreach fromMethodCall methodCalls
 
@@ -381,6 +382,7 @@ pp moduleName = ppNodes
     ppNode :: Node BufferSpan -> DList Edit
     ppNode = \ case
       Token loc t -> ppToken loc t
+      Pragma _ nodes -> ppNodes nodes
       MethodDefinition method ->
            Edit.replace method.dot (formatMethod method)
         <> desugarIdentifier loc.start loc.end name
