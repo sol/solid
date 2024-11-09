@@ -84,6 +84,7 @@ module Data.Sliced.ByteArray (
 
 -- ** Breaking into many substrings
 , split
+, splitWith
 , chunksOf
 
 -- ** Breaking into lines and words
@@ -570,6 +571,16 @@ stripSuffix suffix bytes
 
 split :: ByteArray -> ByteArray -> [ByteArray]
 split pat bytes = Common.split bytes pat.len (indices pat bytes)
+
+splitWith :: (Word8 -> Bool) -> ByteArray -> [ByteArray]
+splitWith p bytes
+  | null bytes = [empty]
+  | otherwise = go bytes
+  where
+    go :: ByteArray -> [ByteArray]
+    go s = case break p s of
+      (l, r) | null r -> [l]
+      (l, r) -> l : go (unsafeTail r)
 
 chunksOf :: Int -> ByteArray -> [ByteArray]
 chunksOf n

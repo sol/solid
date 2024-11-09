@@ -179,7 +179,7 @@ data Imports = NoImports | Imports
 effectiveImport :: Import () -> EffectiveImport
 effectiveImport = \ case
   Import () qualification (ImportName package name) as imports -> case qualification of
-    Use -> effective $ maybe (useAsNameFromName name) (Just . implicitImport) as
+    Use _ -> effective $ maybe (useAsNameFromName name) (Just . implicitImport) as -- FIXME
     _   -> effective (implicitImport <$> as)
     where
       effective as_ = EffectiveImport (effectiveQualification qualification) package (implicitImport name) as_ (effectiveImports imports)
@@ -195,9 +195,9 @@ effectiveImports = \ case
   ImportList _ -> Imports
   HidingList _ -> Imports
 
-effectiveQualification :: ImportQualification -> Qualification
+effectiveQualification :: ImportQualification loc -> Qualification
 effectiveQualification = \ case
-  Use -> QualifiedImport
+  Use _ -> QualifiedImport
   Qualified -> QualifiedImport
   QualifiedPost -> QualifiedImport
   Unqualified -> UnqualifiedImport
@@ -224,7 +224,10 @@ implicitImports = ($ mempty) . fromModule . void
     fromExportList :: ExportList () -> ImplicitImports -> ImplicitImports
     fromExportList = \ case
       NoExportList -> id
-      ExportList nodes -> foreach fromNodes nodes
+      ExportList nodes -> fromImportExportItems nodes
+
+    fromImportExportItems :: ImportExportItems () -> ImplicitImports -> ImplicitImports
+    fromImportExportItems (ImportExportItems nodes) = foreach fromNodes nodes
 
     fromNodes :: [Node ()] -> ImplicitImports -> ImplicitImports
     fromNodes = foreach fromNode
@@ -234,6 +237,7 @@ implicitImports = ($ mempty) . fromModule . void
       Token () (ITqvarid (m, _)) -> Set.insert (ImplicitImport m)
       Token () (ITqconid (m, _)) -> Set.insert (ImplicitImport m)
       Token () (_ :: Token) -> id
+      Pragma _ _ nodes -> fromNodes nodes
       MethodDefinition method -> fromMethod method
       MethodChain subject methodCalls -> fromSubject subject . foreach fromMethodCall methodCalls
 
@@ -345,7 +349,7 @@ ppModule (Module header imports nodes) = ppHeader header <> concatMap ppImport i
 
 ppImport :: Import BufferSpan -> DList Edit
 ppImport = \ case
-  Import loc Use name as imports -> ppUseStatement loc name as <> ppImportList imports
+  Import loc (Use useWith) name as imports -> ppUseStatement loc name as <> ppImportList imports <> ppUseWith name useWith
   Import _ _ _ _ imports -> ppImportList imports
   where
     ppUseStatement :: BufferSpan -> ImportName BufferSpan -> Maybe (ModuleName BufferSpan) -> DList Edit
@@ -354,11 +358,27 @@ ppImport = \ case
       (Just _, Nothing) -> " qualified as " <> Builder.fastString name
       _ -> " qualified"
 
+    ppUseWith :: ImportName BufferSpan -> UseWith BufferSpan -> DList Edit
+    ppUseWith foo = \ case
+      NoUseWith -> mempty
+      UseWith loc _nodes -> Edit.replace loc ("\n" <> linePragma loc.endLoc <> "import " <> showImportName foo)
+
+    showImportName :: ImportName loc -> Builder
+    showImportName (ImportName package (ModuleName _ qualified name)) = showPackageName package <> (case qualified of
+      Nothing -> mempty
+      Just q -> Builder.fastString q <> "."
+      ) <> Builder.fastString name
+
+    showPackageName :: PackageName -> Builder
+    showPackageName = \ case
+      NoPackageName -> mempty
+      PackageName name -> "\"" <> Builder.fastString name <> "\" "
+
     ppImportList :: ImportList BufferSpan -> DList Edit
     ppImportList = \ case
       NoImportList -> mempty
-      ImportList names -> concatMap (pp Nothing) names
-      HidingList names -> concatMap (pp Nothing) names
+      ImportList names -> ppImportExportItems names
+      HidingList names -> ppImportExportItems names
 
 ppHeader :: ModuleHeader BufferSpan -> DList Edit
 ppHeader = \ case
@@ -368,7 +388,10 @@ ppHeader = \ case
 ppExportList :: ExportList BufferSpan -> DList Edit
 ppExportList = \ case
   NoExportList -> mempty
-  ExportList nodes -> concatMap (pp Nothing) nodes
+  ExportList names -> ppImportExportItems names
+
+ppImportExportItems :: ImportExportItems BufferSpan -> DList Edit
+ppImportExportItems (ImportExportItems nodes) = concatMap (pp Nothing) nodes
 
 data WithColumnPragma = WithColumnPragma | WithoutColumnPragma
 
@@ -381,6 +404,7 @@ pp moduleName = ppNodes
     ppNode :: Node BufferSpan -> DList Edit
     ppNode = \ case
       Token loc t -> ppToken loc t
+      Pragma _ _ nodes -> ppNodes nodes
       MethodDefinition method ->
            Edit.replace method.dot (formatMethod method)
         <> desugarIdentifier loc.start loc.end name

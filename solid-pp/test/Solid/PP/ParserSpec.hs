@@ -32,6 +32,11 @@ instance IsList (Module ()) where
   fromList = Module NoModuleHeader []
   toList = undefined
 
+instance IsList (ImportExportItems ()) where
+  type Item (ImportExportItems ()) = [Node ()]
+  fromList = ImportExportItems
+  toList = undefined
+
 instance IsString (MethodName ()) where
   fromString = MethodName () . fromString
 
@@ -141,6 +146,16 @@ spec = do
     bracketed style inner = MethodChain (Bracketed style () inner) []
 
   describe "parse" $ do
+    context "when parsing pragmas" $ do
+      it "accepts pragmas" $ do
+        parse "{-# COMPLETE Foo #-}" `shouldBe` [Pragma () (ITcomplete_prag "{-# COMPLETE") [token (ITconid "Foo")]]
+
+      it "accepts comma-separated arguments" $ do
+        parse "{-# COMPLETE Foo, Bar #-}" `shouldBe` [Pragma () (ITcomplete_prag "{-# COMPLETE") [token (ITconid "Foo"), token ITcomma, token (ITconid "Bar")]]
+
+      it "accepts partial pragmas" $ do
+        parse "{-# COMPLETE Foo, " `shouldBe` [Pragma () (ITcomplete_prag "{-# COMPLETE") [token (ITconid "Foo"), token ITcomma]]
+
     context "when parsing module headers" $ do
       it "accepts an unqualified module name" $ do
         parse "module Foo where" `shouldBe` Module "Foo" [] []
@@ -153,7 +168,10 @@ spec = do
 
     context "when parsing use statements" $ do
       it "accepts a use-statement" $ do
-        parse "use Data.Foldable" `shouldBe` Module NoModuleHeader [Import () Use "Data.Foldable" Nothing NoImportList] []
+        parse "use Data.Foldable" `shouldBe` Module NoModuleHeader [Import () (Use NoUseWith) "Data.Foldable" Nothing NoImportList] []
+
+      it "accepts a use-statement" $ do
+        parse "use Data.Foldable as Foo (foo, bar) with (baz)" `shouldBe` Module NoModuleHeader [Import () (Use $ UseWith () [["baz"]]) "Data.Foldable" (Just "Foo") (ImportList [["foo"], ["bar"]])] []
 
     context "when parsing imports" $ do
       it "accepts imports" $ do
