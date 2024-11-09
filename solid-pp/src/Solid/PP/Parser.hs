@@ -268,10 +268,7 @@ pModuleBody :: Parser [Node BufferSpan]
 pModuleBody = many pNode <* eof
 
 pNode :: Parser (Node BufferSpan)
-pNode = pMethodDefinition <|> pMethodChain <|> pAnyToken
-
-tokenAsNode :: Token -> Node BufferSpan
-tokenAsNode (L loc t) = Token loc t
+pNode = pMethodDefinition <|> pMethodChain <|> pPragma <|> pAnyToken
 
 pMethodDefinition :: Parser (Node BufferSpan)
 pMethodDefinition = MethodDefinition <$> pMethod
@@ -468,6 +465,28 @@ qvarid = token \ case
   L loc (ITqvarid name) -> Just (loc, name)
   _ -> Nothing
 
+pPragma :: Parser (Node BufferSpan)
+pPragma = Pragma <$> open <*> nodes <* close
+  where
+    open :: Parser BufferSpan
+    open = token \ (L loc t) -> case tokenClass t of
+      OpenPragma -> Just loc
+      _ -> Nothing
+
+    nodes :: Parser [Node BufferSpan]
+    nodes = map tokenAsNode <$> many exceptClose
+
+    exceptClose :: Parser Token
+    exceptClose = token \ case
+      L _ ITclose_prag -> Nothing
+      t -> Just t
+
+    close :: Parser ()
+    close = void (require ITclose_prag) <|> eof
+
+tokenAsNode :: Token -> Node BufferSpan
+tokenAsNode (L loc t) = Token loc t
+
 pAnyToken :: Parser (Node BufferSpan)
 pAnyToken = token \ case
   TokenEndBegin {} -> Nothing
@@ -475,15 +494,21 @@ pAnyToken = token \ case
   L _ t | (tokenMetadata t).excludedByAnyToken -> Nothing
   t -> Just $ tokenAsNode t
 
+data TokenClass =
+    Other
+  | OpenPragma
+  deriving (Eq, Show)
+
 data TokenMetadata = TokenMetadata {
-  excludedByAnyToken :: Bool
+  class_ :: TokenClass
+, excludedByAnyToken :: Bool
 , name :: Maybe String
 }
 
 instance IsString TokenMetadata where
   fromString = \ case
-    "" -> TokenMetadata False Nothing
-    name -> TokenMetadata False (Just name)
+    "" -> TokenMetadata Other False Nothing
+    name -> TokenMetadata Other False (Just name)
 
 tokenMetadata :: Lexer.Token -> TokenMetadata
 tokenMetadata = \ case
@@ -519,10 +544,43 @@ tokenMetadata = \ case
   ITequal -> "="
   ITdcolon NormalSyntax -> "::"
   ITdcolon UnicodeSyntax -> "∷"
-  _ -> TokenMetadata False Nothing
+
+  ITinline_prag {} -> openPragma
+  ITopaque_prag {} -> openPragma
+  ITspec_prag {} -> openPragma
+  ITspec_inline_prag {} -> openPragma
+  ITsource_prag {} -> openPragma
+  ITrules_prag {} -> openPragma
+  ITwarning_prag {} -> openPragma
+  ITdeprecated_prag {} -> openPragma
+  ITline_prag {} -> openPragma
+  ITcolumn_prag {} -> openPragma
+  ITscc_prag {} -> openPragma
+  ITunpack_prag {} -> openPragma
+  ITnounpack_prag {} -> openPragma
+  ITann_prag {} -> openPragma
+  ITcomplete_prag {} -> openPragma
+  IToptions_prag {} -> openPragma
+  ITinclude_prag {} -> openPragma
+  ITlanguage_prag {} -> openPragma
+  ITminimal_prag {} -> openPragma
+  IToverlappable_prag {} -> openPragma
+  IToverlapping_prag {} -> openPragma
+  IToverlaps_prag {} -> openPragma
+  ITincoherent_prag {} -> openPragma
+  ITctype {} -> openPragma
+  ITcomment_line_prag {} -> openPragma
+
+  _ -> TokenMetadata Other False Nothing
   where
     excluded :: String -> TokenMetadata
-    excluded = TokenMetadata True . Just
+    excluded = TokenMetadata Other True . Just
+
+    openPragma :: TokenMetadata
+    openPragma = TokenMetadata OpenPragma False Nothing
+
+tokenClass :: Lexer.Token -> TokenClass
+tokenClass t = (tokenMetadata t).class_
 
 tokenName :: Lexer.Token -> Maybe String
 tokenName t = (tokenMetadata t).name
@@ -614,6 +672,7 @@ data ImportList loc = NoImportList | ImportList [[Node loc]] | HidingList [[Node
 
 data Node loc =
     Token loc Lexer.Token
+  | Pragma loc [Node loc]
   | MethodDefinition (Method loc)
   | MethodChain (Subject loc) [MethodCall loc]
   deriving (Eq, Show, Functor)
@@ -658,6 +717,7 @@ instance HasField "loc" (End loc) loc where
 instance HasField "start" (Node BufferSpan) SrcLoc where
   getField = \ case
     Token loc _ -> loc.startLoc
+    Pragma loc _ -> loc.startLoc
     MethodDefinition method -> method.dot.startLoc
     MethodChain subject _ -> subject.start
 

@@ -141,6 +141,16 @@ spec = do
     bracketed style inner = MethodChain (Bracketed style () inner) []
 
   describe "parse" $ do
+    context "when parsing pragmas" $ do
+      it "accepts pragmas" $ do
+        parse "{-# COMPLETE Foo #-}" `shouldBe` [Pragma () [token (ITconid "Foo")]]
+
+      it "accepts comma-separated arguments" $ do
+        parse "{-# COMPLETE Foo, Bar #-}" `shouldBe` [Pragma () [token (ITconid "Foo"), token ITcomma, token (ITconid "Bar")]]
+
+      it "accepts partial pragmas" $ do
+        parse "{-# COMPLETE Foo, " `shouldBe` [Pragma () [token (ITconid "Foo"), token ITcomma]]
+
     context "when parsing module headers" $ do
       it "accepts an unqualified module name" $ do
         parse "module Foo where" `shouldBe` Module "Foo" [] []
