@@ -522,18 +522,18 @@ tokenMetadata = \ case
   ITopabrack -> (excluded "[:") `closedBy` ITcpabrack
   ITcpabrack -> excluded ":]"
 
-  ITopenExpQuote NoE NormalSyntax -> excluded "[|"
-  ITopenExpQuote HasE NormalSyntax -> excluded "[e|"
+  ITopenExpQuote NoE NormalSyntax -> excluded "[|" `closedBy` ITcloseQuote NormalSyntax
+  ITopenExpQuote HasE NormalSyntax -> excluded "[e|" `closedBy` ITcloseQuote NormalSyntax
   ITcloseQuote NormalSyntax -> excluded "|]"
-  ITopenExpQuote NoE UnicodeSyntax -> excluded "⟦"
+  ITopenExpQuote NoE UnicodeSyntax -> excluded "⟦" `closedBy` ITcloseQuote UnicodeSyntax
   ITcloseQuote UnicodeSyntax -> excluded "⟧"
 
-  ITopenPatQuote -> excluded "[p|"
-  ITopenDecQuote -> excluded "[d|"
-  ITopenTypQuote -> excluded "[t|"
+  ITopenPatQuote -> excluded "[p|" `closedBy` ITcloseQuote NormalSyntax
+  ITopenDecQuote -> excluded "[d|" `closedBy` ITcloseQuote NormalSyntax
+  ITopenTypQuote -> excluded "[t|" `closedBy` ITcloseQuote NormalSyntax
 
-  ITopenTExpQuote NoE -> excluded "[||"
-  ITopenTExpQuote HasE -> excluded "[e||"
+  ITopenTExpQuote NoE -> excluded "[||" `closedBy` ITcloseTExpQuote
+  ITopenTExpQuote HasE -> excluded "[e||" `closedBy` ITcloseTExpQuote
   ITcloseTExpQuote -> excluded "||]"
 
   IToparenbar NormalSyntax -> excluded "(|"

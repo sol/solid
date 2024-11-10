@@ -315,9 +315,44 @@ spec = do
           ]
         `shouldParseAs` [bracketed [[23], [42]]]
 
+      it "accepts TemplateHaskell expression quotes" $ do
+        parse "[| foo bar 23 |]" `shouldBe` [bracketed [["foo", "bar", 23]]]
+
+      it "accepts typed TemplateHaskell expression quotes" $ do
+        parse "[|| foo bar 23 ||]" `shouldBe` [bracketed [["foo", "bar", 23]]]
+
+      it "accepts TemplateHaskell pattern quotes" $ do
+        unlines [
+            "{-# LANGUAGE TemplateHaskell #-}"
+          , "foo = [p|(x, y)|]"
+          ]
+        `shouldParseAs` ["foo", "=", bracketed [[bracketed[["x"], ["y"]]]]]
+
+      it "accepts TemplateHaskell definition quotes" $ do
+        unlines [
+            "{-# LANGUAGE TemplateHaskell #-}"
+          , "foo = [d|data Foo|]"
+          ]
+        `shouldParseAs` ["foo", "=", bracketed [[token ITvocurly, token ITdata, token (ITconid "Foo")]], token ITvccurly]
+
+      it "accepts TemplateHaskell type quotes" $ do
+        unlines [
+            "{-# LANGUAGE TemplateHaskell #-}"
+          , "foo = [t|Maybe|]"
+          ]
+        `shouldParseAs` ["foo", "=", bracketed [[token (ITconid "Maybe")]]]
+
       context "at the end of input" $ do
         it "ignores missing closing brackets" $ do
           parse "(foo bar " `shouldBe` [bracketed [["foo", "bar"]]]
+
+      context "on mismatching close" $ do
+        it "produces useful error messages" $ do
+          let Left err = parseModule "[|| foo bar 23 |]"
+          err `Hspec.shouldBe` List.intercalate "\n" [
+              "main.hs:1:16: unexpected |]"
+            , " expecting ||]"
+            ]
 
     context "when parsing string literals" $ do
       it "accepts a literal string" $ do
