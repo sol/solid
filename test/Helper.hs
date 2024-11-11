@@ -10,19 +10,25 @@ module Helper (
 , invalidValue
 ) where
 
-import           Solid as Imports
-import           Test.Hspec as Imports hiding (shouldThrow)
-import           Test.Hspec qualified as Hspec
-import           Test.Hspec.Hedgehog as Imports
-import           Test.Mockery.Directory as Imports (inTempDirectory)
+import Solid as Imports
+import Test.Hspec as Imports hiding (shouldThrow)
+use Test.Hspec as Hspec
+import Test.Hspec.Hedgehog as Imports
+import Test.Mockery.Directory as Imports (inTempDirectory)
 
-import System.IO.Silently qualified as Silently
-import qualified Test.Mockery.Directory as Mockery
+use System.IO.Silently as Silently
+use Test.Mockery.Directory as Mockery
 
-import           Data.Typeable (typeOf)
+import Data.Typeable (typeOf)
 
 import Solid.TypeLits
-import Haskell qualified
+use Haskell
+
+import Data.Text.Import ()
+import System.Directory.Import ()
+import System.Environment.Import ()
+import System.FilePath.Import ()
+import System.Process.Import ()
 
 touch :: FilePath -> IO ()
 touch = Haskell.toFilePath >=> Mockery.touch

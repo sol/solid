@@ -67,9 +67,11 @@ library
       String
       Temp
       Word8
+      Data.Text.Import
       System.Directory.Import
       System.Environment.Import
       System.FilePath.Import
+      System.Process.Import
   hs-source-dirs:
       src
       import
@@ -204,9 +206,11 @@ test-suite spec
       String
       Temp
       Word8
+      Data.Text.Import
       System.Directory.Import
       System.Environment.Import
       System.FilePath.Import
+      System.Process.Import
       ByteStringSpec
       CharSpec
       Data.Sliced.ByteArray.ConversionSpec
