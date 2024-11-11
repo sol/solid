@@ -16,6 +16,7 @@ module Char (
 
 , toLower
 , toUpper
+, toTitle
 ) where
 
 import Solid.Common hiding (replicate)
@@ -58,3 +59,6 @@ instance HasField "toLower" Char Char where
 
 instance HasField "toUpper" Char Char where
   getField = toUpper
+
+instance HasField "toTitle" Char Char where
+  getField = toTitle

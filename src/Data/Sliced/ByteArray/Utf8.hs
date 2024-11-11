@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -F -pgmF solid-pp #-}
 module Data.Sliced.ByteArray.Utf8 (
   ByteArray
@@ -25,6 +26,7 @@ module Data.Sliced.ByteArray.Utf8 (
 -- ** Case conversion
 , toLower
 , toUpper
+, capitalize
 
 -- * Folds
 -- ** Special folds
@@ -85,6 +87,7 @@ import Data.Sliced.ByteArray.Conversion (unsafeToText, fromText)
 
 use Data.Sliced.ByteArray
 use Data.Sliced.ByteArray.Common
+use Data.Char
 use Data.Text
 use Data.Text.Array
 import Data.Text.Unsafe (reverseIter_)
@@ -130,6 +133,11 @@ toLower = fromText . Text.toLower . unsafeToText
 
 toUpper :: ByteArray -> ByteArray
 toUpper = fromText . Text.toUpper . unsafeToText
+
+capitalize :: ByteArray -> ByteArray
+capitalize bytes = case uncons bytes of
+  Nothing -> bytes
+  Just (c@(Char.toTitle -> x), xs) -> if c == x then bytes else cons x xs
 
 any :: (Char -> Bool) -> ByteArray -> Bool
 any p = Text.any p . unsafeToText
