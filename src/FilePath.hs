@@ -9,6 +9,8 @@ module FilePath (
 , fromString
 , asByteString
 
+, length
+
 , exists?
 , file?
 , directory?
@@ -49,9 +51,13 @@ import System.Posix.Directory.PosixPath qualified as Posix
 use Solid.Foreign.C
 use System.FilePath.Import
 use System.Directory.Import
+use System.OsString
 
 instance Solid.ToString FilePath where
   toString = toString
+
+.length :: FilePath -> Int
+.length = coerce OsString.length
 
 .exists? :: FilePath -> IO Bool
 .exists? = Import.doesPathExist
