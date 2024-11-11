@@ -84,7 +84,6 @@ wellKnownModules = Set.fromList [
   , "List"
   , "Maybe"
   , "Platform"
-  , "Prelude"
   , "Process"
   , "Process.Config"
   , "Process.Config.STDERR"
