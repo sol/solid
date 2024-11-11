@@ -59,6 +59,11 @@ null = coerce ByteArray.null
 .unpack :: ByteString -> [Word8]
 .unpack = ByteArray.unpack . unBytes
 
+infixr 5 `cons`
+
+.cons :: Word8 -> ByteString -> ByteString
+.cons = coerce ByteArray.cons
+
 -- |
 -- >>> ByteString.head "foobar"
 -- Just 102

@@ -44,6 +44,11 @@ null = coerce Utf8.null
 .length :: String -> Int
 .length = coerce Utf8.length
 
+infixr 5 `cons`
+
+.cons :: Char -> String -> String
+.cons = coerce Utf8.cons
+
 -- |
 -- >>> let message = "I am not angry. Not at all." :: String
 -- >>> message.map (\c -> if c == '.' then '!' else c)
@@ -56,6 +61,12 @@ null = coerce Utf8.null
 
 .toUpper :: String -> String
 .toUpper = coerce Utf8.toUpper
+
+-- | Convert the first letter of a string to title case.
+--
+-- prop> capitalize (cons x xs) == cons x.toTitle xs
+.capitalize :: String -> String
+.capitalize = coerce Utf8.capitalize
 
 -- |
 -- >>> String.take 2 "foobar"
