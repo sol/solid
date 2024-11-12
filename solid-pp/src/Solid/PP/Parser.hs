@@ -432,11 +432,9 @@ pInterpolatedString = pTokenBegin <*> pExpression
     pEnd = pTokenEnd <|> pTokenEndBegin <*> pExpression
 
 pBracketed :: Parser (Subject BufferSpan)
-pBracketed =
-      bracketed <$> oparen <*> pBracketedInner <*> cparen
-  <|> bracketed <$> obrack <*> pBracketedInner <*> cbrack
-  <|> bracketed <$> ocurly <*> pBracketedInner <*> ccurly
-  <|> bracketed <$> ounboxed <*> pBracketedInner <*> cunboxed
+pBracketed = join $ token \ (L loc t) -> case tokenClass t of
+  OpenBracket close -> Just $ bracketed loc <$> pBracketedInner <*> require close
+  _ -> Nothing
   where
     bracketed :: BufferSpan -> [[Node BufferSpan]] -> BufferSpan -> Subject BufferSpan
     bracketed start nodes end = Bracketed (start.merge end) nodes
@@ -496,6 +494,7 @@ pAnyToken = token \ case
 data TokenClass =
     Other
   | OpenPragma
+  | OpenBracket Lexer.Token
   deriving (Eq, Show)
 
 data TokenMetadata = TokenMetadata {
@@ -512,16 +511,20 @@ instance IsString TokenMetadata where
 tokenMetadata :: Lexer.Token -> TokenMetadata
 tokenMetadata = \ case
   ITcomma -> excluded ","
-  IToparen -> excluded "("
+
+  IToparen -> (excluded "(") { class_ = OpenBracket ITcparen}
   ITcparen -> excluded ")"
-  ITobrack -> excluded "["
+
+  ITobrack -> (excluded "[") { class_ = OpenBracket ITcbrack}
   ITcbrack -> excluded "]"
-  ITocurly -> excluded "{"
+
+  ITocurly -> (excluded "{") { class_ = OpenBracket ITccurly}
   ITccurly -> excluded "}"
-  IToubxparen -> excluded "(#"
+
+  IToubxparen -> (excluded "(#") { class_ = OpenBracket ITcubxparen }
   ITcubxparen -> excluded "#)"
 
-  ITopabrack -> excluded "[:"
+  ITopabrack -> (excluded "[:") { class_ = OpenBracket ITcpabrack }
   ITcpabrack -> excluded ":]"
 
   ITopenTypQuote -> excluded "[t|"
@@ -598,18 +601,6 @@ obrack = require ITobrack
 
 cbrack :: Parser BufferSpan
 cbrack = require ITcbrack
-
-ocurly :: Parser BufferSpan
-ocurly = require ITocurly
-
-ccurly :: Parser BufferSpan
-ccurly = require ITccurly
-
-ounboxed :: Parser BufferSpan
-ounboxed = require IToubxparen
-
-cunboxed :: Parser BufferSpan
-cunboxed = require ITcubxparen
 
 pTokenBegin :: Parser (Expression BufferSpan -> Subject BufferSpan)
 pTokenBegin = token \ case
