@@ -268,7 +268,7 @@ implicitImports = ($ mempty) . fromModule . void
     fromSubject = \ case
       LiteralString (Begin () (_ :: FastString) expression) -> Set.insert toStringModule . fromExpression expression
       LiteralString (Literal () (_ :: FastString)) -> id
-      Bracketed (_ :: BracketStyle) () nodes -> foreach fromNodes nodes
+      Bracketed () nodes -> foreach fromNodes nodes
       Name () (_ :: FastString) arguments -> fromArguments arguments
       QualifiedName () m (_ :: FastString) arguments -> Set.insert (ImplicitImport m) . fromArguments arguments
 
@@ -519,7 +519,7 @@ pp moduleName = ppNodes
     ppSubject :: Subject BufferSpan -> DList Edit
     ppSubject = \ case
       LiteralString string -> ppLiteralString string
-      Bracketed (_ :: BracketStyle) (_ :: BufferSpan) nodes -> concatMap ppNodes nodes
+      Bracketed (_ :: BufferSpan) nodes -> concatMap ppNodes nodes
       Name start identifier arguments -> ppArguments start.startLoc (desugarIdentifier start.start start.end identifier) arguments
       QualifiedName start module_ identifier arguments -> ppArguments start.startLoc (desugarQualifiedName start module_ identifier) arguments
 
