@@ -30,7 +30,6 @@ module Solid.PP.Parser (
 , Type(..)
 
 , Subject(..)
-, BracketStyle(..)
 , Arguments(..)
 , Argument(..)
 , MethodCall(..)
@@ -434,13 +433,13 @@ pInterpolatedString = pTokenBegin <*> pExpression
 
 pBracketed :: Parser (Subject BufferSpan)
 pBracketed =
-      bracketed Round <$> oparen <*> pBracketedInner <*> cparen
-  <|> bracketed Square <$> obrack <*> pBracketedInner <*> cbrack
-  <|> bracketed Curly <$> ocurly <*> pBracketedInner <*> ccurly
-  <|> bracketed Unboxed <$> ounboxed <*> pBracketedInner <*> cunboxed
+      bracketed <$> oparen <*> pBracketedInner <*> cparen
+  <|> bracketed <$> obrack <*> pBracketedInner <*> cbrack
+  <|> bracketed <$> ocurly <*> pBracketedInner <*> ccurly
+  <|> bracketed <$> ounboxed <*> pBracketedInner <*> cunboxed
   where
-    bracketed :: BracketStyle -> BufferSpan -> [[Node BufferSpan]] -> BufferSpan -> Subject BufferSpan
-    bracketed style start nodes end = Bracketed style (start.merge end) nodes
+    bracketed :: BufferSpan -> [[Node BufferSpan]] -> BufferSpan -> Subject BufferSpan
+    bracketed start nodes end = Bracketed (start.merge end) nodes
 
 pBracketedInner :: Parser [[Node BufferSpan]]
 pBracketedInner = many pNode `sepBy` comma
@@ -679,17 +678,10 @@ data Node loc =
 
 data Subject loc =
     LiteralString (LiteralString loc)
-  | Bracketed BracketStyle loc [[Node loc]]
+  | Bracketed loc [[Node loc]]
   | Name loc FastString (Arguments loc)
   | QualifiedName loc FastString FastString (Arguments loc)
   deriving (Eq, Show, Functor)
-
-data BracketStyle =
-    Round
-  | Square
-  | Curly
-  | Unboxed
-  deriving (Eq, Show)
 
 data Arguments loc = NoArguments | Arguments loc [Argument loc]
   deriving (Eq, Show, Functor)
@@ -725,6 +717,6 @@ instance HasField "start" (Subject BufferSpan) SrcLoc where
   getField = \ case
     LiteralString (Literal loc _) -> loc.startLoc
     LiteralString (Begin loc _ _) -> loc.startLoc
-    Bracketed _ loc _ -> loc.startLoc
+    Bracketed loc _ -> loc.startLoc
     Name loc _ _ -> loc.startLoc
     QualifiedName loc _ _ _ -> loc.startLoc
