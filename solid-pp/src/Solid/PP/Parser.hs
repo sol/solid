@@ -47,7 +47,6 @@ import           Solid.PP.IO hiding (try, error, some, many)
 import           Data.Foldable1 (fold1)
 import           Data.List hiding (lines)
 import qualified Data.List.NonEmpty as NonEmpty
-import           Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Text.Megaparsec as P
 import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest, some)
@@ -271,6 +270,9 @@ pModuleBody = many pNode <* eof
 pNode :: Parser (Node BufferSpan)
 pNode = pMethodDefinition <|> pMethodChain <|> pAnyToken
 
+tokenAsNode :: Token -> Node BufferSpan
+tokenAsNode (L loc t) = Token loc t
+
 pMethodDefinition :: Parser (Node BufferSpan)
 pMethodDefinition = MethodDefinition <$> pMethod
 
@@ -470,60 +472,60 @@ pAnyToken :: Parser (Node BufferSpan)
 pAnyToken = token \ case
   TokenEndBegin {} -> Nothing
   TokenEnd {} -> Nothing
-  L _ t | Set.member t excluded -> Nothing
-  L loc t -> Just $ Token loc t
-  where
-    excluded :: Set Lexer.Token
-    excluded = Set.fromList (map (.token) $ filter (.excludedByAnyToken) tokenMetadata)
+  L _ t | (tokenMetadata t).excludedByAnyToken -> Nothing
+  t -> Just $ tokenAsNode t
 
 data TokenMetadata = TokenMetadata {
-  token :: Lexer.Token
-, excludedByAnyToken :: Bool
-, name :: String
+  excludedByAnyToken :: Bool
+, name :: Maybe String
 }
 
-tokenMetadata :: [TokenMetadata]
-tokenMetadata = [
-    excluded ITcomma ","
-  , excluded IToparen "("
-  , excluded ITcparen ")"
-  , excluded ITobrack "["
-  , excluded ITcbrack "]"
-  , excluded ITocurly "{"
-  , excluded ITccurly "}"
-  , excluded IToubxparen "(#"
-  , excluded ITcubxparen "#)"
+instance IsString TokenMetadata where
+  fromString = \ case
+    "" -> TokenMetadata False Nothing
+    name -> TokenMetadata False (Just name)
 
-  , excluded ITopabrack "[:"
-  , excluded ITcpabrack ":]"
+tokenMetadata :: Lexer.Token -> TokenMetadata
+tokenMetadata = \ case
+  ITcomma -> excluded ","
+  IToparen -> excluded "("
+  ITcparen -> excluded ")"
+  ITobrack -> excluded "["
+  ITcbrack -> excluded "]"
+  ITocurly -> excluded "{"
+  ITccurly -> excluded "}"
+  IToubxparen -> excluded "(#"
+  ITcubxparen -> excluded "#)"
 
-  , excluded ITopenTypQuote "[t|"
-  , excluded ITopenDecQuote "[d|"
-  , excluded ITopenPatQuote "[p|"
-  , excluded (ITopenExpQuote NoE NormalSyntax) "[|"
-  , excluded (ITopenExpQuote HasE NormalSyntax) "[e|"
-  , excluded (ITopenExpQuote NoE UnicodeSyntax) "⟦"
-  , excluded (ITcloseQuote NormalSyntax) "|]"
-  , excluded (ITcloseQuote UnicodeSyntax) "⟧"
-  , excluded (ITopenTExpQuote NoE) "[||"
-  , excluded (ITopenTExpQuote HasE) "[e||"
-  , excluded ITcloseTExpQuote "||]"
+  ITopabrack -> excluded "[:"
+  ITcpabrack -> excluded ":]"
 
-  , excluded (IToparenbar NormalSyntax) "(|"
-  , excluded (IToparenbar UnicodeSyntax) "⦇"
-  , excluded (ITcparenbar NormalSyntax) "|)"
-  , excluded (ITcparenbar UnicodeSyntax) "⦈"
+  ITopenTypQuote -> excluded "[t|"
+  ITopenDecQuote -> excluded "[d|"
+  ITopenPatQuote -> excluded "[p|"
+  ITopenExpQuote NoE NormalSyntax -> excluded "[|"
+  ITopenExpQuote HasE NormalSyntax -> excluded "[e|"
+  ITopenExpQuote NoE UnicodeSyntax -> excluded "⟦"
+  ITcloseQuote NormalSyntax -> excluded "|]"
+  ITcloseQuote UnicodeSyntax -> excluded "⟧"
+  ITopenTExpQuote NoE -> excluded "[||"
+  ITopenTExpQuote HasE -> excluded "[e||"
+  ITcloseTExpQuote -> excluded "||]"
 
-  , included ITequal "="
-  , included (ITdcolon NormalSyntax) "::"
-  , included (ITdcolon UnicodeSyntax) "∷"
-  ]
+  IToparenbar NormalSyntax -> excluded "(|"
+  IToparenbar UnicodeSyntax -> excluded "⦇"
+  ITcparenbar NormalSyntax -> excluded "|)"
+  ITcparenbar UnicodeSyntax -> excluded "⦈"
+  ITequal -> "="
+  ITdcolon NormalSyntax -> "::"
+  ITdcolon UnicodeSyntax -> "∷"
+  _ -> TokenMetadata False Nothing
   where
-    excluded t = TokenMetadata t True
-    included t = TokenMetadata t False
+    excluded :: String -> TokenMetadata
+    excluded = TokenMetadata True . Just
 
 tokenName :: Lexer.Token -> Maybe String
-tokenName t = (.name) <$> find ((.token) >>> (== t)) tokenMetadata
+tokenName t = (tokenMetadata t).name
 
 comma :: Parser BufferSpan
 comma = require ITcomma
