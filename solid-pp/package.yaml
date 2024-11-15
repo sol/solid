@@ -20,7 +20,7 @@ dependencies:
   - ghc-boot
   - text
   - bytestring
-  - megaparsec
+  - megaparsec >= 9.7.0
   - parser-combinators
 
 build-tools: alex

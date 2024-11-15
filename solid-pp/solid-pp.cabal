@@ -41,7 +41,7 @@ library
     , containers
     , ghc ==9.10.1
     , ghc-boot
-    , megaparsec
+    , megaparsec >=9.7.0
     , parser-combinators
     , text
     , transformers
@@ -63,7 +63,7 @@ executable solid-pp
     , containers
     , ghc ==9.10.1
     , ghc-boot
-    , megaparsec
+    , megaparsec >=9.7.0
     , parser-combinators
     , solid-pp
     , text
@@ -116,7 +116,7 @@ test-suite spec
     , ghc-boot
     , hspec ==2.*
     , hspec-expectations >=0.8.3
-    , megaparsec
+    , megaparsec >=9.7.0
     , mockery
     , parser-combinators
     , text

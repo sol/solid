@@ -201,13 +201,9 @@ spec = do
           , ""
           , "foo , bar"
           ]
-        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
-            "src.hs:3:5:"
-          , "  |"
-          , "3 | foo , bar"
-          , "  |     ^"
-          , "unexpected ,"
-          , "expecting end of input"
+        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.intercalate "\n" [
+            "src.hs:3:5: unexpected ,"
+          , " expecting end of input"
           ])
 
       it "takes LINE pragmas into account" $ do
@@ -224,13 +220,7 @@ spec = do
           , "{-# LINE 3 \"src.hs\" #-}"
           , "foo = ("
           ]
-        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
-            "src.hs:3:8:"
-          , "  |"
-          , "3 | foo = ("
-          , "  |        ^"
-          , "unexpected end of input"
-          ])
+        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "src.hs:3:8:unexpected end of input"
 
     context "when pre-processing imports" $ do
       it "implicitly imports well-know modules" $ do
@@ -519,13 +509,7 @@ spec = do
               ".foo :: Int"
             , ".foo = undefined"
             ]
-          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
-              "src.hs:2:1:"
-            , "  |"
-            , "2 | .foo = undefined"
-            , "  | ^"
-            , "invalid method type (arity must be at least 1)"
-            ])
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure "src.hs:2:1:invalid method type (arity must be at least 1)"
 
       context "with incorrect indentation" $ do
         it "reports an error" $ do
@@ -533,13 +517,7 @@ spec = do
               ".foo :: Int -> Int"
             , " .foo = undefined"
             ]
-          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
-              "src.hs:2:2:"
-            , "  |"
-            , "2 |  .foo = undefined"
-            , "  |  ^"
-            , "incorrect indentation (got 2, should be equal to 1)"
-            ])
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure "src.hs:2:2:incorrect indentation (got 2, should be equal to 1)"
 
       context "when method names do not match" $ do
         it "reports an error" $ do
@@ -547,13 +525,7 @@ spec = do
               ".foo :: Int -> Int"
             , ".bar = undefined"
             ]
-          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.unlines [
-              "src.hs:2:2:"
-            , "  |"
-            , "2 | .bar = undefined"
-            , "  |  ^"
-            , "unexpected method name \"bar\", expecting \"foo\""
-            ])
+          run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure "src.hs:2:2:unexpected method name \"bar\", expecting \"foo\""
 
     context "when pre-processing identifiers" $ do
       it "desugars postfix bangs" $ do
