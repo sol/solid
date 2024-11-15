@@ -197,7 +197,7 @@ parse parser language extensions line original current = do
     stream :: TokenStream
     stream = TokenStream original.contents result.tokens
   case P.parse parser original.name stream of
-    Left err -> Left $ errorBundlePretty err
+    Left err -> Left $ errorBundlePrettyForGhcPreProcessors err
     Right r -> Right r
 
 token :: (Token -> Maybe a) -> Parser a
