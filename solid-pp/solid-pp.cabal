@@ -21,6 +21,7 @@ library
       Solid.PP.Edit
       Solid.PP.IO
       Solid.PP.Lexer
+      Solid.PP.Lexer.Extensions
       Solid.PP.Parser
       Solid.PP.SrcLoc
       Lexer
@@ -80,6 +81,7 @@ test-suite spec
       Solid.PP.Edit
       Solid.PP.IO
       Solid.PP.Lexer
+      Solid.PP.Lexer.Extensions
       Solid.PP.Parser
       Solid.PP.SrcLoc
       Lexer
@@ -87,6 +89,7 @@ test-suite spec
       Solid.PP.BuilderSpec
       Solid.PP.EditSpec
       Solid.PP.IOSpec
+      Solid.PP.Lexer.ExtensionsSpec
       Solid.PP.LexerSpec
       Solid.PP.ParserSpec
       Solid.PPSpec

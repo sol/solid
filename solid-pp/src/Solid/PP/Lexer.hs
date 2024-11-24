@@ -1,18 +1,9 @@
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE StrictData #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Lexer (
-  Language
-, LanguageFlag(..)
-, Extension(..)
-, showExtension
-, applyLanguagePragmas
-
-, LexerResult(..)
+  LexerResult(..)
 , Token(.., InfixProjection, PrefixProjection)
 , SourceError
 , tokenize
@@ -31,91 +22,23 @@ import           Prelude ()
 import           Solid.PP.IO
 
 import           Data.Function
-import           Data.List (stripPrefix)
-
-import           Data.Map (Map)
-import qualified Data.Map as Map
 
 import           Solid.PP.SrcLoc
+import           Solid.PP.Lexer.Extensions
 
 import           Lexer hiding (lexTokenStream)
-import           GHC.Data.EnumSet (EnumSet)
-import qualified GHC.Data.EnumSet as EnumSet
 import           GHC.Data.FastString as FastString
 import           GHC.Types.SourceText
 import           GHC.Data.StringBuffer hiding (cur)
-import           GHC.LanguageExtensions
 import           GHC.Types.SrcLoc hiding (SrcLoc)
-import           GHC.Utils.Error
-import           GHC.Utils.Outputable (defaultSDocContext)
 import           GHC.Driver.Errors.Types
 import           GHC.Types.SourceError
-import           GHC.Driver.Session hiding (language)
-import qualified GHC.Parser.Header as ModuleHeader
-import           GHC.Unit.Module.Warnings (emptyWarningCategorySet)
-
-allExtensions :: Map String Extension
-allExtensions = Map.fromList $ zip (map showExtension extensions) extensions
-  where
-    extensions :: [Extension]
-    extensions = [minBound .. maxBound]
-
-showExtension :: Extension -> String
-showExtension = \ case
-  Cpp -> "CPP"
-  extension -> show extension
-
-lookupExtension :: String -> Maybe Extension
-lookupExtension = (`Map.lookup` allExtensions)
-
-makeOpts :: Bool -> Bool -> EnumSet Extension -> ParserOpts
-makeOpts keepComments interpretLinePragmas extensions = mkParserOpts extensions diagOpts allowedExtensions False keepComments keepComments interpretLinePragmas
-  where
-    allowedExtensions = Map.keys allExtensions ++ map ("No" <>) (Map.keys allExtensions)
-
-    diagOpts = DiagOpts {
-      diag_warning_flags = mempty
-    , diag_fatal_warning_flags = mempty
-    , diag_custom_warning_categories = emptyWarningCategorySet
-    , diag_fatal_custom_warning_categories = emptyWarningCategorySet
-    , diag_warn_is_error = False
-    , diag_reverse_errors = False
-    , diag_max_errors = Nothing
-    , diag_ppr_ctx = defaultSDocContext
-    }
-
-data LanguageFlag = Enable Extension | Disable Extension
-
-readLanguageFlag :: String -> Maybe LanguageFlag
-readLanguageFlag input =
-      Disable <$> (stripPrefix "-XNo" input >>= lookupExtension)
-  <|> Enable  <$> (stripPrefix "-X"   input >>= lookupExtension)
-
-applyLanguagePragmas :: EnumSet Extension -> FilePath -> StringBuffer -> EnumSet Extension
-applyLanguagePragmas extensions src buffer = applyLanguageFlags extensions languageFlags
-  where
-    opts = makeOpts False True extensions
-    (_, map unLoc -> options) = ModuleHeader.getOptions opts buffer src
-
-    languageFlags :: [LanguageFlag]
-    languageFlags = mapMaybe readLanguageFlag options
-
-applyLanguageFlags :: EnumSet Extension -> [LanguageFlag] -> EnumSet Extension
-applyLanguageFlags = foldl' (flip applyLanguageFlag)
-
-applyLanguageFlag :: LanguageFlag -> EnumSet Extension -> EnumSet Extension
-applyLanguageFlag = \ case
-  Enable ext -> EnumSet.insert ext
-  Disable ext -> EnumSet.delete ext
 
 data LexerResult = LexerResult {
   tokens :: [WithBufferSpan Token]
 , end :: SrcLoc
 , errors :: String
 } deriving Show
-
-defaultExtensions :: Language -> EnumSet Extension
-defaultExtensions language = EnumSet.fromList (languageExtensions (Just language))
 
 pattern InfixProjection :: Token
 pattern InfixProjection = ITproj False
@@ -129,14 +52,14 @@ change_any_projections_after_a_trailing_bang_to_infix = fix $ \ rec -> \ case
   token : tokens -> token : rec tokens
   [] -> []
 
-tokenize :: Language -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
+tokenize :: Language -> [ExtensionFlag] -> FilePath -> Int -> Text -> Either String LexerResult
 tokenize = tokenize_ False
 
-tokenizeWithComments :: Language -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
+tokenizeWithComments :: Language -> [ExtensionFlag] -> FilePath -> Int -> Text -> Either String LexerResult
 tokenizeWithComments = tokenize_ True
 
-tokenize_ :: Bool -> Language -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String LexerResult
-tokenize_ keepComments language languageFlags src line input = do
+tokenize_ :: Bool -> Language -> [ExtensionFlag] -> FilePath -> Int -> Text -> Either String LexerResult
+tokenize_ keepComments language extensionFlags src line input = do
   case lexTokenStream opts buffer loc of
     POk state tokens -> return LexerResult {
       tokens = change_any_projections_after_a_trailing_bang_to_infix tokens
@@ -149,10 +72,11 @@ tokenize_ keepComments language languageFlags src line input = do
     errors :: PState -> String
     errors = show . getErrors
 
-    opts = makeOpts keepComments (not keepComments) (applyLanguagePragmas extensions src buffer)
+    opts :: ParserOpts
+    opts = makeOpts keepComments (not keepComments) extensions
 
     extensions :: EnumSet Extension
-    extensions = applyLanguageFlags (defaultExtensions language) languageFlags
+    extensions = extensionsFromModuleHeader (Just language) extensionFlags src buffer
 
     loc :: RealSrcLoc
     loc = mkRealSrcLoc (mkFastString src) line 1
@@ -160,6 +84,7 @@ tokenize_ keepComments language languageFlags src line input = do
     buffer :: StringBuffer
     buffer = stringBufferFromByteString $ encodeUtf8 input
 
+    getErrors :: PState -> SourceError
     getErrors = mkSrcErr . fmap GhcPsMessage . getPsErrorMessages
 
 lexTokenStream :: ParserOpts -> StringBuffer -> RealSrcLoc -> ParseResult [WithBufferSpan Token]

@@ -11,12 +11,12 @@ module Solid.PP (
 , Result(..)
 , run
 
-, Language(..)
+, Language
 , language
+, showLanguageFlag
 
-, LanguageFlag(..)
-, Extension(..)
-, showExtension
+, ExtensionFlag
+, showExtensionFlag
 , extensions
 
 #ifdef TEST
@@ -31,7 +31,6 @@ module Solid.PP (
 import           Prelude ()
 import           Solid.PP.IO hiding (concatMap)
 
-import           GHC.Driver.Session (Language(..))
 import qualified GHC.Data.FastString as GHC
 import           Data.Coerce (coerce)
 import           Control.Monad.Trans.Writer.CPS (execWriter, tell)
@@ -48,19 +47,20 @@ import           Solid.PP.DList
 import           Solid.PP.Edit (Edit(..), edit)
 import qualified Solid.PP.Edit as Edit
 import           Solid.PP.Lexer
+import           Solid.PP.Lexer.Extensions
 import           Solid.PP.Parser
 
 language :: Language
 language = GHC2024
 
-extensions :: [LanguageFlag]
+extensions :: [ExtensionFlag]
 extensions = [
-    Enable DeriveAnyClass
-  , Enable DuplicateRecordFields
-  , Enable LexicalNegation
-  , Enable OverloadedRecordDot
-  , Enable OverloadedStrings
-  , Disable FieldSelectors
+    On DeriveAnyClass
+  , On DuplicateRecordFields
+  , On LexicalNegation
+  , On OverloadedRecordDot
+  , On OverloadedStrings
+  , Off FieldSelectors
   ]
 
 newtype ImplicitImport = ImplicitImport FastString
