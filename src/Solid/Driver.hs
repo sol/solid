@@ -8,7 +8,7 @@ module Solid.Driver (
 ) where
 
 import Solid
-import Solid.PP (LanguageFlag(..), language, extensions, showExtension)
+import Solid.PP (language, showLanguageFlag, extensions, showExtensionFlag)
 import Test.DocTest.Internal.Run (doctestWithRepl)
 
 import System.Directory.Import
@@ -103,12 +103,7 @@ ghcOptions self packageEnv args = opts ++ args
       : "-package=process"
       : desugar ++ exts
     desugar = ["-F", "-pgmF={self}", "-optF={desugarCommand}"]
-    exts = "-X" <> pack (show language) : map showLanguageFlag extensions
-
-    showLanguageFlag :: LanguageFlag -> String
-    showLanguageFlag = \ case
-      Enable extension  -> "-X"   <> pack (showExtension extension)
-      Disable extension -> "-XNo" <> pack (showExtension extension)
+    exts = pack (showLanguageFlag language) : map (pack . showExtensionFlag) extensions
 
 doctest :: FilePath -> [String] -> IO ()
 doctest runtime_dir options = do

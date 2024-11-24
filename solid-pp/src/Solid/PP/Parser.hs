@@ -52,8 +52,9 @@ import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest,
 import           Control.Applicative.Combinators.NonEmpty
 import           Control.Monad.Combinators.Expr
 
-import           Solid.PP.Lexer hiding (Token, LexerResult(..), Extension(..))
+import           Solid.PP.Lexer hiding (Token, LexerResult(..))
 import qualified Solid.PP.Lexer as Lexer
+import           Solid.PP.Lexer.Extensions hiding (Extension(..))
 
 import qualified GHC.Types.Basic as GHC
 import qualified GHC.Hs.DocString as GHC
@@ -184,13 +185,13 @@ data InputFile a = InputFile {
 , contents :: Text
 } deriving (Eq, Show)
 
-parseModule :: Language -> [LanguageFlag] -> InputFile Original -> InputFile Current -> Either String (Module BufferSpan)
+parseModule :: Language -> [ExtensionFlag] -> InputFile Original -> InputFile Current -> Either String (Module BufferSpan)
 parseModule language extensions = parse pModule language extensions 1
 
-parseExpression :: Language -> [LanguageFlag] -> FilePath -> Int -> Text -> Either String [Node BufferSpan]
+parseExpression :: Language -> [ExtensionFlag] -> FilePath -> Int -> Text -> Either String [Node BufferSpan]
 parseExpression language extensions src line input = parse pModuleBody language extensions line (InputFile src input) (InputFile src input)
 
-parse :: Parser a -> Language -> [LanguageFlag] -> Int -> InputFile Original -> InputFile Current -> Either String a
+parse :: Parser a -> Language -> [ExtensionFlag] -> Int -> InputFile Original -> InputFile Current -> Either String a
 parse parser language extensions line original current = do
   result <- tokenize language extensions original.name line current.contents
   let
