@@ -315,6 +315,10 @@ spec = do
           ]
         `shouldParseAs` [bracketed [[23], [42]]]
 
+      context "at the end of input" $ do
+        it "ignores missing closing brackets" $ do
+          parse "(foo bar " `shouldBe` [bracketed [["foo", "bar"]]]
+
     context "when parsing string literals" $ do
       it "accepts a literal string" $ do
         parse "\"foo\"" `shouldBe` [

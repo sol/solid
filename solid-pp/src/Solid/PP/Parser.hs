@@ -192,6 +192,9 @@ parse parser language extensions line original current = do
 token :: (Token -> Maybe a) -> Parser a
 token = (`P.token` mempty)
 
+requireLabeled :: Lexer.Token -> Parser BufferSpan
+requireLabeled expected = maybe id label (tokenName expected) $ require expected
+
 require :: Lexer.Token -> Parser BufferSpan
 require expected = token \ case
   L loc t | t == expected -> Just loc
@@ -425,14 +428,14 @@ pInterpolatedString = pTokenBegin <*> pExpression
 
 pBracketed :: Parser (Subject BufferSpan)
 pBracketed = join $ token \ (L loc t) -> case tokenClass t of
-  OpenBracket close -> Just $ bracketed loc <$> pBracketedInner <*> require close
+  OpenBracket close -> Just $ Bracketed loc <$> pBracketedInner <* pBracketedClose close
   _ -> Nothing
-  where
-    bracketed :: BufferSpan -> [[Node BufferSpan]] -> BufferSpan -> Subject BufferSpan
-    bracketed start nodes end = Bracketed (start.merge end) nodes
 
 pBracketedInner :: Parser [[Node BufferSpan]]
 pBracketedInner = many pNode `sepBy` comma
+
+pBracketedClose :: Lexer.Token -> Parser ()
+pBracketedClose close = void (requireLabeled close) <|> eof
 
 pName :: Parser (Subject BufferSpan)
 pName = do
@@ -504,29 +507,31 @@ tokenMetadata :: Lexer.Token -> TokenMetadata
 tokenMetadata = \ case
   ITcomma -> excluded ","
 
-  IToparen -> (excluded "(") { class_ = OpenBracket ITcparen}
+  IToparen -> (excluded "(") `closedBy` ITcparen
   ITcparen -> excluded ")"
 
-  ITobrack -> (excluded "[") { class_ = OpenBracket ITcbrack}
+  ITobrack -> (excluded "[") `closedBy` ITcbrack
   ITcbrack -> excluded "]"
 
-  ITocurly -> (excluded "{") { class_ = OpenBracket ITccurly}
+  ITocurly -> (excluded "{") `closedBy` ITccurly
   ITccurly -> excluded "}"
 
-  IToubxparen -> (excluded "(#") { class_ = OpenBracket ITcubxparen }
+  IToubxparen -> (excluded "(#") `closedBy` ITcubxparen
   ITcubxparen -> excluded "#)"
 
-  ITopabrack -> (excluded "[:") { class_ = OpenBracket ITcpabrack }
+  ITopabrack -> (excluded "[:") `closedBy` ITcpabrack
   ITcpabrack -> excluded ":]"
 
-  ITopenTypQuote -> excluded "[t|"
-  ITopenDecQuote -> excluded "[d|"
-  ITopenPatQuote -> excluded "[p|"
   ITopenExpQuote NoE NormalSyntax -> excluded "[|"
   ITopenExpQuote HasE NormalSyntax -> excluded "[e|"
-  ITopenExpQuote NoE UnicodeSyntax -> excluded "⟦"
   ITcloseQuote NormalSyntax -> excluded "|]"
+  ITopenExpQuote NoE UnicodeSyntax -> excluded "⟦"
   ITcloseQuote UnicodeSyntax -> excluded "⟧"
+
+  ITopenPatQuote -> excluded "[p|"
+  ITopenDecQuote -> excluded "[d|"
+  ITopenTypQuote -> excluded "[t|"
+
   ITopenTExpQuote NoE -> excluded "[||"
   ITopenTExpQuote HasE -> excluded "[e||"
   ITcloseTExpQuote -> excluded "||]"
@@ -567,6 +572,8 @@ tokenMetadata = \ case
 
   _ -> TokenMetadata Other False Nothing
   where
+    open `closedBy` close = open { class_ = OpenBracket close }
+
     excluded :: String -> TokenMetadata
     excluded = TokenMetadata Other True . Just
 
