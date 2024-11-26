@@ -8,8 +8,7 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Solid.PP.Parser (
-  Original
-, Current
+  OriginalSource(..)
 , InputFile(..)
 , parseModule
 , parseExpression
@@ -48,7 +47,7 @@ import           Data.List hiding (lines)
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Set as Set
 import qualified Text.Megaparsec as P
-import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest, some)
+import           Text.Megaparsec hiding (Token, token, tokens, parse, parseTest, some, eof)
 import           Control.Applicative.Combinators.NonEmpty
 import           Control.Monad.Combinators.Expr
 
@@ -85,10 +84,7 @@ type Parser = Parsec Error TokenStream
 
 type Token = WithBufferSpan Lexer.Token
 
-data TokenStream = TokenStream {
-  original :: Text
-, tokens :: [Token]
-}
+newtype TokenStream = TokenStream { tokens :: [Token] }
 
 instance Stream TokenStream where
   type Token TokenStream = Token
@@ -100,16 +96,16 @@ instance Stream TokenStream where
   chunkLength Proxy = length
   chunkEmpty Proxy = null
 
-  take1_ (TokenStream original tokens) = case tokens of
+  take1_ (TokenStream tokens) = case tokens of
     [] -> Nothing
-    t : ts -> Just (t, TokenStream original ts)
+    t : ts -> Just (t, TokenStream ts)
 
-  takeN_ n stream@(TokenStream original tokens)
+  takeN_ n stream@(TokenStream tokens)
     | n <= 0 = Just ([], stream)
     | null tokens = Nothing
-    | otherwise = Just $ TokenStream original <$> splitAt n tokens
+    | otherwise = Just $ TokenStream <$> splitAt n tokens
 
-  takeWhile_ p stream = TokenStream stream.original <$> span p stream.tokens
+  takeWhile_ p stream = TokenStream <$> span p stream.tokens
 
 instance VisualStream TokenStream where
   showTokens :: Proxy TokenStream -> NonEmpty Token -> String
@@ -119,14 +115,7 @@ instance VisualStream TokenStream where
   tokensLength Proxy = (.length) . fold1 . fmap getLoc
 
 instance TraversableStream TokenStream where
-  reachOffset offset (reachOffsetNoLine offset -> state) = (sourceLine, state)
-    where
-      sourceLine :: Maybe String
-      sourceLine = getSourceLine state.pstateSourcePos.sourceLine state.pstateInput.original
-
-      getSourceLine :: Pos -> Text -> Maybe String
-      getSourceLine (pred . unPos -> n) = fmap unpack . listToMaybe . drop n . lines
-
+  reachOffsetNoLine :: Int -> PosState TokenStream -> PosState TokenStream
   reachOffsetNoLine n PosState{..} = PosState {
       pstateInput = pstateInput { tokens }
     , pstateOffset = offset
@@ -177,26 +166,25 @@ error = fancyFailure . Set.singleton . ErrorCustom
 indentationError :: Pos -> BufferSpan -> Parser a
 indentationError expected actual = fancyFailure $ Set.singleton $ ErrorIndentation EQ expected (mkPos actual.startColumn)
 
-data Original
-data Current
+newtype OriginalSource = Original { name :: FilePath }
 
-data InputFile a = InputFile {
+data InputFile = InputFile {
   name :: FilePath
 , contents :: Text
 } deriving (Eq, Show)
 
-parseModule :: Language -> [ExtensionFlag] -> InputFile Original -> InputFile Current -> Either String (Module BufferSpan)
+parseModule :: Language -> [ExtensionFlag] -> OriginalSource -> InputFile -> Either String (Module BufferSpan)
 parseModule language extensions = parse pModule language extensions 1
 
 parseExpression :: Language -> [ExtensionFlag] -> FilePath -> Int -> Text -> Either String [Node BufferSpan]
-parseExpression language extensions src line input = parse pModuleBody language extensions line (InputFile src input) (InputFile src input)
+parseExpression language extensions src line input = parse pModuleBody language extensions line (Original src) (InputFile src input)
 
-parse :: Parser a -> Language -> [ExtensionFlag] -> Int -> InputFile Original -> InputFile Current -> Either String a
+parse :: Parser a -> Language -> [ExtensionFlag] -> Int -> OriginalSource -> InputFile -> Either String a
 parse parser language extensions line original current = do
   result <- tokenize language extensions original.name line current.contents
   let
     stream :: TokenStream
-    stream = TokenStream original.contents result.tokens
+    stream = TokenStream result.tokens
   case P.parse parser original.name stream of
     Left err -> Left $ errorBundlePrettyForGhcPreProcessors err
     Right r -> Right r
@@ -208,6 +196,9 @@ require :: Lexer.Token -> Parser BufferSpan
 require expected = token \ case
   L loc t | t == expected -> Just loc
   _ -> Nothing
+
+eof :: Parser ()
+eof = P.eof <?> ""
 
 pModule :: Parser (Module BufferSpan)
 pModule = Module <$> pModuleHeader <*> many (pUse <|> pImport) <*> pModuleBody

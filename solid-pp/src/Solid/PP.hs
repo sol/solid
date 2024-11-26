@@ -117,8 +117,7 @@ main src cur dst = run src cur dst >>= \ case
 run :: FilePath -> FilePath -> FilePath -> IO Result
 run src cur dst = do
   input <- readFile cur
-  org <- if src == cur then return input else readFile src
-  preProcesses dst (InputFile src org) (InputFile cur $ addLinePragma input)
+  preProcesses dst (Original src) (InputFile cur $ addLinePragma input)
   where
     addLinePragma = (Builder.toText (formatLinePragma 1 src) <>)
 
@@ -128,7 +127,7 @@ linePragma loc = formatLinePragma loc.line loc.file
 formatLinePragma :: Int -> FilePath -> Builder
 formatLinePragma line src = "{-# LINE " <> Builder.int line <> " " <> Builder.show src <> " #-}\n"
 
-preProcesses :: FilePath -> InputFile Original -> InputFile Current -> IO Result
+preProcesses :: FilePath -> OriginalSource -> InputFile -> IO Result
 preProcesses dst original current = case parseModule language extensions original current of
   Left err -> return (Failure err)
   Right module_ -> withFile dst WriteMode $ \ h -> do

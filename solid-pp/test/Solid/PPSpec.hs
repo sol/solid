@@ -9,7 +9,6 @@ import           Test.Mockery.Directory
 import           Data.Char
 import qualified Data.Set as Set
 import           Data.List (stripPrefix)
-import qualified Data.List as List
 
 import           Solid.PP.Parser
 
@@ -71,7 +70,7 @@ spec = do
   describe "implicitImports" $ do
     let
       modules :: HasCallStack => Text -> ImplicitImports
-      modules input = implicitImports . either error id $ parseModule language extensions (InputFile "src.hs" input) (InputFile "src.hs" input)
+      modules input = implicitImports . either error id $ parseModule language extensions (Original "src.hs") (InputFile "src.hs" input)
 
     context "with a qualified identifier" $ do
       it "extracts module name" $ do
@@ -201,26 +200,18 @@ spec = do
           , ""
           , "foo , bar"
           ]
-        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure (List.intercalate "\n" [
-            "src.hs:3:5: unexpected ,"
-          , " expecting end of input"
-          ])
+        run "src.hs" "src.hs" "dst.hs" `shouldReturn` Failure "src.hs:3:5:unexpected ,"
 
       it "takes LINE pragmas into account" $ do
-        writeFile "src.hs" $ unlines [
-            "module Foo where"
-          , ""
-          , "foo = ("
-          ]
         writeFile "cur.hs" $ unlines [
-            "module Foo where"
+            "module Foo ("
           , ""
           , ""
           , ""
           , "{-# LINE 3 \"src.hs\" #-}"
-          , "foo = ("
+          , "foo, "
           ]
-        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "src.hs:3:8:unexpected end of input"
+        run "src.hs" "cur.hs" "dst.hs" `shouldReturn` Failure "src.hs:3:5:unexpected end of input"
 
     context "when pre-processing imports" $ do
       it "implicitly imports well-know modules" $ do
