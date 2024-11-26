@@ -99,7 +99,7 @@ nameWith :: FastString -> Arguments () -> Node ()
 nameWith n args = MethodChain (Name () n args) []
 
 parseModule :: Text -> Either String (Module BufferSpan)
-parseModule input = Parser.parseModule language extensions (InputFile "main.hs" input) (InputFile "main.hs" input)
+parseModule input = Parser.parseModule language extensions (Original "main.hs") (InputFile "main.hs" input)
 
 parse :: HasCallStack => Text -> (Module () -> Expectation) -> Expectation
 parse input action = annotated $ do
@@ -354,8 +354,4 @@ spec = do
                 , "bar ].foo"
                 , "some more tokens"
                 ]
-
-          err `Hspec.shouldBe` (unpack . T.intercalate "\n") [
-              "main.hs:2:5: unexpected ]"
-            , " expecting end of input"
-            ]
+          err `Hspec.shouldBe` "main.hs:2:5:unexpected ]"
