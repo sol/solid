@@ -1,3 +1,4 @@
 *.cabal linguist-generated
+/solid-pp/test/hie-dump/*/hash linguist-generated
 /vendor/**/*.cabal -linguist-generated
 /book/gh-md-toc linguist-vendored
