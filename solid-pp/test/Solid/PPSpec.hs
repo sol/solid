@@ -563,7 +563,7 @@ spec = do
 
       context "with a qualified module name" $ do
         it "desugars the use-statement" $ do
-          "use Foo.Bar" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar qualified as Bar{-# COLUMN 12 #-}"
+          "use Foo.Bar" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar qualified as {-# COLUMN 9 #-}Bar"
 
       context "with `as` specified" $ do
         it "desugars the use-statement" $ do

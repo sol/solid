@@ -86,6 +86,7 @@ test-suite spec
       Solid.PP.SrcLoc
       Lexer
       EndToEndSpec
+      HieSpec
       Solid.PP.BuilderSpec
       Solid.PP.EditSpec
       Solid.PP.IOSpec
@@ -115,6 +116,7 @@ test-suite spec
     , bytestring
     , call-stack
     , containers
+    , filepath
     , ghc ==9.10.1
     , ghc-boot
     , hspec ==2.*
@@ -122,6 +124,8 @@ test-suite spec
     , megaparsec >=9.7.0
     , mockery
     , parser-combinators
+    , process
+    , temporary
     , text
     , transformers
   default-language: GHC2024

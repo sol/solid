@@ -1,0 +1,37 @@
+File: Foo.hs
+  |        _________
+1 | module Foo where
+2 | use Data.List as Bar
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+Foo.hs:(1,8)-(2,23): Source: From source
+                     {(annotations: {(Module, Module)}),  (types: []),
+                      (identifier info: {})}
+
+    |
+  1 | module Foo where
+    |        ^^^
+  Foo.hs:1:8-10: Source: From source
+                 {(annotations: {}),  (types: []),
+                  (identifier info: {(module Foo,  Details:  Nothing {export})})}
+
+    |
+  2 | use Data.List as Bar
+    | ^^^^^^^^^^^^^^^^^^^^^^^
+  Foo.hs:2:1-23: Source: From source
+                 {(annotations: {(ImportDecl, ImportDecl)}),  (types: []),
+                  (identifier info: {})}
+
+      |
+    2 | use Data.List as Bar
+      |     ^^^^^^^^^
+    Foo.hs:2:5-13: Source: From source
+                   {(annotations: {}),  (types: []),
+                    (identifier info: {(module Data.List,  Details:  Nothing {import})})}
+
+      |
+    2 | use Data.List as Bar
+      |                  ^^^
+    Foo.hs:2:18-20: Source: From source
+                    {(annotations: {}),  (types: []),
+                     (identifier info: {(module Bar,  Details:  Nothing {import as})})}
+

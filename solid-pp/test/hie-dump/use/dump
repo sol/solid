@@ -1,0 +1,30 @@
+File: Foo.hs
+  |        _________
+1 | module Foo where
+2 | use Prelude
+  | ^^^^^^^^^^^^^^^^^^^^^
+Foo.hs:(1,8)-(2,21): Source: From source
+                     {(annotations: {(Module, Module)}),  (types: []),
+                      (identifier info: {})}
+
+    |
+  1 | module Foo where
+    |        ^^^
+  Foo.hs:1:8-10: Source: From source
+                 {(annotations: {}),  (types: []),
+                  (identifier info: {(module Foo,  Details:  Nothing {export})})}
+
+    |
+  2 | use Prelude
+    | ^^^^^^^^^^^^^^^^^^^^^
+  Foo.hs:2:1-21: Source: From source
+                 {(annotations: {(ImportDecl, ImportDecl)}),  (types: []),
+                  (identifier info: {})}
+
+      |
+    2 | use Prelude
+      |     ^^^^^^^
+    Foo.hs:2:5-11: Source: From source
+                   {(annotations: {}),  (types: []),
+                    (identifier info: {(module Prelude,  Details:  Nothing {import})})}
+

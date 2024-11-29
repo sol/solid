@@ -52,3 +52,7 @@ tests:
       - call-stack
       - HUnit
       - mockery
+      - process
+      - temporary
+      - filepath
+
