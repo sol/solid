@@ -2,8 +2,8 @@ File: Foo.hs
   |        _________
 1 | module Foo where
 2 | use Data.List as Bar
-  | ^^^^^^^^^^^^^^^^^^^^^^^
-Foo.hs:(1,8)-(2,23): Source: From source
+  | ^^^^^^^^^^^^^^^^^^^^
+Foo.hs:(1,8)-(2,20): Source: From source
                      {(annotations: {(Module, Module)}),  (types: []),
                       (identifier info: {})}
 
@@ -16,8 +16,8 @@ Foo.hs:(1,8)-(2,23): Source: From source
 
     |
   2 | use Data.List as Bar
-    | ^^^^^^^^^^^^^^^^^^^^^^^
-  Foo.hs:2:1-23: Source: From source
+    | ^^^^^^^^^^^^^^^^^^^^
+  Foo.hs:2:1-20: Source: From source
                  {(annotations: {(ImportDecl, ImportDecl)}),  (types: []),
                   (identifier info: {})}
 
