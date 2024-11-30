@@ -352,11 +352,14 @@ ppImport = \ case
   where
     ppUseStatement :: BufferSpan -> ImportName BufferSpan -> Maybe (ModuleName BufferSpan) -> DList Edit
     ppUseStatement use (ImportName _ (ModuleName loc qualified name)) as = Edit.replaceText use "import" <> case (qualified, as) of
-      (Just _, Nothing) -> Edit.insert_ loc.endLoc $ " qualified as " <> Edit.formatColumnPragma column <> Builder.fastString name
+      (Just _, Nothing) -> Edit.insert_ loc.endLoc $ startColumnPragma <> "qualified as" <> Edit.formatColumnPragma column <> Builder.fastString name
         where
           column :: Int
           column = loc.endLoc.column - lengthFS name
-      _ -> Edit.insert loc.endLoc " qualified"
+      _ -> Edit.insert loc.endLoc $ startColumnPragma <> "qualified"
+      where
+        startColumnPragma :: Builder
+        startColumnPragma = Edit.formatColumnPragma use.startColumn
 
     ppImportList :: ImportList BufferSpan -> DList Edit
     ppImportList = \ case

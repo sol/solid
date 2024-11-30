@@ -559,15 +559,15 @@ spec = do
     context "when pre-processing use-statements" $ do
       context "with an unqualified module name" $ do
         it "desugars the use-statement" $ do
-          "use Foo" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo qualified{-# COLUMN 8 #-}"
+          "use Foo" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo{-# COLUMN 1 #-}qualified{-# COLUMN 8 #-}"
 
       context "with a qualified module name" $ do
         it "desugars the use-statement" $ do
-          "use Foo.Bar" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar qualified as {-# COLUMN 9 #-}Bar"
+          "use Foo.Bar" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar{-# COLUMN 1 #-}qualified as{-# COLUMN 9 #-}Bar"
 
       context "with `as` specified" $ do
         it "desugars the use-statement" $ do
-          "use Foo.Bar as Baz" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar qualified{-# COLUMN 12 #-} as Baz"
+          "use Foo.Bar as Baz" `shouldDesugarTo` "import{-# COLUMN 4 #-} Foo.Bar{-# COLUMN 1 #-}qualified{-# COLUMN 12 #-} as Baz"
 
     context "when pre-processing function calls" $ do
       it "desugars a function call with a single argument" $ do
