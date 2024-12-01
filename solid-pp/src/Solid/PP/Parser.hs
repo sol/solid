@@ -245,9 +245,9 @@ pQualifiedPost = require ITqualified *> pure QualifiedPost <|> pure Unqualified
 pImportName :: Parser (ImportName BufferSpan)
 pImportName = ImportName <$> pImportPackage <*> pModuleName
 
-pImportPackage :: Parser PackageName
+pImportPackage :: Parser (PackageName BufferSpan)
 pImportPackage = (token $ \ case
-  L _ (ITstring _ name) -> Just $ PackageName name
+  L loc (ITstring _ name) -> Just $ PackageName loc name
   _ -> Nothing) <|> pure NoPackageName
 
 pImportAs :: Parser (ModuleName BufferSpan)
@@ -652,12 +652,12 @@ data ImportQualification = Use | Qualified | QualifiedPost | Unqualified
   deriving (Eq, Show)
 
 data ImportName loc = ImportName {
-  package :: PackageName
+  package :: PackageName loc
 , name :: ModuleName loc
 } deriving (Eq, Show, Functor)
 
-data PackageName = NoPackageName | PackageName FastString
-  deriving (Eq, Show)
+data PackageName loc = NoPackageName | PackageName loc FastString
+  deriving (Eq, Show, Functor)
 
 data ImportList loc = NoImportList | ImportList (ImportExportItems loc) | HidingList (ImportExportItems loc)
   deriving (Eq, Show, Functor)

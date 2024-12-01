@@ -62,8 +62,8 @@ instance IsString (ModuleName ()) where
 instance IsString (ImportName ()) where
   fromString = ImportName NoPackageName . fromString
 
-instance IsString PackageName where
-  fromString = PackageName . fromString
+instance IsString (PackageName ()) where
+  fromString = PackageName () . fromString
 
 instance IsString (Import ()) where
   fromString name = Import () Unqualified (fromString name) Nothing NoImportList
