@@ -164,7 +164,7 @@ implicitImport = \ case
 
 data EffectiveImport = EffectiveImport {
   _qualification :: Qualification
-, _package :: PackageName
+, _package :: PackageName ()
 , _name :: ImplicitImport
 , _as :: Maybe ImplicitImport
 , _imports :: Imports
@@ -202,6 +202,9 @@ effectiveQualification = \ case
 
 foreach :: Foldable sequence_of => (a -> r -> r) -> sequence_of a -> r -> r
 foreach f xs set = foldr f set xs
+
+columnPragma :: Int -> Builder
+columnPragma = Edit.formatColumnPragma
 
 implicitImports :: Module BufferSpan-> ImplicitImports
 implicitImports = ($ mempty) . fromModule . void
@@ -352,14 +355,14 @@ ppImport = \ case
   where
     ppUseStatement :: BufferSpan -> ImportName BufferSpan -> Maybe (ModuleName BufferSpan) -> DList Edit
     ppUseStatement use (ImportName _ (ModuleName loc qualified name)) as = Edit.replaceText use "import" <> case (qualified, as) of
-      (Just _, Nothing) -> Edit.insert_ loc.endLoc $ startColumnPragma <> "qualified as" <> Edit.formatColumnPragma column <> Builder.fastString name
+      (Just _, Nothing) -> Edit.insert_ loc.endLoc $ startColumnPragma <> "qualified as" <> columnPragma column <> Builder.fastString name
         where
           column :: Int
           column = loc.endLoc.column - lengthFS name
       _ -> Edit.insert loc.endLoc $ startColumnPragma <> "qualified"
       where
         startColumnPragma :: Builder
-        startColumnPragma = Edit.formatColumnPragma use.startColumn
+        startColumnPragma = columnPragma use.startColumn
 
     ppImportList :: ImportList BufferSpan -> DList Edit
     ppImportList = \ case
@@ -468,7 +471,7 @@ pp moduleName = ppNodes
                 "Solid.StackTrace.suppressForMethod " <> Builder.show (Builder.toText $ formatTypeForStackTrace method.subject <> "." <> name) <> " "
               WithoutStackTrace ->
                 mempty
-            implementation = suppressStackTrace <> Edit.formatColumnPragma method.name.loc.startColumn <> case moduleName of
+            implementation = suppressStackTrace <> columnPragma method.name.loc.startColumn <> case moduleName of
               Nothing ->
                 name
               Just m ->
@@ -500,7 +503,7 @@ pp moduleName = ppNodes
     formatType withColumnPragma = go
       where
         column loc = case withColumnPragma of
-          WithColumnPragma -> Edit.formatColumnPragma loc.startColumn
+          WithColumnPragma -> columnPragma loc.startColumn
           WithoutColumnPragma -> mempty
 
         go :: Int -> Type BufferSpan -> Builder
