@@ -57,7 +57,7 @@ spec = do
       let
         input = Just (23 :: Int)
       ref <- IORef.new 0
-      input.foreach $ ref.modify . (+)
+      input.foreach $ ref.atomic.modify_ . (+)
       ref.read `shouldReturn` 23
 
   describe "traverse" $ do
