@@ -16,9 +16,9 @@ update-ghc:
 commit:
 	git commit -a -m 'Depend on GHC $(ghc_new)'
 
-constraints:
-	@echo -ne "constraints:\n  , " >> cabal.project
-	@ghc-pkg-$(ghc_new) list --global --simple-output | sed 's/ /\n  , /g' | sed 's/-[0-9].*/ installed/g' >> cabal.project
+cabal.project.constraints:
+	@echo -ne "constraints:\n  , " > cabal.project.constraints
+	@ghc-pkg-$(ghc_new) list --global --simple-output | sed 's/ /\n  , /g' | sed 's/-[0-9].*/ installed/g' >> cabal.project.constraints
 
 create-patch:
 	make copy-old

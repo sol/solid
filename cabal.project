@@ -30,44 +30,4 @@ source-repository-package
   location: https://github.com/haskell/primitive
   tag: efde5a7aaef17bc2e3f8f15a522bb64f9146a587
 
-constraints:
-  , array installed
-  , base installed
-  , binary installed
-  , bytestring installed
-  , containers installed
-  , deepseq installed
-  , directory installed
-  , exceptions installed
-  , filepath installed
-  , ghc installed
-  , ghc-bignum installed
-  , ghc-boot installed
-  , ghc-boot-th installed
-  , ghc-compact installed
-  , ghc-experimental installed
-  , ghc-heap installed
-  , ghc-internal installed
-  , ghc-platform installed
-  , ghc-prim installed
-  , ghc-toolchain installed
-  , ghci installed
-  , haskeline installed
-  , hpc installed
-  , integer-gmp installed
-  , mtl installed
-  , os-string installed
-  , parsec installed
-  , pretty installed
-  , process installed
-  , rts installed
-  , semaphore-compat installed
-  , stm installed
-  , system-cxx-std-lib installed
-  , template-haskell installed
-  , terminfo installed
-  , text installed
-  , time installed
-  , transformers installed
-  , unix installed
-  , xhtml installed
+import: cabal.project.constraints
