@@ -15,19 +15,18 @@ package solid-doctest
 package ghc-bin
   executable-dynamic: true
 
-allow-newer: hedgehog-classes:*
-
 tests: True
 
 source-repository-package
   type: git
   location: https://github.com/sol/solid-stack
-  tag: v3.1.1-ghc-9.10.1
+  tag: v3.3.1-ghc-9.10.1
 
 source-repository-package
   -- for byteArrayAsForeignPtr
+  -- https://github.com/haskell/primitive/issues/428
   type: git
   location: https://github.com/haskell/primitive
-  tag: efde5a7aaef17bc2e3f8f15a522bb64f9146a587
+  tag: 4b2de727c8c52836bce2a6b7f4ca3856299d4514
 
 import: cabal.project.constraints
