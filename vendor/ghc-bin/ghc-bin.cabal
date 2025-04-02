@@ -2,7 +2,7 @@
 -- ./configure.  Make sure you are editing ghc-bin.cabal.in, not ghc-bin.cabal.
 
 Name: ghc-bin
-Version: 9.10.1
+Version: 9.12.2
 Copyright: XXX
 -- License: XXX
 -- License-File: XXX
@@ -19,7 +19,7 @@ Cabal-Version: >=1.10
 
 Flag internal-interpreter
     Description: Build with internal interpreter support.
-    Default: True
+    Default: False
     Manual: True
 
 Flag threaded
@@ -27,10 +27,8 @@ Flag threaded
     Default: True
     Manual: True
 
-Executable repl
+Executable ghc
     Default-Language: GHC2021
-
-    Build-Depends: text, solid-pp
 
     Main-Is: Main.hs
     Build-Depends: base       >= 4   && < 5,
@@ -38,11 +36,11 @@ Executable repl
                    bytestring >= 0.9 && < 0.13,
                    directory  >= 1   && < 1.4,
                    process    >= 1   && < 1.7,
-                   filepath   >= 1   && < 1.6,
+                   filepath   >= 1.5 && < 1.6,
                    containers >= 0.5 && < 0.8,
                    transformers >= 0.5 && < 0.7,
-                   ghc-boot      == 9.10.1,
-                   ghc           == 9.10.1
+                   ghc-boot      == 9.12.2,
+                   ghc           == 9.12.2
 
     if os(windows)
         Build-Depends: Win32  >= 2.3 && < 2.15
@@ -59,11 +57,11 @@ Executable repl
         -- NB: this is never built by the bootstrapping GHC+libraries
         Build-depends:
             deepseq        >= 1.4 && < 1.6,
-            ghc-prim       >= 0.5.0 && < 0.12,
-            ghci           == 9.10.1,
+            ghc-prim       >= 0.5.0 && < 0.14,
+            ghci           == 9.12.2,
             haskeline      == 0.8.*,
             exceptions     == 0.10.*,
-            time           >= 1.8 && < 1.13
+            time           >= 1.8 && < 1.15
         CPP-Options: -DHAVE_INTERNAL_INTERPRETER
         Other-Modules:
             GHCi.Leak
