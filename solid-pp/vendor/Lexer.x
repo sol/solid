@@ -48,6 +48,7 @@
 {-# LANGUAGE UnboxedSums #-}
 {-# LANGUAGE UnliftedNewtypes #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE DataKinds #-}
 
 
 {-# OPTIONS_GHC -funbox-strict-fields #-}
@@ -59,7 +60,7 @@ module GHC.Parser.Lexer (
    PState (..), initParserState, initPragState,
    P(..), ParseResult(POk, PFailed),
    allocateComments, allocatePriorComments, allocateFinalComments,
-   MonadP(..),
+   MonadP(..), getBit,
    getRealSrcLoc, getPState,
    failMsgP, failLocMsgP, srcParseFail,
    getPsErrorMessages, getPsMessages,
@@ -70,7 +71,8 @@ module GHC.Parser.Lexer (
    xtest, xunset, xset,
    disableHaddock,
    lexTokenStream,
-   mkParensEpAnn,
+   mkParensEpToks,
+   mkParensLocs,
    getCommentsFor, getPriorCommentsFor, getFinalCommentsFor,
    getEofPos,
    commentToAnnotation,
@@ -130,6 +132,7 @@ import GHC.Driver.Flags
 import GHC.Parser.Errors.Basic
 import GHC.Parser.Errors.Types
 import GHC.Parser.Errors.Ppr ()
+import GHC.Parser.String
 }
 
 -- -----------------------------------------------------------------------------
@@ -139,7 +142,8 @@ import GHC.Parser.Errors.Ppr ()
 -- Any changes here should likely be reflected there.
 $unispace    = \x05 -- Trick Alex into handling Unicode. See Note [Unicode in Alex].
 $nl          = [\n\r\f]
-$whitechar   = [$nl\v\ $unispace]
+$space       = [\ $unispace]
+$whitechar   = [$nl \v $space]
 $white_no_nl = $whitechar # \n -- TODO #8424
 $tab         = \t
 
@@ -166,6 +170,7 @@ $idchar    = [$small $large $digit $uniidchar \']
 
 $unigraphic = \x06 -- Trick Alex into handling Unicode. See Note [Unicode in Alex].
 $graphic   = [$small $large $symbol $digit $idchar $special $unigraphic \"\']
+$charesc   = [a b f n r t v \\ \" \' \&]
 
 $binit     = 0-1
 $octit     = 0-7
@@ -211,6 +216,20 @@ $docsym    = [\| \^ \* \$]
 
 @floating_point = @numspc @decimal \. @decimal @exponent? | @numspc @decimal @exponent
 @hex_floating_point = @numspc @hexadecimal \. @hexadecimal @bin_exponent? | @numspc @hexadecimal @bin_exponent
+
+@gap = \\ $whitechar+ \\
+@cntrl = $asclarge | \@ | \[ | \\ | \] | \^ | \_
+@ascii = \^ @cntrl | "NUL" | "SOH" | "STX" | "ETX" | "EOT" | "ENQ" | "ACK"
+       | "BEL" | "BS" | "HT" | "LF" | "VT" | "FF" | "CR" | "SO" | "SI" | "DLE"
+       | "DC1" | "DC2" | "DC3" | "DC4" | "NAK" | "SYN" | "ETB" | "CAN"
+       | "EM" | "SUB" | "ESC" | "FS" | "GS" | "RS" | "US" | "SP" | "DEL"
+-- N.B. ideally, we would do `@escape # \\ \&` instead of duplicating in @escapechar,
+-- which is what the Haskell Report says, but this isn't valid Alex syntax, as only
+-- character sets can be subtracted, not strings
+@escape     = \\ ( $charesc      | @ascii | @decimal | o @octal | x @hexadecimal )
+@escapechar = \\ ( $charesc # \& | @ascii | @decimal | o @octal | x @hexadecimal )
+@stringchar = ($graphic # [\\ \"]) | $space | @escape     | @gap
+@char       = ($graphic # [\\ \']) | $space | @escapechar
 
 -- normal signed numerical literals can only be explicitly negative,
 -- not explicitly positive (contrast @exponent)
@@ -459,7 +478,7 @@ $unigraphic / { isSmartQuote } { smart_quote_error }
 
 <0> {
   "#" $idchar+ / { ifExtension OverloadedLabelsBit } { skip_one_varid_src ITlabelvarid }
-  "#" \" / { ifExtension OverloadedLabelsBit } { lex_quoted_label }
+  "#" \" @stringchar* \" / { ifExtension OverloadedLabelsBit } { tok_quoted_label }
 }
 
 <0> {
@@ -561,108 +580,63 @@ $unigraphic / { isSmartQuote } { smart_quote_error }
   @octallit                 \# \# / { ifExtension MagicHashBit }        { tok_primword 2 4 octal }
   @hexadecimallit           \# \# / { ifExtension MagicHashBit }        { tok_primword 2 4 hexadecimal }
 
+  @decimal                  \# $idchar+  / { ifExtension ExtendedLiteralsBit } { tok_prim_num_ext positive 0 decimal }
+  @binarylit                \# $idchar+  / { ifExtension ExtendedLiteralsBit `alexAndPred`
+                                             ifExtension BinaryLiteralsBit }   { tok_prim_num_ext positive 2 binary }
+  @octallit                 \# $idchar+  / { ifExtension ExtendedLiteralsBit } { tok_prim_num_ext positive 2 octal }
+  @hexadecimallit           \# $idchar+  / { ifExtension ExtendedLiteralsBit } { tok_prim_num_ext positive 2 hexadecimal }
+  @negative @decimal        \# $idchar+  / { negHashLitPred ExtendedLiteralsBit } { tok_prim_num_ext negative 1 decimal }
+  @negative @binarylit      \# $idchar+  / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
+                                             ifExtension BinaryLiteralsBit }   { tok_prim_num_ext negative 3 binary }
+  @negative @octallit       \# $idchar+  / { negHashLitPred ExtendedLiteralsBit } { tok_prim_num_ext negative 3 octal }
+  @negative @hexadecimallit \# $idchar+  / { negHashLitPred ExtendedLiteralsBit } { tok_prim_num_ext negative 3 hexadecimal }
+
+
   -- Unboxed floats and doubles (:: Float#, :: Double#)
   -- prim_{float,double} work with signed literals
   @floating_point                  \# / { ifExtension MagicHashBit }        { tok_frac 1 tok_primfloat }
   @floating_point               \# \# / { ifExtension MagicHashBit }        { tok_frac 2 tok_primdouble }
-
   @negative @floating_point        \# / { negHashLitPred MagicHashBit }     { tok_frac 1 tok_primfloat }
   @negative @floating_point     \# \# / { negHashLitPred MagicHashBit }     { tok_frac 2 tok_primdouble }
-
-  @decimal                  \#"Int8"   / { ifExtension ExtendedLiteralsBit } { tok_primint8 positive 0 decimal }
-  @binarylit                \#"Int8"   / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint8 positive 2 binary }
-  @octallit                 \#"Int8"   / { ifExtension ExtendedLiteralsBit } { tok_primint8 positive 2 octal }
-  @hexadecimallit           \#"Int8"   / { ifExtension ExtendedLiteralsBit } { tok_primint8 positive 2 hexadecimal }
-  @negative @decimal        \#"Int8"   / { negHashLitPred ExtendedLiteralsBit } { tok_primint8 negative 1 decimal }
-  @negative @binarylit      \#"Int8"   / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint8 negative 3 binary }
-  @negative @octallit       \#"Int8"   / { negHashLitPred ExtendedLiteralsBit } { tok_primint8 negative 3 octal }
-  @negative @hexadecimallit \#"Int8"   / { negHashLitPred ExtendedLiteralsBit } { tok_primint8 negative 3 hexadecimal }
-
-  @decimal                  \#"Int16"  / { ifExtension ExtendedLiteralsBit } { tok_primint16 positive 0 decimal }
-  @binarylit                \#"Int16"  / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint16 positive 2 binary }
-  @octallit                 \#"Int16"  / { ifExtension ExtendedLiteralsBit } { tok_primint16 positive 2 octal }
-  @hexadecimallit           \#"Int16"  / { ifExtension ExtendedLiteralsBit } { tok_primint16 positive 2 hexadecimal }
-  @negative @decimal        \#"Int16"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint16 negative 1 decimal }
-  @negative @binarylit      \#"Int16"  / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint16 negative 3 binary }
-  @negative @octallit       \#"Int16"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint16 negative 3 octal }
-  @negative @hexadecimallit \#"Int16"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint16 negative 3 hexadecimal }
-
-  @decimal                  \#"Int32"  / { ifExtension ExtendedLiteralsBit } { tok_primint32 positive 0 decimal }
-  @binarylit                \#"Int32"  / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint32 positive 2 binary }
-  @octallit                 \#"Int32"  / { ifExtension ExtendedLiteralsBit } { tok_primint32 positive 2 octal }
-  @hexadecimallit           \#"Int32"  / { ifExtension ExtendedLiteralsBit } { tok_primint32 positive 2 hexadecimal }
-  @negative @decimal        \#"Int32"  / { negHashLitPred ExtendedLiteralsBit } { tok_primint32 negative 1 decimal }
-  @negative @binarylit      \#"Int32"  / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint32 negative 3 binary }
-  @negative @octallit       \#"Int32"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint32 negative 3 octal }
-  @negative @hexadecimallit \#"Int32"  / { negHashLitPred ExtendedLiteralsBit} { tok_primint32 negative 3 hexadecimal }
-
-  @decimal                  \#"Int64"  / { ifExtension ExtendedLiteralsBit } { tok_primint64 positive 0 decimal }
-  @binarylit                \#"Int64"  / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint64 positive 2 binary }
-  @octallit                 \#"Int64"  / { ifExtension ExtendedLiteralsBit } { tok_primint64 positive 2 octal }
-  @hexadecimallit           \#"Int64"  / { ifExtension ExtendedLiteralsBit } { tok_primint64 positive 2 hexadecimal }
-  @negative @decimal        \#"Int64"  / { negHashLitPred ExtendedLiteralsBit } { tok_primint64 negative 1 decimal }
-  @negative @binarylit      \#"Int64"  / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint64 negative 3 binary }
-  @negative @octallit       \#"Int64"  / { negHashLitPred ExtendedLiteralsBit } { tok_primint64 negative 3 octal }
-  @negative @hexadecimallit \#"Int64"  / { negHashLitPred ExtendedLiteralsBit } { tok_primint64 negative 3 hexadecimal }
-
-  @decimal                  \#"Int"    / { ifExtension ExtendedLiteralsBit } { tok_primint positive 0 4 decimal }
-  @binarylit                \#"Int"    / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint positive 2 6 binary }
-  @octallit                 \#"Int"    / { ifExtension ExtendedLiteralsBit } { tok_primint positive 2 6 octal }
-  @hexadecimallit           \#"Int"    / { ifExtension ExtendedLiteralsBit } { tok_primint positive 2 6 hexadecimal }
-  @negative @decimal        \#"Int"    / { negHashLitPred ExtendedLiteralsBit } { tok_primint negative 1 5 decimal }
-  @negative @binarylit      \#"Int"    / { negHashLitPred ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primint negative 3 7 binary }
-  @negative @octallit       \#"Int"    / { negHashLitPred ExtendedLiteralsBit } { tok_primint negative 3 7 octal }
-  @negative @hexadecimallit \#"Int"    / { negHashLitPred ExtendedLiteralsBit } { tok_primint negative 3 7 hexadecimal }
-
-  @decimal                  \#"Word8"  / { ifExtension ExtendedLiteralsBit } { tok_primword8 0 decimal }
-  @binarylit                \#"Word8"  / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primword8 2 binary }
-  @octallit                 \#"Word8"  / { ifExtension ExtendedLiteralsBit } { tok_primword8 2 octal }
-  @hexadecimallit           \#"Word8"  / { ifExtension ExtendedLiteralsBit } { tok_primword8 2 hexadecimal }
-
-  @decimal                  \#"Word16" / { ifExtension ExtendedLiteralsBit } { tok_primword16 0 decimal }
-  @binarylit                \#"Word16" / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primword16 2 binary }
-  @octallit                 \#"Word16" / { ifExtension ExtendedLiteralsBit } { tok_primword16 2 octal }
-  @hexadecimallit           \#"Word16" / { ifExtension ExtendedLiteralsBit } { tok_primword16 2 hexadecimal }
-
-  @decimal                  \#"Word32" / { ifExtension ExtendedLiteralsBit } { tok_primword32 0 decimal }
-  @binarylit                \#"Word32" / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primword32 2 binary }
-  @octallit                 \#"Word32" / { ifExtension ExtendedLiteralsBit } { tok_primword32 2 octal }
-  @hexadecimallit           \#"Word32" / { ifExtension ExtendedLiteralsBit } { tok_primword32 2 hexadecimal }
-
-  @decimal                  \#"Word64" / { ifExtension ExtendedLiteralsBit } { tok_primword64 0 decimal }
-  @binarylit                \#"Word64" / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primword64 2 binary }
-  @octallit                 \#"Word64" / { ifExtension ExtendedLiteralsBit } { tok_primword64 2 octal }
-  @hexadecimallit           \#"Word64" / { ifExtension ExtendedLiteralsBit } { tok_primword64 2 hexadecimal }
-
-  @decimal                  \#"Word"   / { ifExtension ExtendedLiteralsBit } { tok_primword 0 5 decimal }
-  @binarylit                \#"Word"   / { ifExtension ExtendedLiteralsBit `alexAndPred`
-                                           ifExtension BinaryLiteralsBit }   { tok_primword 2 7 binary }
-  @octallit                 \#"Word"   / { ifExtension ExtendedLiteralsBit } { tok_primword 2 7 octal }
-  @hexadecimallit           \#"Word"   / { ifExtension ExtendedLiteralsBit } { tok_primword 2 7 hexadecimal }
+  0[xX] @numspc @hex_floating_point \# / { ifExtension MagicHashBit `alexAndPred` ifExtension HexFloatLiteralsBit } { tok_frac 1 tok_prim_hex_float }
+  0[xX] @numspc @hex_floating_point \# \# / { ifExtension MagicHashBit `alexAndPred` ifExtension HexFloatLiteralsBit } { tok_frac 2 tok_prim_hex_double }
+  @negative 0[xX] @numspc @hex_floating_point \# / { ifExtension HexFloatLiteralsBit `alexAndPred` negHashLitPred MagicHashBit } { tok_frac 1 tok_prim_hex_float }
+  @negative 0[xX] @numspc @hex_floating_point \# \# / { ifExtension HexFloatLiteralsBit `alexAndPred` negHashLitPred MagicHashBit } { tok_frac 2 tok_prim_hex_double }
 
 }
 
--- Strings and chars are lexed by hand-written code.  The reason is
--- that even if we recognise the string or char here in the regex
--- lexer, we would still have to parse the string afterward in order
--- to convert it to a String.
 <0> {
-  \'                            { lex_char_tok }
-  \"                            { lex_string_tok }
+  \"\"\" / { ifExtension MultilineStringsBit }         { tok_string_multi }
+  \" @stringchar* \"                                   { tok_string }
+  \" @stringchar* \" \# / { ifExtension MagicHashBit } { tok_string }
+  \' @char        \'                                   { tok_char }
+  \' @char        \' \# / { ifExtension MagicHashBit } { tok_char }
+
+  -- Check for smart quotes and throw better errors than a plain lexical error (#21843)
+  \'              \\ $unigraphic / { isSmartQuote } { smart_quote_error }
+  \" @stringchar* \\ $unigraphic / { isSmartQuote } { smart_quote_error }
+  -- See Note [Bare smart quote error]
+  -- The valid string rule will take precedence because it'll match more
+  -- characters than this rule, so this rule will only fire if the string
+  -- could not be lexed correctly
+  \" @stringchar*    $unigraphic / { isSmartQuote } { smart_quote_error }
+}
+
+<string_multi_content> {
+  -- Parse as much of the multiline string as possible, except for quotes
+  @stringchar* ($nl ([\  $tab] | @gap)* @stringchar*)* { tok_string_multi_content }
+  -- Allow bare quotes if it's not a triple quote
+  (\" | \"\") / ([\n .] # \") { tok_string_multi_content }
+}
+
+<0> {
+  \'\' { token ITtyQuote }
+
+  -- The normal character match takes precedence over this because it matches
+  -- more characters. However, if that pattern didn't match, then this quote
+  -- could be a quoted identifier, like 'x. Here, just return ITsimpleQuote,
+  -- as the parser will lex the varid separately.
+  \' / ($graphic # \\ | " ") { token ITsimpleQuote }
 }
 
 -- Note [Whitespace-sensitive operator parsing]
@@ -860,7 +834,7 @@ data Token
   | ITdependency
   | ITrequires
 
-  -- Pragmas, see  Note [Pragma source text] in "GHC.Types.SourceText"
+  -- Pragmas, see Note [Pragma source text] in "GHC.Types.SourceText"
   | ITinline_prag       SourceText InlineSpec RuleMatchInfo
   | ITopaque_prag       SourceText
   | ITspec_prag         SourceText                -- SPECIALISE
@@ -948,6 +922,7 @@ data Token
 
   | ITchar     SourceText Char       -- Note [Literal source text] in "GHC.Types.SourceText"
   | ITstring   SourceText FastString -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITstringMulti SourceText FastString -- Note [Literal source text] in "GHC.Types.SourceText"
   | ITinteger  IntegralLit           -- Note [Literal source text] in "GHC.Types.SourceText"
   | ITrational FractionalLit
 
@@ -1899,21 +1874,56 @@ sym con span buf len _buf2 =
     !fs = lexemeToFastString buf len
 
 -- Variations on the integral numeric literal.
-tok_integral :: (SourceText -> Integer -> Token)
-             -> (Integer -> Integer)
-             -> Int -> Int
-             -> (Integer, (Char -> Int))
-             -> Action
-tok_integral itint transint transbuf translen (radix,char_to_int) span buf len _buf2 = do
+tok_integral
+  :: (SourceText -> Integer -> Token) -- ^ token constructor
+  -> (Integer -> Integer)             -- ^ value transformation (e.g. negate)
+  -> Int                              -- ^ Offset of the unsigned value (e.g. 1 when we parsed "-", 2 for "0x", etc.)
+  -> Int                              -- ^ Number of non-numeric characters parsed (e.g. 6 in "-12#Int8")
+  -> (Integer, (Char -> Int))         -- ^ (radix, char_to_int parsing function)
+  -> Action
+tok_integral mk_token transval offset translen (radix,char_to_int) span buf len _buf2 = do
   numericUnderscores <- getBit NumericUnderscoresBit  -- #14473
   let src = lexemeToFastString buf len
   when ((not numericUnderscores) && ('_' `elem` unpackFS src)) $ do
     pState <- getPState
     let msg = PsErrNumUnderscores NumUnderscore_Integral
     addError $ mkPlainErrorMsgEnvelope (mkSrcSpanPs (last_loc pState)) msg
-  return $ L span $ itint (SourceText src)
-       $! transint $ parseUnsignedInteger
-       (offsetBytes transbuf buf) (subtract translen len) radix char_to_int
+  return $ L span $ mk_token (SourceText src)
+       $! transval $ parseUnsignedInteger
+       (offsetBytes offset buf) (subtract translen len) radix char_to_int
+
+-- | Helper to parse ExtendedLiterals (e.g. -0x10#Word32)
+--
+-- This function finds the offset of the "#" character and checks that the
+-- suffix is valid. Then it calls tok_integral with the appropriate suffix
+-- length taken into account.
+tok_prim_num_ext
+  :: (Integer -> Integer)             -- ^ value transformation (e.g. negate)
+  -> Int                              -- ^ Offset of the unsigned value (e.g. 1 when we parsed "-", 2 for "0x", etc.)
+  -> (Integer, (Char -> Int))         -- ^ (radix, char_to_int parsing function)
+  -> Action
+tok_prim_num_ext transval offset (radix,char_to_int) span buf len buf2 = do
+  let !suffix_offset = findHashOffset buf + 1
+  let !suffix_len    = len - suffix_offset
+  let !suffix        = lexemeToFastString (offsetBytes suffix_offset buf) suffix_len
+
+  mk_token <- if
+    | suffix == fsLit "Word"   -> pure ITprimword
+    | suffix == fsLit "Word8"  -> pure ITprimword8
+    | suffix == fsLit "Word16" -> pure ITprimword16
+    | suffix == fsLit "Word32" -> pure ITprimword32
+    | suffix == fsLit "Word64" -> pure ITprimword64
+    | suffix == fsLit "Int"    -> pure ITprimint
+    | suffix == fsLit "Int8"   -> pure ITprimint8
+    | suffix == fsLit "Int16"  -> pure ITprimint16
+    | suffix == fsLit "Int32"  -> pure ITprimint32
+    | suffix == fsLit "Int64"  -> pure ITprimint64
+    | otherwise                -> srcParseFail
+
+  let !translen      = suffix_len+offset+1
+  tok_integral mk_token transval offset translen (radix,char_to_int) span buf len buf2
+
+
 
 tok_num :: (Integer -> Integer)
         -> Int -> Int
@@ -1935,48 +1945,16 @@ tok_primint = tok_integral ITprimint
 tok_primword :: Int -> Int
              -> (Integer, (Char->Int)) -> Action
 tok_primword = tok_integral ITprimword positive
+
 positive, negative :: (Integer -> Integer)
 positive = id
 negative = negate
-decimal, octal, hexadecimal :: (Integer, Char -> Int)
-decimal = (10,octDecDigit)
-binary = (2,octDecDigit)
-octal = (8,octDecDigit)
+
+binary, octal, decimal, hexadecimal :: (Integer, Char -> Int)
+binary      = (2,octDecDigit)
+octal       = (8,octDecDigit)
+decimal     = (10,octDecDigit)
 hexadecimal = (16,hexDigit)
-
--- | Helper for defining @IntX@ primitive literal parsers (specifically for
---   the ExtendedLiterals extension, such as @123#Int8@).
-tok_primintX :: (SourceText -> Integer -> Token)
-             -> Int
-             -> (Integer -> Integer)
-             -> Int
-             -> (Integer, (Char->Int)) -> Action
-tok_primintX itint addlen transint transbuf =
-    tok_integral itint transint transbuf (transbuf+addlen)
-
-tok_primint8,     tok_primint16,  tok_primint32,  tok_primint64
-    :: (Integer -> Integer)
-    -> Int -> (Integer, (Char->Int)) -> Action
-tok_primint8  = tok_primintX ITprimint8   5
-tok_primint16 = tok_primintX ITprimint16  6
-tok_primint32 = tok_primintX ITprimint32  6
-tok_primint64 = tok_primintX ITprimint64  6
-
--- | Helper for defining @WordX@ primitive literal parsers (specifically for
---   the ExtendedLiterals extension, such as @234#Word8@).
-tok_primwordX :: (SourceText -> Integer -> Token)
-              -> Int
-              -> Int
-              -> (Integer, (Char->Int)) -> Action
-tok_primwordX itint addlen transbuf =
-    tok_integral itint positive transbuf (transbuf+addlen)
-
-tok_primword8, tok_primword16, tok_primword32, tok_primword64
-    :: Int -> (Integer, (Char->Int)) -> Action
-tok_primword8  = tok_primwordX ITprimword8  6
-tok_primword16 = tok_primwordX ITprimword16 7
-tok_primword32 = tok_primwordX ITprimword32 7
-tok_primword64 = tok_primwordX ITprimword64 7
 
 -- readSignificandExponentPair can understand negative rationals, exponents, everything.
 tok_frac :: Int -> (String -> Token) -> Action
@@ -1989,11 +1967,13 @@ tok_frac drop f span buf len _buf2 = do
     addError $ mkPlainErrorMsgEnvelope (mkSrcSpanPs (last_loc pState)) msg
   return (L span $! (f $! src))
 
-tok_float, tok_primfloat, tok_primdouble :: String -> Token
+tok_float, tok_primfloat, tok_primdouble, tok_prim_hex_float, tok_prim_hex_double :: String -> Token
 tok_float        str = ITrational   $! readFractionalLit str
 tok_hex_float    str = ITrational   $! readHexFractionalLit str
 tok_primfloat    str = ITprimfloat  $! readFractionalLit str
 tok_primdouble   str = ITprimdouble $! readFractionalLit str
+tok_prim_hex_float  str = ITprimfloat $! readHexFractionalLit str
+tok_prim_hex_double str = ITprimdouble $! readHexFractionalLit str
 
 readFractionalLit, readHexFractionalLit :: String -> FractionalLit
 readHexFractionalLit = readFractionalLitX readHexSignificandExponentPair Base2
@@ -2173,293 +2153,129 @@ lex_string_prag_comment mkTok span _buf _len _buf2
 -- -----------------------------------------------------------------------------
 -- Strings & Chars
 
--- This stuff is horrible.  I hates it.
+tok_string :: Action
+tok_string span buf len _buf2 = do
+  s <- lex_chars ("\"", "\"") span buf (if endsInHash then len - 1 else len)
 
-lex_string_tok :: Action
-lex_string_tok span buf _len _buf2 = do
-  lexed <- lex_string
-  (AI end bufEnd) <- getInput
-  let
-    tok = case lexed of
-      LexedPrimString s -> ITprimstring (SourceText src) (unsafeMkByteString s)
-      LexedRegularString s -> ITstring (SourceText src) (mkFastString s)
-    src = lexemeToFastString buf (cur bufEnd - cur buf)
-  return $ L (mkPsSpan (psSpanStart span) end) tok
-
-
-lex_quoted_label :: Action
-lex_quoted_label span buf _len _buf2 = do
-  start <- getInput
-  s <- lex_string_helper "" start
-  (AI end bufEnd) <- getInput
-  let
-    token = ITlabelvarid (SourceText src) (mkFastString s)
-    src = lexemeToFastString (stepOn buf) (cur bufEnd - cur buf - 1)
-    start = psSpanStart span
-
-  return $ L (mkPsSpan start end) token
-
-
-data LexedString = LexedRegularString String | LexedPrimString String
-
-lex_string :: P LexedString
-lex_string = do
-  start <- getInput
-  s <- lex_string_helper "" start
-  magicHash <- getBit MagicHashBit
-  if magicHash
+  if endsInHash
     then do
-      i <- getInput
-      case alexGetChar' i of
-        Just ('#',i) -> do
-          setInput i
-          when (any (> '\xFF') s) $ do
-            pState <- getPState
-            let msg = PsErrPrimStringInvalidChar
-            let err = mkPlainErrorMsgEnvelope (mkSrcSpanPs (last_loc pState)) msg
-            addError err
-          return $ LexedPrimString s
-        _other ->
-          return $ LexedRegularString s
+      when (any (> '\xFF') s) $ do
+        pState <- getPState
+        let msg = PsErrPrimStringInvalidChar
+        let err = mkPlainErrorMsgEnvelope (mkSrcSpanPs (last_loc pState)) msg
+        addError err
+      pure $ L span (ITprimstring src (unsafeMkByteString s))
     else
-      return $ LexedRegularString s
+      pure $ L span (ITstring src (mkFastString s))
+  where
+    src = SourceText $ lexemeToFastString buf len
+    endsInHash = currentChar (offsetBytes (len - 1) buf) == '#'
 
+-- | Ideally, we would define this completely with Alex syntax, like normal strings.
+-- Instead, this is defined as a hybrid solution by manually invoking lex states, which
+-- we're doing for two reasons:
+--   1. The multiline string should all be one lexical token, not multiple
+--   2. We need to allow bare quotes, which can't be done with one regex
+tok_string_multi :: Action
+tok_string_multi startSpan startBuf _len _buf2 = do
+  -- advance to the end of the multiline string
+  let startLoc = psSpanStart startSpan
+  let i@(AI _ contentStartBuf) =
+        case lexDelim $ AI startLoc startBuf of
+          Just i -> i
+          Nothing -> panic "tok_string_multi did not start with a delimiter"
+  (AI _ contentEndBuf, i'@(AI endLoc endBuf)) <- goContent i
 
-lex_string_helper :: String -> AlexInput -> P String
-lex_string_helper s start = do
-  i <- getInput
-  case alexGetChar' i of
-    Nothing -> lit_error i
+  -- build the values pertaining to the entire multiline string, including delimiters
+  let span = mkPsSpan startLoc endLoc
+  let len = byteDiff startBuf endBuf
+  let src = SourceText $ lexemeToFastString startBuf len
 
-    Just ('"',i)  -> do
-      setInput i
-      return (reverse s)
+  -- load the content of the multiline string
+  let contentLen = byteDiff contentStartBuf contentEndBuf
+  s <-
+    either (throwStringLexError (AI startLoc startBuf)) pure $
+      lexMultilineString contentLen contentStartBuf
 
-    Just ('\\',i)
-        | Just ('&',i) <- next -> do
-                setInput i; lex_string_helper s start
-        | Just (c,i) <- next, c <= '\x7f' && is_space c -> do
-                           -- is_space only works for <= '\x7f' (#3751, #5425)
-                setInput i; lex_stringgap s start
-        where next = alexGetChar' i
+  setInput i'
+  pure $ L span $ ITstringMulti src (mkFastString s)
+  where
+    goContent i0 =
+      case alexScan i0 string_multi_content of
+        AlexToken i1 len _
+          | Just i2 <- lexDelim i1 -> pure (i1, i2)
+          | isEOF i1 -> checkSmartQuotes >> setInput i1 >> lexError LexError
+          -- is the next token a tab character?
+          -- need this explicitly because there's a global rule matching $tab
+          | Just ('\t', _) <- alexGetChar' i1 -> setInput i1 >> lexError LexError
+          -- Can happen if no patterns match, e.g. an unterminated gap
+          | len == 0  -> setInput i1 >> lexError LexError
+          | otherwise -> goContent i1
+        AlexSkip i1 _ -> goContent i1
+        _ -> setInput i0 >> lexError LexError
 
-    Just (c, i1) -> do
-        case c of
-          '\\' -> do setInput i1; c' <- lex_escape; lex_string_helper (c':s) start
-          c | isAny c -> do setInput i1; lex_string_helper (c:s) start
-          _other | any isDoubleSmartQuote s -> do
-            -- if the built-up string s contains a smart double quote character, it was
-            -- likely the reason why the string literal was not lexed correctly
-            setInput start -- rewind to the first character in the string literal
-                           -- so we can find the smart quote character's location
-            advance_to_smart_quote_character
-            i2@(AI loc _) <- getInput
-            case alexGetChar' i2 of
-              Just (c, _) -> do add_nonfatal_smart_quote_error c loc; lit_error i
-              Nothing -> lit_error i -- should never get here
-          _other -> lit_error i
-
-
-lex_stringgap :: String -> AlexInput -> P String
-lex_stringgap s start = do
-  i <- getInput
-  c <- getCharOrFail i
-  case c of
-    '\\' -> lex_string_helper s start
-    c | c <= '\x7f' && is_space c -> lex_stringgap s start
-                           -- is_space only works for <= '\x7f' (#3751, #5425)
-    _other -> lit_error i
-
-
-lex_char_tok :: Action
--- Here we are basically parsing character literals, such as 'x' or '\n'
--- but we additionally spot 'x and ''T, returning ITsimpleQuote and
--- ITtyQuote respectively, but WITHOUT CONSUMING the x or T part
--- (the parser does that).
--- So we have to do two characters of lookahead: when we see 'x we need to
--- see if there's a trailing quote
-lex_char_tok span buf _len _buf2 = do        -- We've seen '
-   i1 <- getInput       -- Look ahead to first character
-   let loc = psSpanStart span
-   case alexGetChar' i1 of
-        Nothing -> lit_error  i1
-
-        Just ('\'', i2@(AI end2 _)) -> do       -- We've seen ''
-                   setInput i2
-                   return (L (mkPsSpan loc end2)  ITtyQuote)
-
-        Just ('\\', i2@(AI end2 _)) -> do      -- We've seen 'backslash
-                  setInput i2
-                  lit_ch <- lex_escape
-                  i3 <- getInput
-                  mc <- getCharOrFail i3 -- Trailing quote
-                  if mc == '\'' then finish_char_tok buf loc lit_ch
-                  else if isSingleSmartQuote mc then add_smart_quote_error mc end2
-                  else lit_error i3
-
-        Just (c, i2@(AI end2 _))
-                | not (isAny c) -> lit_error i1
-                | otherwise ->
-
-                -- We've seen 'x, where x is a valid character
-                --  (i.e. not newline etc) but not a quote or backslash
-           case alexGetChar' i2 of      -- Look ahead one more character
-                Just ('\'', i3) -> do   -- We've seen 'x'
-                        setInput i3
-                        finish_char_tok buf loc c
-                Just (c, _) | isSingleSmartQuote c -> add_smart_quote_error c end2
-                _other -> do            -- We've seen 'x not followed by quote
-                                        -- (including the possibility of EOF)
-                                        -- Just parse the quote only
-                        let (AI end _) = i1
-                        return (L (mkPsSpan loc end) ITsimpleQuote)
-
-finish_char_tok :: StringBuffer -> PsLoc -> Char -> P (PsLocated Token)
-finish_char_tok buf loc ch  -- We've already seen the closing quote
-                        -- Just need to check for trailing #
-  = do  magicHash <- getBit MagicHashBit
-        i@(AI end bufEnd) <- getInput
-        let src = lexemeToFastString buf (cur bufEnd - cur buf)
-        if magicHash then do
+    lexDelim =
+      let go 0 i = Just i
+          go n i =
             case alexGetChar' i of
-              Just ('#',i@(AI end bufEnd')) -> do
-                setInput i
-                -- Include the trailing # in SourceText
-                let src' = lexemeToFastString buf (cur bufEnd' - cur buf)
-                return (L (mkPsSpan loc end)
-                          (ITprimchar (SourceText src') ch))
-              _other ->
-                return (L (mkPsSpan loc end)
-                          (ITchar (SourceText src) ch))
-            else do
-              return (L (mkPsSpan loc end) (ITchar (SourceText src) ch))
+              Just ('"', i') -> go (n - 1) i'
+              _ -> Nothing
+       in go (3 :: Int)
 
-isAny :: Char -> Bool
-isAny c | c > '\x7f' = isPrint c
-        | otherwise  = is_any c
+    -- See Note [Bare smart quote error]
+    checkSmartQuotes = do
+      let findSmartQuote i0@(AI loc _) =
+            case alexGetChar' i0 of
+              Just ('\\', i1) | Just (_, i2) <- alexGetChar' i1 -> findSmartQuote i2
+              Just (c, i1)
+                | isDoubleSmartQuote c -> Just (c, loc)
+                | otherwise -> findSmartQuote i1
+              _ -> Nothing
+      case findSmartQuote (AI (psSpanStart startSpan) startBuf) of
+        Just (c, loc) -> throwSmartQuoteError c loc
+        Nothing -> pure ()
 
-lex_escape :: P Char
-lex_escape = do
-  i0@(AI loc _) <- getInput
-  c <- getCharOrFail i0
-  case c of
-        'a'   -> return '\a'
-        'b'   -> return '\b'
-        'f'   -> return '\f'
-        'n'   -> return '\n'
-        'r'   -> return '\r'
-        't'   -> return '\t'
-        'v'   -> return '\v'
-        '\\'  -> return '\\'
-        '"'   -> return '\"'
-        '\''  -> return '\''
-        -- the next two patterns build up a Unicode smart quote error (#21843)
-        smart_double_quote | isDoubleSmartQuote smart_double_quote ->
-          add_smart_quote_error smart_double_quote loc
-        smart_single_quote | isSingleSmartQuote smart_single_quote ->
-          add_smart_quote_error smart_single_quote loc
-        '^'   -> do i1 <- getInput
-                    c <- getCharOrFail i1
-                    if c >= '@' && c <= '_'
-                        then return (chr (ord c - ord '@'))
-                        else lit_error i1
+-- | Dummy action that should never be called. Should only be used in lex states
+-- that are manually lexed in tok_string_multi.
+tok_string_multi_content :: Action
+tok_string_multi_content = panic "tok_string_multi_content unexpectedly invoked"
 
-        'x'   -> readNum is_hexdigit 16 hexDigit
-        'o'   -> readNum is_octdigit  8 octDecDigit
-        x | is_decdigit x -> readNum2 is_decdigit 10 octDecDigit (octDecDigit x)
+lex_chars :: (String, String) -> PsSpan -> StringBuffer -> Int -> P String
+lex_chars (startDelim, endDelim) span buf len =
+  either (throwStringLexError i0) pure $
+    lexString contentLen contentBuf
+  where
+    i0@(AI _ contentBuf) = advanceInputBytes (length startDelim) $ AI (psSpanStart span) buf
 
-        c1 ->  do
-           i <- getInput
-           case alexGetChar' i of
-            Nothing -> lit_error i0
-            Just (c2,i2) ->
-              case alexGetChar' i2 of
-                Nothing -> do lit_error i0
-                Just (c3,i3) ->
-                   let str = [c1,c2,c3] in
-                   case [ (c,rest) | (p,c) <- silly_escape_chars,
-                                     Just rest <- [stripPrefix p str] ] of
-                          (escape_char,[]):_ -> do
-                                setInput i3
-                                return escape_char
-                          (escape_char,_:_):_ -> do
-                                setInput i2
-                                return escape_char
-                          [] -> lit_error i0
+    -- assumes delimiters are ASCII, with 1 byte per Char
+    contentLen = len - length startDelim - length endDelim
 
-readNum :: (Char -> Bool) -> Int -> (Char -> Int) -> P Char
-readNum is_digit base conv = do
-  i <- getInput
-  c <- getCharOrFail i
-  if is_digit c
-        then readNum2 is_digit base conv (conv c)
-        else lit_error i
-
-readNum2 :: (Char -> Bool) -> Int -> (Char -> Int) -> Int -> P Char
-readNum2 is_digit base conv i = do
-  input <- getInput
-  read i input
-  where read i input = do
-          case alexGetChar' input of
-            Just (c,input') | is_digit c -> do
-               let i' = i*base + conv c
-               if i' > 0x10ffff
-                  then setInput input >> lexError LexNumEscapeRange
-                  else read i' input'
-            _other -> do
-              setInput input; return (chr i)
+throwStringLexError :: AlexInput -> StringLexError -> P a
+throwStringLexError i (StringLexError e pos) = setInput (advanceInputTo pos i) >> lexError e
 
 
-silly_escape_chars :: [(String, Char)]
-silly_escape_chars = [
-        ("NUL", '\NUL'),
-        ("SOH", '\SOH'),
-        ("STX", '\STX'),
-        ("ETX", '\ETX'),
-        ("EOT", '\EOT'),
-        ("ENQ", '\ENQ'),
-        ("ACK", '\ACK'),
-        ("BEL", '\BEL'),
-        ("BS", '\BS'),
-        ("HT", '\HT'),
-        ("LF", '\LF'),
-        ("VT", '\VT'),
-        ("FF", '\FF'),
-        ("CR", '\CR'),
-        ("SO", '\SO'),
-        ("SI", '\SI'),
-        ("DLE", '\DLE'),
-        ("DC1", '\DC1'),
-        ("DC2", '\DC2'),
-        ("DC3", '\DC3'),
-        ("DC4", '\DC4'),
-        ("NAK", '\NAK'),
-        ("SYN", '\SYN'),
-        ("ETB", '\ETB'),
-        ("CAN", '\CAN'),
-        ("EM", '\EM'),
-        ("SUB", '\SUB'),
-        ("ESC", '\ESC'),
-        ("FS", '\FS'),
-        ("GS", '\GS'),
-        ("RS", '\RS'),
-        ("US", '\US'),
-        ("SP", '\SP'),
-        ("DEL", '\DEL')
-        ]
+tok_quoted_label :: Action
+tok_quoted_label span buf len _buf2 = do
+  s <- lex_chars ("#\"", "\"") span buf len
+  pure $ L span (ITlabelvarid src (mkFastString s))
+  where
+    -- skip leading '#'
+    src = SourceText . mkFastString . drop 1 $ lexemeToString buf len
 
--- before calling lit_error, ensure that the current input is pointing to
--- the position of the error in the buffer.  This is so that we can report
--- a correct location to the user, but also so we can detect UTF-8 decoding
--- errors if they occur.
-lit_error :: AlexInput -> P a
-lit_error i = do setInput i; lexError LexStringCharLit
 
-getCharOrFail :: AlexInput -> P Char
-getCharOrFail i =  do
-  case alexGetChar' i of
-        Nothing -> lexError LexStringCharLitEOF
-        Just (c,i)  -> do setInput i; return c
+tok_char :: Action
+tok_char span buf len _buf2 = do
+  c <- lex_chars ("'", "'") span buf (if endsInHash then len - 1 else len) >>= \case
+    [c] -> pure c
+    s -> panic $ "tok_char expected exactly one character, got: " ++ show s
+  pure . L span $
+    if endsInHash
+      then ITprimchar src c
+      else ITchar src c
+  where
+    src = SourceText $ lexemeToFastString buf len
+    endsInHash = currentChar (offsetBytes (len - 1) buf) == '#'
+
 
 -- -----------------------------------------------------------------------------
 -- QuasiQuote
@@ -2515,45 +2331,31 @@ quasiquote_error start = do
 -- -----------------------------------------------------------------------------
 -- Unicode Smart Quote detection (#21843)
 
-isDoubleSmartQuote :: Char -> Bool
-isDoubleSmartQuote '“' = True
-isDoubleSmartQuote '”' = True
-isDoubleSmartQuote _ = False
-
-isSingleSmartQuote :: Char -> Bool
-isSingleSmartQuote '‘' = True
-isSingleSmartQuote '’' = True
-isSingleSmartQuote _ = False
-
 isSmartQuote :: AlexAccPred ExtsBitmap
 isSmartQuote _ _ _ (AI _ buf) = let c = prevChar buf ' ' in isSingleSmartQuote c || isDoubleSmartQuote c
 
-smart_quote_error_message :: Char -> PsLoc -> MsgEnvelope PsMessage
-smart_quote_error_message c loc =
-  let (correct_char, correct_char_name) =
-         if isSingleSmartQuote c then ('\'', "Single Quote") else ('"', "Quotation Mark")
-      err = mkPlainErrorMsgEnvelope (mkSrcSpanPs (mkPsSpan loc loc)) $
-              PsErrUnicodeCharLooksLike c correct_char correct_char_name in
-    err
+throwSmartQuoteError :: Char -> PsLoc -> P a
+throwSmartQuoteError c loc = addFatalError err
+  where
+    err =
+      mkPlainErrorMsgEnvelope (mkSrcSpanPs (mkPsSpan loc loc)) $
+        PsErrUnicodeCharLooksLike c correct_char correct_char_name
+    (correct_char, correct_char_name) =
+      if isSingleSmartQuote c
+        then ('\'', "Single Quote")
+        else ('"', "Quotation Mark")
 
+-- | Throw a smart quote error, where the smart quote was the last character lexed
 smart_quote_error :: Action
-smart_quote_error span buf _len _buf2 = do
-  let c = currentChar buf
-  addFatalError (smart_quote_error_message c (psSpanStart span))
+smart_quote_error span _ _ buf2 = do
+  let c = prevChar buf2 (panic "smart_quote_error unexpectedly called on beginning of input")
+  throwSmartQuoteError c (psSpanStart span)
 
-add_smart_quote_error :: Char -> PsLoc -> P a
-add_smart_quote_error c loc = addFatalError (smart_quote_error_message c loc)
-
-add_nonfatal_smart_quote_error :: Char -> PsLoc -> P ()
-add_nonfatal_smart_quote_error c loc = addError (smart_quote_error_message c loc)
-
-advance_to_smart_quote_character :: P ()
-advance_to_smart_quote_character  = do
-  i <- getInput
-  case alexGetChar' i of
-    Just (c, _) | isDoubleSmartQuote c -> return ()
-    Just (_, i2) -> do setInput i2; advance_to_smart_quote_character
-    Nothing -> return () -- should never get here
+-- Note [Bare smart quote error]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- A smart quote inside of a string is allowed, but if a complete valid string
+-- couldn't be lexed, we want to see if there's a smart quote that the user
+-- thought ended the string, but in fact didn't.
 
 -- -----------------------------------------------------------------------------
 -- Warnings
@@ -2791,7 +2593,7 @@ getLastLocIncludingComments = P $ \s@(PState { prev_loc = prev_loc }) -> POk s p
 getLastLoc :: P PsSpan
 getLastLoc = P $ \s@(PState { last_loc = last_loc }) -> POk s last_loc
 
-data AlexInput = AI !PsLoc !StringBuffer
+data AlexInput = AI !PsLoc !StringBuffer deriving (Show)
 
 {-
 Note [Unicode in Alex]
@@ -2814,19 +2616,19 @@ characters into single bytes.
 
 {-# INLINE adjustChar #-}
 adjustChar :: Char -> Word8
-adjustChar c = fromIntegral $ ord adj_c
-  where non_graphic     = '\x00'
-        upper           = '\x01'
-        lower           = '\x02'
-        digit           = '\x03'
-        symbol          = '\x04'
-        space           = '\x05'
-        other_graphic   = '\x06'
-        uniidchar       = '\x07'
+adjustChar c = adj_c
+  where non_graphic     = 0x00
+        upper           = 0x01
+        lower           = 0x02
+        digit           = 0x03
+        symbol          = 0x04
+        space           = 0x05
+        other_graphic   = 0x06
+        uniidchar       = 0x07
 
         adj_c
           | c <= '\x07' = non_graphic
-          | c <= '\x7f' = c
+          | c <= '\x7f' = fromIntegral (ord c)
           -- Alex doesn't handle Unicode, so when Unicode
           -- character is encountered we output these values
           -- with the actual character value hidden in the state.
@@ -2866,15 +2668,18 @@ adjustChar c = fromIntegral $ ord adj_c
 --
 -- See Note [Unicode in Alex] and #13986.
 alexInputPrevChar :: AlexInput -> Char
-alexInputPrevChar (AI _ buf) = chr (fromIntegral (adjustChar pc))
+alexInputPrevChar (AI _ buf) = unsafeChr (fromIntegral (adjustChar pc))
   where pc = prevChar buf '\n'
+
+unsafeChr :: Int -> Char
+unsafeChr (I# c) = GHC.Exts.C# (GHC.Exts.chr# c)
 
 -- backwards compatibility for Alex 2.x
 alexGetChar :: AlexInput -> Maybe (Char,AlexInput)
 alexGetChar inp = case alexGetByte inp of
                     Nothing    -> Nothing
                     Just (b,i) -> c `seq` Just (c,i)
-                       where c = chr $ fromIntegral b
+                       where c = unsafeChr $ fromIntegral b
 
 -- See Note [Unicode in Alex]
 alexGetByte :: AlexInput -> Maybe (Word8,AlexInput)
@@ -2899,6 +2704,19 @@ alexGetChar' (AI loc s)
   where (c,s') = nextChar s
         loc'   = advancePsLoc loc c
 
+-- | Advance the given input N bytes.
+advanceInputBytes :: Int -> AlexInput -> AlexInput
+advanceInputBytes n i0@(AI _ buf0) = advanceInputTo (cur buf0 + n) i0
+
+-- | Advance the given input to the given position.
+advanceInputTo :: Int -> AlexInput -> AlexInput
+advanceInputTo pos = go
+  where
+    go i@(AI _ buf)
+      | cur buf >= pos = i
+      | Just (_, i') <- alexGetChar' i = go i'
+      | otherwise = i -- reached the end, just return the last input
+
 getInput :: P AlexInput
 getInput = P $ \s@PState{ loc=l, buffer=b } -> POk s (AI l b)
 
@@ -2906,9 +2724,10 @@ setInput :: AlexInput -> P ()
 setInput (AI l b) = P $ \s -> POk s{ loc=l, buffer=b } ()
 
 nextIsEOF :: P Bool
-nextIsEOF = do
-  AI _ s <- getInput
-  return $ atEnd s
+nextIsEOF = isEOF <$> getInput
+
+isEOF :: AlexInput -> Bool
+isEOF (AI _ buf) = atEnd buf
 
 pushLexState :: Int -> P ()
 pushLexState ls = P $ \s@PState{ lex_state=l } -> POk s{lex_state=ls:l} ()
@@ -3052,8 +2871,12 @@ data ExtBits
   | NoLexicalNegationBit   -- See Note [Why not LexicalNegationBit]
   | OverloadedRecordDotBit
   | OverloadedRecordUpdateBit
+  | OrPatternsBit
   | ExtendedLiteralsBit
   | ListTuplePunsBit
+  | ViewPatternsBit
+  | RequiredTypeArgumentsBit
+  | MultilineStringsBit
 
   -- Flags that are updated once parsing starts
   | InRulePragBit
@@ -3133,8 +2956,12 @@ mkParserOpts extensionFlags diag_opts supported
       .|. NoLexicalNegationBit        `xoptNotBit` LangExt.LexicalNegation -- See Note [Why not LexicalNegationBit]
       .|. OverloadedRecordDotBit      `xoptBit` LangExt.OverloadedRecordDot
       .|. OverloadedRecordUpdateBit   `xoptBit` LangExt.OverloadedRecordUpdate  -- Enable testing via 'getBit OverloadedRecordUpdateBit' in the parser (RecordDotSyntax parsing uses that information).
+      .|. OrPatternsBit               `xoptBit` LangExt.OrPatterns
       .|. ExtendedLiteralsBit         `xoptBit` LangExt.ExtendedLiterals
       .|. ListTuplePunsBit            `xoptBit` LangExt.ListTuplePuns
+      .|. ViewPatternsBit             `xoptBit` LangExt.ViewPatterns
+      .|. RequiredTypeArgumentsBit    `xoptBit` LangExt.RequiredTypeArguments
+      .|. MultilineStringsBit         `xoptBit` LangExt.MultilineStrings
     optBits =
           HaddockBit        `setBitIf` isHaddock
       .|. RawTokenStreamBit `setBitIf` rawTokStream
@@ -3224,8 +3051,9 @@ class Monad m => MonadP m where
   --   the parser will not produce any result, ending in a 'PFailed' state.
   addFatalError :: MsgEnvelope PsMessage -> m a
 
-  -- | Check if a given flag is currently set in the bitmap.
-  getBit :: ExtBits -> m Bool
+  -- | Get parser options
+  getParserOpts :: m ParserOpts
+
   -- | Go through the @comment_q@ in @PState@ and remove all comments
   -- that belong within the given span
   allocateCommentsP :: RealSrcSpan -> m EpAnnComments
@@ -3249,8 +3077,8 @@ instance MonadP P where
   addFatalError err =
     addError err >> P PFailed
 
-  getBit ext = P $ \s -> let b =  ext `xtest` pExtsBitmap (options s)
-                         in b `seq` POk s b
+  getParserOpts = P $ \s -> POk s $! options s
+
   allocateCommentsP ss = P $ \s ->
     if null (comment_q s) then POk s emptyComments else  -- fast path
     let (comment_q', newAnns) = allocateComments ss (comment_q s) in
@@ -3272,6 +3100,10 @@ instance MonadP P where
          comment_q = comment_q'
        } (EpaCommentsBalanced (Strict.fromMaybe [] header_comments') newAnns)
 
+-- | Check if a given flag is currently set in the bitmap.
+getBit :: MonadP m => ExtBits -> m Bool
+getBit ext = (\opts -> ext `xtest` pExtsBitmap opts) <$> getParserOpts
+
 getCommentsFor :: (MonadP m) => SrcSpan -> m EpAnnComments
 getCommentsFor (RealSrcSpan l _) = allocateCommentsP l
 getCommentsFor _ = return emptyComments
@@ -3287,9 +3119,9 @@ getFinalCommentsFor _ = return emptyComments
 getEofPos :: P (Strict.Maybe (Strict.Pair RealSrcSpan RealSrcSpan))
 getEofPos = P $ \s@(PState { eof_pos = pos }) -> POk s pos
 
-addPsMessage :: SrcSpan -> PsMessage -> P ()
+addPsMessage :: MonadP m => SrcSpan -> PsMessage -> m ()
 addPsMessage srcspan msg = do
-  diag_opts <- (pDiagOpts . options) <$> getPState
+  diag_opts <- pDiagOpts <$> getParserOpts
   addWarning (mkPlainMsgEnvelope diag_opts srcspan msg)
 
 addTabWarning :: RealSrcSpan -> P ()
@@ -3639,6 +3471,11 @@ topNoLayoutContainsCommas [] = False
 topNoLayoutContainsCommas (ALRLayout _ _ : ls) = topNoLayoutContainsCommas ls
 topNoLayoutContainsCommas (ALRNoLayout b _ : _) = b
 
+-- If the generated alexScan/alexScanUser functions are called multiple times
+-- in this file, alexScanUser gets broken out into a separate function and
+-- increases memory usage. Make sure GHC inlines this function and optimizes it.
+{-# INLINE alexScanUser #-}
+
 lexToken :: P (PsLocated Token)
 lexToken = do
   inp@(AI loc1 buf) <- getInput
@@ -3792,13 +3629,30 @@ warn_unknown_prag prags span buf len buf2 = do
 %************************************************************************
 -}
 
+-- TODO:AZ: we should have only mkParensEpToks. Delee mkParensEpAnn, mkParensLocs
 
 -- |Given a 'RealSrcSpan' that surrounds a 'HsPar' or 'HsParTy', generate
--- 'AddEpAnn' values for the opening and closing bordering on the start
+-- 'EpToken' values for the opening and closing bordering on the start
 -- and end of the span
-mkParensEpAnn :: RealSrcSpan -> (AddEpAnn, AddEpAnn)
-mkParensEpAnn ss = (AddEpAnn AnnOpenP (EpaSpan (RealSrcSpan lo Strict.Nothing)),
-                    AddEpAnn AnnCloseP (EpaSpan (RealSrcSpan lc Strict.Nothing)))
+mkParensEpToks :: RealSrcSpan -> (EpToken "(", EpToken ")")
+mkParensEpToks ss = (EpTok (EpaSpan (RealSrcSpan lo Strict.Nothing)),
+                    EpTok (EpaSpan (RealSrcSpan lc Strict.Nothing)))
+  where
+    f = srcSpanFile ss
+    sl = srcSpanStartLine ss
+    sc = srcSpanStartCol ss
+    el = srcSpanEndLine ss
+    ec = srcSpanEndCol ss
+    lo = mkRealSrcSpan (realSrcSpanStart ss)        (mkRealSrcLoc f sl (sc+1))
+    lc = mkRealSrcSpan (mkRealSrcLoc f el (ec - 1)) (realSrcSpanEnd ss)
+
+
+-- |Given a 'RealSrcSpan' that surrounds a 'HsPar' or 'HsParTy', generate
+-- 'EpaLocation' values for the opening and closing bordering on the start
+-- and end of the span
+mkParensLocs :: RealSrcSpan -> (EpaLocation, EpaLocation)
+mkParensLocs ss = (EpaSpan (RealSrcSpan lo Strict.Nothing),
+                    EpaSpan (RealSrcSpan lc Strict.Nothing))
   where
     f = srcSpanFile ss
     sl = srcSpanStartLine ss
@@ -3819,8 +3673,8 @@ allocateComments
   -> ([LEpaComment], [LEpaComment])
 allocateComments ss comment_q =
   let
-    (before,rest)  = break (\(L l _) -> isRealSubspanOf (anchor l) ss) comment_q
-    (middle,after) = break (\(L l _) -> not (isRealSubspanOf (anchor l) ss)) rest
+    (before,rest)  = break (\(L l _) -> isRealSubspanOf (epaLocationRealSrcSpan l) ss) comment_q
+    (middle,after) = break (\(L l _) -> not (isRealSubspanOf (epaLocationRealSrcSpan l) ss)) rest
     comment_q' = before ++ after
     newAnns = middle
   in
@@ -3838,14 +3692,14 @@ splitPriorComments ss prior_comments =
     -- And the token preceding the comment is on a different line
     cmp :: RealSrcSpan -> LEpaComment -> Bool
     cmp later (L l c)
-         = srcSpanStartLine later - srcSpanEndLine (anchor l) == 1
-          && srcSpanEndLine (ac_prior_tok c) /= srcSpanStartLine (anchor l)
+         = srcSpanStartLine later - srcSpanEndLine (epaLocationRealSrcSpan l) == 1
+          && srcSpanEndLine (ac_prior_tok c) /= srcSpanStartLine (epaLocationRealSrcSpan l)
 
     go :: [LEpaComment] -> RealSrcSpan -> [LEpaComment]
        -> ([LEpaComment], [LEpaComment])
     go decl_comments _ [] = ([],decl_comments)
     go decl_comments r (c@(L l _):cs) = if cmp r c
-                              then go (c:decl_comments) (anchor l) cs
+                              then go (c:decl_comments) (epaLocationRealSrcSpan l) cs
                               else (reverse (c:cs), decl_comments)
   in
     go [] ss prior_comments
@@ -3857,7 +3711,7 @@ allocatePriorComments
   -> (Strict.Maybe [LEpaComment], [LEpaComment], [LEpaComment])
 allocatePriorComments ss comment_q mheader_comments =
   let
-    cmp (L l _) = anchor l <= ss
+    cmp (L l _) = epaLocationRealSrcSpan l <= ss
     (newAnns,after) = partition cmp comment_q
     comment_q'= after
     (prior_comments, decl_comments) = splitPriorComments ss newAnns
