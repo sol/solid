@@ -98,7 +98,7 @@ annotateInput input = filter (not . String.empty? . snd) . go 0
         ITdocComment{} -> link Comment
         ITlineComment{} -> link Comment
         ITblockComment comment _
-          | comment.startsWith "\{-#" -> link SpecialComment
+          | comment.startsWith "{-#" -> link SpecialComment
           | otherwise -> link Comment
 
         ITinline_prag{} -> link SpecialComment
@@ -295,7 +295,6 @@ breakOnCharacterEscape input = case input.breakOn "\\" of
       , "\\\""
       , "\\\'"
       , "\\\\"
-      , "\\\{"
       ]
 
 tokenize :: String -> Either [Char] LexerResult
