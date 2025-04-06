@@ -98,7 +98,7 @@ annotateInput input = filter (not . String.empty? . snd) . go 0
         ITdocComment{} -> link Comment
         ITlineComment{} -> link Comment
         ITblockComment comment _
-          | comment.startsWith "\{-#" -> link SpecialComment
+          | comment.startsWith "{-#" -> link SpecialComment
           | otherwise -> link Comment
 
         ITinline_prag{} -> link SpecialComment
@@ -129,8 +129,8 @@ annotateInput input = filter (not . String.empty? . snd) . go 0
         ITcomment_line_prag{} -> link SpecialComment
 
         ITstring{} -> string loc.start loc.end
-        ITstring_interpolation_begin{} -> string loc.start loc.end.pred
-        ITstring_interpolation_end_begin{} -> string loc.start.succ loc.end.pred
+        ITstring_interpolation_begin{} -> string loc.start (loc.end - 2)
+        ITstring_interpolation_end_begin{} -> string loc.start.succ (loc.end - 2)
         ITstring_interpolation_end{} -> string loc.start.succ loc.end
 
         ITchar{} -> link Character
@@ -295,7 +295,6 @@ breakOnCharacterEscape input = case input.breakOn "\\" of
       , "\\\""
       , "\\\'"
       , "\\\\"
-      , "\\\{"
       ]
 
 tokenize :: String -> Either [Char] LexerResult

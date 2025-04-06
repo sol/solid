@@ -369,30 +369,30 @@ spec = do
           ]
 
       it "accepts a string with interpolation" $ do
-        parse "\"foo {bar} baz\"" `shouldBe` [
-            begin "\"foo {" $ ["bar"] $ end "} baz\""
+        parse "\"foo \\{bar} baz\"" `shouldBe` [
+            begin "\"foo \\{" $ ["bar"] $ end "} baz\""
           ]
 
       it "accepts a string with multiple interpolations" $ do
-        parse "\" {foo} {bar} {baz} \"" `shouldBe` [
-            begin "\" {" $ ["foo"] $ end_begin "} {" $ ["bar"] $ end_begin "} {" $ ["baz"] $ end "} \""
+        parse "\" \\{foo} \\{bar} \\{baz} \"" `shouldBe` [
+            begin "\" \\{" $ ["foo"] $ end_begin "} \\{" $ ["bar"] $ end_begin "} \\{" $ ["baz"] $ end "} \""
           ]
 
       it "accepts a string with nested interpolations" $ do
-        parse "\" { \" {foo} \" } \"" `shouldBe` [
-            begin "\" {" $ [begin "\" {" $ ["foo"] $ end "} \""] $ end "} \""
+        parse "\" \\{ \" \\{foo} \" } \"" `shouldBe` [
+            begin "\" \\{" $ [begin "\" \\{" $ ["foo"] $ end "} \""] $ end "} \""
           ]
 
       context "on unexpected end of line" $ do
         it "reports an error" $ do
           parseModule "\"foo    \n" `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at character '\\n'"
-          parseModule "\"foo {  \n" `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231] lexical error at character '\\n'"
+          parseModule "\"foo \\{  \n" `Hspec.shouldBe` Left "main.hs:1:10: error: [GHC-21231] lexical error at character '\\n'"
 
       context "on unexpected end of input" $ do
         it "reports an error" $ do
           parseModule "\"foo    " `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
-          let Left err = parseModule "\"foo {  "
-          err `Hspec.shouldBe` "main.hs:1:7:unterminated string interpolation"
+          let Left err = parseModule "\"foo \\{  "
+          err `Hspec.shouldBe` "main.hs:1:8:unterminated string interpolation"
 
       context "unexpected token" $ do
         it "reports an error" $ do

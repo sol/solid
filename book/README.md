@@ -164,7 +164,7 @@ With this you can simplify the example from above to:
 
 ```haskell
 say_hey :: String -> IO ()
-say_hey name = stdout.writeLine "Hey {name} 👋"
+say_hey name = stdout.writeLine "Hey \{name} 👋"
 ```
 ```repl
 >>> say_hey "Joe"

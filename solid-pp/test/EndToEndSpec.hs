@@ -24,25 +24,25 @@ spec :: Spec
 spec = do
   describe "solid-pp" $ do
     it "desugars string interpolation" $ do
-      "Hey {name} 👋" `shouldBe` "Hey Joe 👋"
+      "Hey \{name} 👋" `shouldBe` "Hey Joe 👋"
 
     it "desugars nested string interpolation" $ do
       let
         foo = "foo"
         bar = "bar"
-      " { " { " {foo} " } " } {bar} " `shouldBe` "   foo   bar "
+      " \{ " \{ " \{foo} " } " } \{bar} " `shouldBe` "   foo   bar "
 
     it "desugars interpolation abstractions" $ do
       let
         how = "how"
         are = "are"
         you = "you"
-      "Hey {name}, {} {} {}?" how are you `shouldBe` "Hey Joe, how are you?"
+      "Hey \{name}, \{} \{} \{}?" how are you `shouldBe` "Hey Joe, how are you?"
 
     context "workaround for GHC #23040" $ do
       -- https://gitlab.haskell.org/ghc/ghc/-/issues/23040
       it "desugars string interpolation" $ do
-        "Hey {name} 👋".toLower `shouldBe` "hey joe 👋"
+        "Hey \{name} 👋".toLower `shouldBe` "hey joe 👋"
 
     it "desugars identifiers that end with a bang" $ do
       head! [] `shouldThrow` errorCall "Prelude.head: empty list"

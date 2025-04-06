@@ -75,7 +75,7 @@ desugarCommand :: String
 desugarCommand = internalCommand "desugar"
 
 internalCommand :: String -> String
-internalCommand name = "{name}-{marker}"
+internalCommand name = "\{name}-\{marker}"
   where
     marker :: String
     marker = "f817da5ee1a2164ad58986293141e5bf"
@@ -99,10 +99,10 @@ solid mode self args = do
 ghcOptions :: FilePath -> FilePath -> [String] -> [String]
 ghcOptions self packageEnv args = opts ++ args
   where
-    opts = "-package-env={packageEnv}"
+    opts = "-package-env=\{packageEnv}"
       : "-package=process"
       : desugar ++ exts
-    desugar = ["-F", "-pgmF={self}", "-optF={desugarCommand}"]
+    desugar = ["-F", "-pgmF=\{self}", "-optF=\{desugarCommand}"]
     exts = pack (showLanguageFlag language) : map (pack . showExtensionFlag) extensions
 
 doctest :: FilePath -> [String] -> IO ()
@@ -113,7 +113,7 @@ doctest runtime_dir options = do
 get_repl :: Runtime -> IO (FilePath, [String])
 get_repl runtime = do
   libdir <- (.decodeUtf8.strip) <$> Process.command(runtime.ghc_dir </> "ghc", ["--print-libdir"]).read
-  return (runtime.bindir </> "repl", ["-B{libdir}", "--interactive"])
+  return (runtime.bindir </> "repl", ["-B\{libdir}", "--interactive"])
 
 data Runtime = Runtime {
   ghc_dir :: FilePath
@@ -142,7 +142,7 @@ ensureRuntime state_dir self = do
     createRuntime store runtime_dir self
   readRuntime runtime_dir
   where
-    runtime_dir = state_dir </> "ghc-{ghc}-{fingerprint}".asFilePath
+    runtime_dir = state_dir </> "ghc-\{ghc}-\{fingerprint}".asFilePath
     store = state_dir </> "store"
 
 readRuntime :: FilePath -> IO Runtime
@@ -168,12 +168,12 @@ createRuntime store runtime_dir self = withConsole $ \ console -> do
 
 install_ghc :: Console -> FilePath -> IO FilePath
 install_ghc console self = do
-  console.info "Installing GHC {ghc}... "
+  console.info "Installing GHC \{ghc}... "
   Temp.withDirectory $ \ tmp -> do
     let resolver = tmp </> "stackage.yaml"
-    writeFile resolver "resolver:\n  compiler: ghc-{ghc}"
-    ghc_dir <- stack(["--resolver={resolver}", "path", "--compiler-bin"]).with Process.stdout
-      <* console.info "{String.ansi("✔").green}\n"
+    writeFile resolver "resolver:\n  compiler: ghc-\{ghc}"
+    ghc_dir <- stack(["--resolver=\{resolver}", "path", "--compiler-bin"]).with Process.stdout
+      <* console.info "\{String.ansi("✔").green}\n"
     return ghc_dir.strip.asFilePath
   where
     stack :: [String] -> Process.Config () (IO ByteString) ()
@@ -190,8 +190,8 @@ createPackageEnv console store self paths = do
         git ["remote", "add", "origin", repository]
         git ["fetch", "--depth", "1", "origin", revision, "-q"]
         git ["checkout", "FETCH_HEAD", "-q"]
-        install $ "--package-env={paths.package_env}" : "--lib" : libraries
-        install $ "--installdir={paths.bindir}" : "--install-method=copy" : executables
+        install $ "--package-env=\{paths.package_env}" : "--lib" : libraries
+        install $ "--installdir=\{paths.bindir}" : "--install-method=copy" : executables
         remove_base_package paths.package_env
   where
     git :: [String] -> IO ()

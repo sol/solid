@@ -12,13 +12,13 @@ spec = do
       annotate "  import Foo  " `shouldBe` [(Nothing, "  "), (Just Include, "import"), (Nothing, " Foo  ")]
 
     it "annotates language pragmas" $ do
-      annotate "\{-# LANGUAGE OverloadedStrings #-}" `shouldBe` [(Just SpecialComment, "\{-# LANGUAGE OverloadedStrings #-}")]
+      annotate "{-# LANGUAGE OverloadedStrings #-}" `shouldBe` [(Just SpecialComment, "{-# LANGUAGE OverloadedStrings #-}")]
 
     it "annotates comments" $ do
-      annotate "\{- foo bar baz -}" `shouldBe` [(Just Comment, "\{- foo bar baz -}")]
+      annotate "{- foo bar baz -}" `shouldBe` [(Just Comment, "{- foo bar baz -}")]
 
     it "annotates interpolated strings" $ do
-      annotate "\"foo-\{}-bar\"" `shouldBe` [(Just String, "\"foo-"), (Nothing, "\{}"), (Just String, "-bar\"")]
+      annotate "\"foo-\\{}-bar\"" `shouldBe` [(Just String, "\"foo-"), (Nothing, "\\{}"), (Just String, "-bar\"")]
 
     it "annotates character escapes in string literals" $ do
       annotate (pack $ show @[Char] "foo\nbar\nbaz") `shouldBe` [
