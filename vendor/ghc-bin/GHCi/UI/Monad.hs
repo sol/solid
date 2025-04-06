@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, DeriveFunctor, DerivingVia #-}
+{-# LANGUAGE FlexibleInstances, DeriveFunctor, DerivingVia, CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -----------------------------------------------------------------------------
@@ -25,7 +25,7 @@ module GHCi.UI.Monad (
         ActionStats(..), runAndPrintStats, runWithStats, printStats,
 
         printForUserNeverQualify,
-        printForUserModInfo, printForUserGlobalRdrEnv,
+        printForUserGlobalRdrEnv,
         printForUser, printForUserPartWay, prettyLocations,
 
         compileGHCiExpr,
@@ -212,7 +212,14 @@ data CommandResult
    deriving Show
 
 cmdSuccess :: MonadThrow m => CommandResult -> m (Maybe Bool)
-cmdSuccess CommandComplete{ cmdResult = Left e } = throwM e
+cmdSuccess CommandComplete{ cmdResult = Left e } =
+  {- Don't add a backtrace from ghci/ghc to the exception from the user program! -}
+#if MIN_VERSION_base(4,21,0)
+  throwM (NoBacktrace e)
+#else
+  -- NoBacktrace is not available in older compilers
+  throwM e
+#endif
 cmdSuccess CommandComplete{ cmdResult = Right r } = return r
 cmdSuccess CommandIncomplete = return $ Just True
 
@@ -364,9 +371,6 @@ printForUserNeverQualify :: GhcMonad m => SDoc -> m ()
 printForUserNeverQualify doc = do
   dflags <- GHC.getInteractiveDynFlags
   liftIO $ Ppr.printForUser dflags stdout neverQualify AllTheWay doc
-
-printForUserModInfo :: GhcMonad m => GHC.ModuleInfo -> SDoc -> m ()
-printForUserModInfo info = printForUserGlobalRdrEnv (GHC.modInfoRdrEnv info)
 
 printForUserGlobalRdrEnv :: (GhcMonad m, Outputable info)
                          => Maybe (GlobalRdrEnvX info) -> SDoc -> m ()
