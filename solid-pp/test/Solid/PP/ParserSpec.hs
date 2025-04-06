@@ -392,7 +392,7 @@ spec = do
         it "reports an error" $ do
           parseModule "\"foo    " `Hspec.shouldBe` Left "main.hs:1:9: error: [GHC-21231]\n    lexical error in string/character literal at end of input"
           let Left err = parseModule "\"foo \\{  "
-          err `Hspec.shouldBe` "main.hs:1:7:unterminated string interpolation"
+          err `Hspec.shouldBe` "main.hs:1:8:unterminated string interpolation"
 
       context "unexpected token" $ do
         it "reports an error" $ do
