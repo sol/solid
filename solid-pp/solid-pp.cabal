@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.37.0.
+-- This file has been generated from package.yaml by hpack version 0.38.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -22,6 +22,8 @@ library
       Solid.PP.IO
       Solid.PP.Lexer
       Solid.PP.Lexer.Extensions
+      Solid.PP.Lexer.Fast
+      Solid.PP.NewLexer
       Solid.PP.Parser
       Solid.PP.SrcLoc
       Lexer
@@ -82,6 +84,8 @@ test-suite spec
       Solid.PP.IO
       Solid.PP.Lexer
       Solid.PP.Lexer.Extensions
+      Solid.PP.Lexer.Fast
+      Solid.PP.NewLexer
       Solid.PP.Parser
       Solid.PP.SrcLoc
       Lexer
@@ -91,7 +95,10 @@ test-suite spec
       Solid.PP.EditSpec
       Solid.PP.IOSpec
       Solid.PP.Lexer.ExtensionsSpec
+      Solid.PP.Lexer.FastSpec
       Solid.PP.LexerSpec
+      Solid.PP.LocationIndex
+      Solid.PP.NewLexerSpec
       Solid.PP.ParserSpec
       Solid.PPSpec
       Solid.ToString

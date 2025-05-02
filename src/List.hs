@@ -74,6 +74,8 @@ nubOn f = go Set.empty
 .enumerate :: [a] -> [(Int, a)]
 .enumerate = zip [0..]
 
+enumerated = flip zipWith [0..]
+
 .enumerateFrom :: Int -> [a] -> [(Int, a)]
 .enumerateFrom n = zip [n..]
 

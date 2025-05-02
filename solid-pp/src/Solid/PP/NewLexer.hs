@@ -10,9 +10,12 @@
 
 module Solid.PP.NewLexer where
 
+import Control.Monad (unless)
+import Solid.PP.IO (pass)
+import Data.ByteString.Internal (w2c)
 import Prelude hiding (span, mod, takeWhile)
 
-import Data.Char
+import Data.Char hiding (isSymbol)
 import Data.Functor
 import Data.Text (Text)
 import Data.Text.Internal (Text(..))
@@ -20,28 +23,36 @@ import Data.Text.Unsafe (Iter(..))
 import Data.Text.Internal.Encoding.Utf8
 import qualified Data.Text.Unsafe as Unsafe
 import qualified Data.Text as T
+import qualified Data.Text.Array as Array
 
 data Location = Location {
   offset :: !Int
 , charOffset :: !Int
-, line :: !Int
 , column :: !Int
 } deriving (Show, Eq) -- FIXME: Eq should not be used in production code; only compare offset instead
 
-data SrcSpan = SrcSpan {
+adjustOffset :: Int -> Location -> Location
+adjustOffset n Location{..} = Location {
+  offset = offset + n
+, charOffset = charOffset + n
+, column = column + n
+}
+{-# INLINE adjustOffset #-}
+
+data Span = Span {
   start :: Location
 , end   :: Location
 } deriving (Show, Eq) -- FIXME: Eq should not be used in production code; only compare offset instead
 
-data Tok = Tok {
+data Token = Token {
   tokenType :: TokenType
-, span :: SrcSpan
+, span :: Span
 } deriving (Show, Eq)
 
-textSpan :: Text -> Tok -> Text
+textSpan :: Text -> Token -> Text
 textSpan input token = textSpan__ input token.span
 
-textSpan__ :: Text -> SrcSpan -> Text
+textSpan__ :: Text -> Span -> Text
 textSpan__ input span = textSpan_ input start end
   where
     start = span.start.offset
@@ -51,19 +62,51 @@ textSpan_ :: Text -> Int -> Int -> Text
 textSpan_ (Text arr _ _) start end = Text arr start (end - start)
 
 data TokenType =
-    Keyword
+    -- Keyword
+    Constructor
   | Identifier
-  | QualifiedIdentifier Text Text
-  | Constructor
-  | QualifiedConstructor Text Text
-  | IncompleteQualifiedName Text
-  | Operator Text
+  | Symbol Text
   | Integer
   | String
-  | Symbol Char
+  | UnterminatedString
+  | Special Char
   | Comment
   | EndOfFile
+
+  -- synthetic tokens
+  | QualifiedIdentifier
+  | QualifiedConstructor
+  | IncompleteQualifiedName
+  | Projection
   deriving (Show, Eq)
+
+union :: Span -> Span -> Span
+union start end = Span start.start end.end
+
+synthesize :: [Token] -> [Token]
+synthesize = loop
+  where
+    loop :: [Token] -> [Token]
+    loop = \ case
+      [] -> []
+      Token (Symbol ".") start : Token Identifier end : rest | start.end.offset == end.start.offset -> Token Projection (Span start.start end.end) : loop rest
+      Token Constructor start : Token (Symbol ".") end : rest | start.end.offset == end.start.offset -> qualifiedName (union start end) rest
+      token : rest -> token : loop rest
+
+    qualifiedName :: Span -> [Token] -> [Token]
+    qualifiedName start = \ case
+      Token Constructor name : Token (Symbol ".") end : rest | name.end.offset == end.start.offset -> qualifiedName span rest
+        where
+          span = union start end
+
+      Token t end : rest | start.end.offset == end.start.offset -> case t of
+        Constructor -> accept QualifiedConstructor
+        Identifier -> accept QualifiedIdentifier
+        _ -> undefined
+        where
+          accept tt = Token tt (Span start.start end.end) : loop rest
+      tokens@(_ : _) -> Token IncompleteQualifiedName start : loop tokens
+      [] -> [Token IncompleteQualifiedName start]
 
 data Lexer = Lexer {
   current :: Location
@@ -71,37 +114,37 @@ data Lexer = Lexer {
 } deriving (Show, Eq)
 
 data WithSrcSpan a = WithSrcSpan {
-  span  :: SrcSpan
+  span  :: Span
 , value :: a
 } deriving (Show, Eq)
 
 newtype LexerM a = LexerM { unLexerM :: Lexer -> (Lexer, a) }
 
 instance Functor LexerM where
-  fmap f (LexerM m) = LexerM \s -> let (s', a) = m s in (s', f a)
+  fmap f (LexerM m) = LexerM \ s -> let (s', a) = m s in (s', f a)
 
 instance Applicative LexerM where
-  pure a = LexerM \s -> (s, a)
-  (LexerM mf) <*> (LexerM ma) = LexerM \s ->
+  pure a = LexerM \ s -> (s, a)
+  (LexerM mf) <*> (LexerM ma) = LexerM \ s ->
     let (s', f) = mf s
         (s'', a) = ma s'
     in (s'', f a)
 
 instance Monad LexerM where
-  (LexerM ma) >>= f = LexerM \s ->
+  (LexerM ma) >>= f = LexerM \ s ->
     let (s', a) = ma s
         LexerM mb = f a
     in mb s'
 
 -- primitives
 get :: LexerM Lexer
-get = LexerM \s -> (s, s)
+get = LexerM \ s -> (s, s)
 
 put :: Lexer -> LexerM ()
-put s = LexerM \_ -> (s, ())
+put s = LexerM \ _ -> (s, ())
 
 modify :: (Lexer -> Lexer) -> LexerM ()
-modify f = LexerM \s -> (f s, ())
+modify f = LexerM \ s -> (f s, ())
 
 -- Lexer combinators
 
@@ -111,7 +154,7 @@ takeWhile p = do
   let (match, rest) = T.span p lexer.input
       end = advanceText lexer.current match
   put $ Lexer end rest
-  pure $ WithSrcSpan (SrcSpan lexer.current end) match
+  pure $ WithSrcSpan (Span lexer.current end) match
 
 takeUntil :: (Char -> Bool) -> LexerM (WithSrcSpan Text)
 takeUntil p = takeWhile (not . p)
@@ -125,29 +168,43 @@ consumeChar = do
       let start = lexer.current
           end = advanceChar start c
       put $ Lexer end rest
-      pure $ WithSrcSpan (SrcSpan start end) c
+      pure $ WithSrcSpan (Span start end) c
 
-peekChar :: LexerM Char
-peekChar = do
+consumeChar_ :: LexerM ()
+consumeChar_ = void consumeChar
+
+index :: Text -> Int -> Char
+index (Text arr off len) n
+  | n < len = w2c $ Array.unsafeIndex arr (off + n)
+  | otherwise = '\0'
+{-# INLINE index #-}
+
+peekAt :: Int -> LexerM Char
+peekAt n = do
+  lexer <- get
+  return $ index lexer.input n
+
+peek :: LexerM Char
+peek = do
   lexer <- get
   return $ if T.null lexer.input then '\0' else T.head lexer.input
 
 -- Lexer driver
-tokenize :: Text -> [Tok]
-tokenize input@(Text _ off _) = loop (Lexer (Location off 0 1 1) input)
+tokenize :: Text -> [Token]
+tokenize input@(Text _ off _) = loop (Lexer (Location off 0 1) input)
   where
-    loop :: Lexer -> [Tok]
+    loop :: Lexer -> [Token]
     loop lexer = case lexOne.unLexerM lexer of
-      (_, Tok EndOfFile _) -> []
+      (_, Token EndOfFile _) -> []
       (new, token) -> token : loop new
 
-lexOne :: LexerM Tok
+lexOne :: LexerM Token
 lexOne = do
   lexer <- get
-  mc <- peekChar
+  mc <- peek
   case mc of
     c
-      | c == '\0' -> return (Tok EndOfFile $ SrcSpan lexer.current lexer.current)
+      | c == '\0' -> return (Token EndOfFile $ Span lexer.current lexer.current)
     {-
       | T.isPrefixOf "--" <$> (input <$> get) -> do
           comment <- takeUntil (== '\n')
@@ -165,93 +222,90 @@ lexOne = do
                       else Identifier word.value
           pure $ Token typ word.span
           -}
-          pure $ Tok Identifier word.span
+          pure $ Token Identifier word.span
 
       | isUpper c -> do
           word <- takeWhile isIdChar
-          pure $ Tok Constructor word.span
-          -- LexerM qualifiedName
+          pure $ Token Constructor word.span
 
       | isDigit c -> do
           num <- takeWhile isDigit
-          pure $ Tok Integer num.span
+          pure $ Token Integer num.span
 
       | c == '"' -> do
-          string
+          t <- string
           new <- get
-          pure $ Tok String (SrcSpan lexer.current new.current)
+          pure $ Token t (Span lexer.current new.current)
 
-      | c `elem` operators -> do
-          op <- takeWhile (`elem` operators)
-          pure $ Tok (Operator op.value) op.span
-      | c `elem` symbols -> do
+      | isSymbol c -> do
+          op <- takeWhile isSymbol
+          case op.value of
+            "--" -> do
+
+              -- FIXME: improve performance
+              --
+              -- 1. don't need to update column
+              -- 2. skip \n and increase line
+              ignore <- takeWhile (/= '\n')
+
+              lexOne
+            _ -> pure $ Token (Symbol op.value) op.span
+
+      | c == '{' && index lexer.input 1 == '-' -> do
+          consumeChar_
+          consumeChar_
+
+          peek >>= \ case
+          {-
+            '#' -> do
+              undefined
+              -}
+            _ -> do
+              let
+                go :: Int -> LexerM ()
+                go n = do
+                  _ <- takeUntil (\ ch -> ch == '-' || ch == '{')
+                  peek >>= \ case
+                    '\0' -> pass
+                    '{' -> do
+                      consumeChar_
+                      peek >>= \ case
+                        -- '\0' -> pass
+                        '-' -> go (n + 1)
+                        _ -> go n
+                    _ -> do
+                      consumeChar_
+                      peek >>= \ case
+                        '}' -> do
+                          consumeChar_
+                          unless (n == 0) do
+                            go (n - 1)
+                        _ -> go n
+              go 0
+              lexOne
+
+
+      | c `elem` special -> do
           sym <- consumeChar
-          pure $ Tok (Symbol sym.value) sym.span
+          pure $ Token (Special sym.value) sym.span
+
       | otherwise -> do
           ch <- consumeChar
-          pure $ Tok Comment ch.span -- FIXME
+          pure $ Token Comment ch.span -- FIXME
 
-string :: LexerM (WithSrcSpan Char)
+string :: LexerM TokenType
 string = loop
   where
+    loop :: LexerM TokenType
     loop = do
-      _ <- consumeChar
-      _ <- takeUntil (\ c -> c == '"' || c == '\\')
-      c <- peekChar
+      consumeChar_
+      _ <- takeUntil (\ c -> c == '"' || c == '\\' || c == '\n')
+      c <- peek
       if
-        | c == '"' -> consumeChar
-        | c == '\\' -> consumeChar >> loop
-        | otherwise -> undefined -- partial string - eof
-
-qualifiedName :: Lexer -> (Lexer, Tok)
-qualifiedName Lexer{..} = scanConstructor -1 0
-  where
-    scanConstructor :: Int -> Int -> (Lexer, Tok)
-    scanConstructor lastDot !i
-      | c == '.' = scanIdentifier (i + d)
-      | isIdChar c = scanConstructor lastDot (i + d)
-      | otherwise = done
-      where
-        done :: (Lexer, Tok)
-        done = accept i \ match ->
-          if lastDot < 0 then
-            Constructor
-          else
-            QualifiedConstructor (Unsafe.takeWord8 (lastDot - 1) match) (Unsafe.dropWord8 lastDot match)
-
-        Iter c d = safeIter input i
-
-    scanIdentifier :: Int -> (Lexer, Tok)
-    scanIdentifier !i
-      | isLower c = accept (findEndOfId i) \ match ->
-          let
-            mod = Unsafe.takeWord8 (i - 1) match
-            name = Unsafe.dropWord8 i match
-            tok = QualifiedIdentifier mod name
-          in tok
-      | isIdChar c = scanConstructor i (i + d)
-      | otherwise = accept i IncompleteQualifiedName
-      where
-        Iter c d = safeIter input i
-
-    findEndOfId :: Int -> Int
-    findEndOfId !i
-      | isIdChar c = findEndOfId (i + d)
-      | otherwise = i
-      where
-        Iter c d = safeIter input i
-
-    accept :: Int -> (Text -> TokenType) -> (Lexer, Tok)
-    accept n f =
-      let
-        match = Unsafe.takeWord8 n input
-        rest = Unsafe.dropWord8 n input
-        new = Lexer {
-          current = advanceText current match
-        , input = rest
-        }
-      in (new, Tok (f match) (SrcSpan current new.current))
-
+        | c == '"'  -> consumeChar_ >> pure String
+        | c == '\\' -> consumeChar_ >> loop
+        | c == '\n' -> pure UnterminatedString
+        | otherwise -> pure UnterminatedString
 
 isIdChar :: Char -> Bool
 isIdChar c = isAlphaNum c || c == '_'
@@ -265,16 +319,23 @@ keywords =
   , "module", "newtype", "of", "then", "type", "where", "forall"
   ]
 
-operators :: [Char]
-operators = ":!#$%&*+./<=>?@\\^|-~"
-
 symbols :: [Char]
-symbols = "(),;[]{}"
+symbols = ":!#$%&*+./<=>?@\\^|-~"
+
+
+-- .. | : | :: | = | \ | | | <- | -> | @ | ~ | =>
+reservedop =  ["..", ":", "::", "=", "\\", "|", "<-", "->", "@", "~", "=>"]
+
+isSymbol :: Char -> Bool
+isSymbol = (`elem` symbols)
+
+special :: [Char]
+special = "(),;[]{}"
 
 advanceChar :: Location -> Char -> Location
-advanceChar (Location offset o l c) ch
-  | ch == '\n' = Location (offset + utf8Length ch) (o + 1) (l + 1) 1
-  | otherwise  = Location (offset + utf8Length ch) (o + 1) l (c + 1)
+advanceChar (Location offset o c) ch
+  | ch == '\n' = Location (offset + utf8Length ch) (o + 1) 1
+  | otherwise  = Location (offset + utf8Length ch) (o + 1) (c + 1)
 
 advanceText :: Location -> Text -> Location
 advanceText = T.foldl' advanceChar

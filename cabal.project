@@ -8,8 +8,8 @@ packages:
   solid-doctest
   vendor/ghc-bin
 
-program-options
-  ghc-options: -Werror
+-- program-options
+--   ghc-options: -Werror
 
 package solid-doctest
   executable-dynamic: true
