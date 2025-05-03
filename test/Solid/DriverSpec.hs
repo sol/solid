@@ -14,7 +14,7 @@ script = unlines [
   , "name :: String"
   , "-- |"
   , "--"
-  , "-- >>> putStrLn \"Hey {name} 👋\""
+  , "-- >>> putStrLn \"Hey \\{name} 👋\""
   , "-- Hey Joe 👋"
   , "name = \"Joe\""
   , ""

@@ -40,12 +40,12 @@ type WithBufferSpan = GenLocated BufferSpan
 
 data BufferSpan = BufferSpan {
   file :: ~FilePath
-, start :: Int
-, end :: Int
-, startLine :: Int
-, endLine :: Int
-, startColumn :: Int
-, endColumn :: Int
+, start :: {-# UNPACK #-} Int
+, end :: {-# UNPACK #-} Int
+, startLine :: {-# UNPACK #-} Int
+, endLine :: {-# UNPACK #-} Int
+, startColumn :: {-# UNPACK #-} Int
+, endColumn :: {-# UNPACK #-} Int
 } deriving (Eq, Show, Ord)
 
 instance Semigroup BufferSpan where
