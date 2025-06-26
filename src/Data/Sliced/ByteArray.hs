@@ -453,7 +453,7 @@ take i bytes
     n = abs i
 {-# INLINE take #-}
 
-drop  :: Int -> ByteArray -> ByteArray
+drop :: Int -> ByteArray -> ByteArray
 drop i bytes
   | n >= bytes.len = empty
   | n == 0 = bytes

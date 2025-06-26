@@ -23,7 +23,9 @@ library
       Solid.PP.Lexer
       Solid.PP.Lexer.Extensions
       Solid.PP.Lexer.Fast
+      Solid.PP.LocationIndex
       Solid.PP.NewLexer
+      Solid.PP.NewLexer.Type
       Solid.PP.Parser
       Solid.PP.SrcLoc
       Lexer
@@ -85,11 +87,12 @@ test-suite spec
       Solid.PP.Lexer
       Solid.PP.Lexer.Extensions
       Solid.PP.Lexer.Fast
+      Solid.PP.LocationIndex
       Solid.PP.NewLexer
+      Solid.PP.NewLexer.Type
       Solid.PP.Parser
       Solid.PP.SrcLoc
       Lexer
-      EndToEndSpec
       HieSpec
       Solid.PP.BuilderSpec
       Solid.PP.EditSpec
@@ -97,7 +100,8 @@ test-suite spec
       Solid.PP.Lexer.ExtensionsSpec
       Solid.PP.Lexer.FastSpec
       Solid.PP.LexerSpec
-      Solid.PP.LocationIndex
+      Solid.PP.LocationIndexSpec
+      Solid.PP.NewLexer.TypeSpec
       Solid.PP.NewLexerSpec
       Solid.PP.ParserSpec
       Solid.PPSpec
