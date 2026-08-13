@@ -3,6 +3,8 @@ constraints:
   , base installed
   , binary installed
   , bytestring installed
+  , Cabal installed
+  , Cabal-syntax installed
   , containers installed
   , deepseq installed
   , directory installed
