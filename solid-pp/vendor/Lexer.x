@@ -48,12 +48,14 @@
 {-# LANGUAGE UnboxedSums #-}
 {-# LANGUAGE UnliftedNewtypes #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module GHC.Parser.Lexer (
+module Lexer (
    Token(..), lexer, lexerDbg,
    ParserOpts(..), mkParserOpts,
    PState (..), initParserState, initPragState,
@@ -79,6 +81,10 @@ module GHC.Parser.Lexer (
    adjustChar,
    addPsMessage
   ) where
+
+import GHC.Parser.Lexer (
+  ParserOpts(..),
+  )
 
 import GHC.Prelude
 import qualified GHC.Data.Strict as Strict
@@ -163,6 +169,7 @@ $small     = [$ascsmall $unismall \_]
 
 $uniidchar = \x07 -- Trick Alex into handling Unicode. See Note [Unicode in Alex].
 $idchar    = [$small $large $digit $uniidchar \']
+$idsuffix  = [\? \!]
 
 $unigraphic = \x06 -- Trick Alex into handling Unicode. See Note [Unicode in Alex].
 $graphic   = [$small $large $symbol $digit $idchar $special $unigraphic \"\']
@@ -179,7 +186,7 @@ $docsym    = [\| \^ \* \$]
 -- -----------------------------------------------------------------------------
 -- Alex "Regular expression macros"
 
-@varid     = $small $idchar*          -- variable identifiers
+@varid     = $small $idchar* $idsuffix*         -- variable identifiers
 @conid     = $large $idchar*          -- constructor identifiers
 
 @varsym    = ($symbol # \:) $symbol*  -- variable (operator) symbol
@@ -469,7 +476,17 @@ $unigraphic / { isSmartQuote } { smart_quote_error }
          { token ITcubxparen }
 }
 
-<0,option_prags> {
+<interpolation> {
+  \}                            { lex_string_tok }
+  \{                            { open_brace_in_interpolation }
+}
+
+<nested_braces_in_interpolation> {
+  \{                            { open_brace_in_interpolation }
+  \}                            { close_brace_in_interpolation }
+}
+
+<0,option_prags,interpolation,nested_braces_in_interpolation> {
   \(                                    { special IToparen }
   \)                                    { special ITcparen }
   \[                                    { special ITobrack }
@@ -482,7 +499,7 @@ $unigraphic / { isSmartQuote } { smart_quote_error }
   \}                                    { close_brace }
 }
 
-<0,option_prags> {
+<0,option_prags,interpolation,nested_braces_in_interpolation> {
   @qdo                                      { qdo_token ITdo }
   @qmdo    / { ifExtension RecursiveDoBit } { qdo_token ITmdo }
   @qvarid                       { idtoken qvarid }
@@ -500,7 +517,7 @@ $unigraphic / { isSmartQuote } { smart_quote_error }
 
 -- ToDo: - move `var` and (sym) into lexical syntax?
 --       - remove backquote from $special?
-<0> {
+<0,interpolation,nested_braces_in_interpolation> {
   @qvarsym                                         { idtoken qvarsym }
   @qconsym                                         { idtoken qconsym }
   @varsym                                          { with_op_ws varsym }
@@ -519,7 +536,7 @@ $unigraphic / { isSmartQuote } { smart_quote_error }
 -- that validates the literals.
 -- If extensions are not enabled, check that there are no underscores.
 --
-<0> {
+<0,interpolation,nested_braces_in_interpolation> {
   -- Normal integral literals (:: Num a => a, from Integer)
   @decimal                                                      { tok_num positive 0 0 decimal }
   @binarylit                / { ifExtension BinaryLiteralsBit } { tok_num positive 2 2 binary }
@@ -660,7 +677,7 @@ $unigraphic / { isSmartQuote } { smart_quote_error }
 -- that even if we recognise the string or char here in the regex
 -- lexer, we would still have to parse the string afterward in order
 -- to convert it to a String.
-<0> {
+<0,interpolation,nested_braces_in_interpolation> {
   \'                            { lex_char_tok }
   \"                            { lex_string_tok }
 }
@@ -948,6 +965,10 @@ data Token
 
   | ITchar     SourceText Char       -- Note [Literal source text] in "GHC.Types.SourceText"
   | ITstring   SourceText FastString -- Note [Literal source text] in "GHC.Types.SourceText"
+  | ITstring_interpolation_end_begin SourceText FastString
+  | ITstring_interpolation_end SourceText FastString
+  | ITstring_interpolation_begin SourceText FastString
+
   | ITinteger  IntegralLit           -- Note [Literal source text] in "GHC.Types.SourceText"
   | ITrational FractionalLit
 
@@ -1691,6 +1712,16 @@ errBrace (AI end _) span =
               (psRealLoc end)
               (\srcLoc -> mkPlainErrorMsgEnvelope srcLoc (PsErrLexer LexUnterminatedComment LexErrKind_EOF))
 
+open_brace_in_interpolation :: Action
+open_brace_in_interpolation span str len buf2 = do
+  pushLexState nested_braces_in_interpolation
+  open_brace span str len buf2
+
+close_brace_in_interpolation :: Action
+close_brace_in_interpolation span str len buf2 = do
+  _ <- popLexState
+  close_brace span str len buf2
+
 open_brace, close_brace :: Action
 open_brace span _str _len _buf2 = do
   ctx <- getContext
@@ -2182,8 +2213,25 @@ lex_string_tok span buf _len _buf2 = do
   let
     tok = case lexed of
       LexedPrimString s -> ITprimstring (SourceText src) (unsafeMkByteString s)
+      LexedRegularString s | is_interpolation_end && is_interpolation_begin -> ITstring_interpolation_end_begin (SourceText src) (mkFastString s)
+      LexedRegularString s | is_interpolation_end -> ITstring_interpolation_end (SourceText src) (mkFastString s)
+      LexedRegularString s | is_interpolation_begin -> ITstring_interpolation_begin (SourceText src) (mkFastString s)
       LexedRegularString s -> ITstring (SourceText src) (mkFastString s)
     src = lexemeToFastString buf (cur bufEnd - cur buf)
+
+    src_string = unpackFS src
+
+    is_interpolation_end = case src_string of
+      '}' : _ -> True
+      _ -> False
+
+    is_interpolation_begin = case reverse src_string of
+      '{' : '\\' : _ -> True
+      _ -> False
+
+  when (is_interpolation_end) $ void popLexState
+  when (is_interpolation_begin) $ pushLexState interpolation
+
   return $ L (mkPsSpan (psSpanStart span) end) tok
 
 
@@ -2236,6 +2284,9 @@ lex_string_helper s start = do
       return (reverse s)
 
     Just ('\\',i)
+        | Just ('{',i) <- next -> do
+                setInput i
+                return (reverse s)
         | Just ('&',i) <- next -> do
                 setInput i; lex_string_helper s start
         | Just (c,i) <- next, c <= '\x7f' && is_space c -> do
@@ -2614,6 +2665,7 @@ warnopt f options = f `EnumSet.member` pWarningFlags options
 -- | Parser options.
 --
 -- See 'mkParserOpts' to construct this.
+{-
 data ParserOpts = ParserOpts
   { pExtsBitmap     :: !ExtsBitmap -- ^ bitmap of permitted extensions
   , pDiagOpts       :: !DiagOpts
@@ -2621,6 +2673,7 @@ data ParserOpts = ParserOpts
   , pSupportedExts  :: [String]
     -- ^ supported extensions (only used for suggestions in error messages)
   }
+-}
 
 pWarningFlags :: ParserOpts -> EnumSet WarningFlag
 pWarningFlags opts = diag_warning_flags (pDiagOpts opts)
