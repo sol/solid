@@ -19,7 +19,7 @@ Cabal-Version: >=1.10
 
 Flag internal-interpreter
     Description: Build with internal interpreter support.
-    Default: True
+    Default: False
     Manual: True
 
 Flag threaded
@@ -27,10 +27,8 @@ Flag threaded
     Default: True
     Manual: True
 
-Executable repl
+Executable ghc
     Default-Language: GHC2021
-
-    Build-Depends: text, solid-pp
 
     Main-Is: Main.hs
     Build-Depends: base       >= 4   && < 5,

@@ -173,9 +173,6 @@ import GHC.TopHandler ( topHandler )
 import GHCi.Leak
 import qualified GHC.Unit.Module.Graph as GHC
 
-import qualified Solid.PP
-import qualified Data.Text as Text
-
 -----------------------------------------------------------------------------
 
 data GhciSettings = GhciSettings {
@@ -487,8 +484,8 @@ default_progname = "<interactive>"
 default_stop = ""
 
 default_prompt, default_prompt_cont :: PromptFunction
-default_prompt = generatePromptFunctionFromString ">>> "
-default_prompt_cont = generatePromptFunctionFromString ">>| "
+default_prompt = generatePromptFunctionFromString "ghci> "
+default_prompt_cont = generatePromptFunctionFromString "ghci| "
 
 default_args :: [String]
 default_args = []
@@ -1255,17 +1252,6 @@ enqueueCommands cmds = do
 -- The return value True indicates success, as in `runOneCommand`.
 runStmt :: GhciMonad m => String -> SingleStep -> m (Maybe GHC.ExecResult)
 runStmt input step = do
-  st <- getGHCiState
-  let source = progname st
-  let line = line_number st
-  case Solid.PP.desugarExpression source line (Text.pack input) of
-    Left err -> liftIO $ do
-      hPutStrLn stderr err
-      return Nothing
-    Right expression -> runStmt_ (Text.unpack expression) step
-
-runStmt_ :: GhciMonad m => String -> SingleStep -> m (Maybe GHC.ExecResult)
-runStmt_ input step = do
   pflags <- initParserOpts <$> GHC.getInteractiveDynFlags
   -- In GHCi, we disable `-fdefer-type-errors`, as well as `-fdefer-type-holes`
   -- and `-fdefer-out-of-scope-variables` for **naked expressions**. The
@@ -2121,8 +2107,9 @@ addModule files = do
     checkTargetFile :: GhciMonad m => String -> m Bool
     checkTargetFile f = do
       exists <- liftIO (doesFileExist f)
-      unless exists $ liftIO $ hPutStrLn stderr $ "File " ++ f ++ " not found"
-      failIfExprEvalMode
+      unless exists $ do
+        liftIO $ hPutStrLn stderr $ "File " ++ f ++ " not found"
+        failIfExprEvalMode
       return exists
 
 -- | @:unadd@ command
