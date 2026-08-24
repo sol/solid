@@ -1,4 +1,6 @@
 constraints:
+  , Cabal installed
+  , Cabal-syntax installed
   , array installed
   , base installed
   , binary installed
