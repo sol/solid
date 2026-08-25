@@ -1,5 +1,5 @@
-ghc_old = 9.10.1
-ghc_new = 9.10.1
+ghc_old = 9.10.3
+ghc_new = 9.10.3
 
 .PHONY: *
 

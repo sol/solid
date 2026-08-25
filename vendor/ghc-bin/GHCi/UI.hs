@@ -72,6 +72,7 @@ import GHC.Core.TyCo.Ppr
 import GHC.Types.SafeHaskell ( getSafeMode )
 import GHC.Types.SourceError ( SourceError )
 import GHC.Types.Name
+import GHC.Types.Breakpoint
 import GHC.Types.Var ( varType )
 import GHC.Iface.Syntax ( showToHeader )
 import GHC.Builtin.Names
@@ -643,30 +644,27 @@ ghciLogAction lastErrLocations old_log_action
             _ -> return ()
         _ -> return ()
 
--- | Takes a file name and prefixes it with the appropriate
--- GHC appdir.
--- Uses ~/.ghc (getAppUserDataDirectory) if it exists
--- If it doesn't, then it uses $XDG_DATA_HOME/ghc
--- Earlier we always used to use ~/.ghc, but we want
--- to gradually move to $XDG_DATA_HOME to respect the XDG specification
---
--- As a migration strategy, we will only create new directories in
--- the appropriate XDG location. However, we will use the old directory
--- if it already exists.
-getAppDataFile :: FilePath -> IO (Maybe FilePath)
-getAppDataFile file = do
-    let new_path = tryIO (getXdgDirectory XdgConfig "ghc") >>= \case
-          Left _ -> pure Nothing
-          Right dir -> flip catchIO (const $ return Nothing) $ do
-            createDirectoryIfMissing False dir
-            pure $ Just $ dir </> file
-
-    e_old_path <- tryIO (getAppUserDataDirectory "ghc")
-    case e_old_path of
-      Right old_path -> doesDirectoryExist old_path >>= \case
-        True -> pure $ Just $ old_path </> file
-        False -> new_path
-      Left _ -> new_path
+-- | Takes a file name and prefixes it with the appropriate GHC appdir.
+-- ~/.ghc (getAppUserDataDirectory) is used if it exists, or XDG directories
+-- are used to respect the XDG specification.
+-- As a migration strategy, currently we will only create new directories in
+-- the appropriate XDG location.
+getAppDataFile :: XdgDirectory -> FilePath -> IO (Maybe FilePath)
+getAppDataFile xdgDir file = do
+  xdgAppDir <-
+    tryIO (getXdgDirectory xdgDir "ghc") >>= \case
+      Left _ -> pure Nothing
+      Right dir -> flip catchIO (const $ pure Nothing) $ do
+        createDirectoryIfMissing False dir
+        pure $ Just dir
+  appDir <-
+    tryIO (getAppUserDataDirectory "ghc") >>= \case
+      Right dir ->
+        doesDirectoryExist dir >>= \case
+          True -> pure $ Just dir
+          False -> pure xdgAppDir
+      Left _ -> pure xdgAppDir
+  pure $ appDir >>= \dir -> Just $ dir </> file
 
 runGHCi :: [(FilePath, Maybe UnitId, Maybe Phase)] -> Maybe [String] -> GHCi ()
 runGHCi paths maybe_exprs = do
@@ -674,13 +672,12 @@ runGHCi paths maybe_exprs = do
   let
    ignore_dot_ghci = gopt Opt_IgnoreDotGhci dflags
 
-   app_user_dir = liftIO $ getAppDataFile "ghci.conf"
+   appDataCfg = liftIO $ getAppDataFile XdgConfig "ghci.conf"
 
-   home_dir = do
-    either_dir <- liftIO $ tryIO (getEnv "HOME")
-    case either_dir of
-      Right home -> return (Just (home </> ".ghci"))
-      _ -> return Nothing
+   homeCfg = do
+    liftIO $ tryIO (getEnv "HOME") >>= \case
+      Right home -> pure $ Just $ home </> ".ghci"
+      _ -> pure Nothing
 
    canonicalizePath' :: FilePath -> IO (Maybe FilePath)
    canonicalizePath' fp = liftM Just (canonicalizePath fp)
@@ -714,7 +711,7 @@ runGHCi paths maybe_exprs = do
     then pure []
     else do
       userCfgs <- do
-        paths <- catMaybes <$> sequence [ app_user_dir, home_dir ]
+        paths <- catMaybes <$> sequence [ appDataCfg, homeCfg ]
         checkedPaths <- liftIO $ filterM checkFileAndDirPerms paths
         liftIO . fmap (nub . catMaybes) $ mapM canonicalizePath' checkedPaths
 
@@ -801,12 +798,12 @@ runGHCiInput f = do
     dflags <- getDynFlags
     let ghciHistory = gopt Opt_GhciHistory dflags
     let localGhciHistory = gopt Opt_LocalGhciHistory dflags
-    currentDirectory <- liftIO $ getCurrentDirectory
+    currentDirectory <- liftIO getCurrentDirectory
 
     histFile <- case (ghciHistory, localGhciHistory) of
-      (True, True) -> return (Just (currentDirectory </> ".ghci_history"))
-      (True, _) -> liftIO $ getAppDataFile "ghci_history"
-      _ -> return Nothing
+      (True, True) -> pure $ Just $ currentDirectory </> ".ghci_history"
+      (True, _) -> liftIO $ getAppDataFile XdgData "ghci_history"
+      _ -> pure Nothing
 
     runInputT
         (setComplete ghciCompleteWord $ defaultSettings {historyFile = histFile})
@@ -1262,8 +1259,9 @@ runStmt input step = do
   let source = progname st
   let line = line_number st
   case Solid.PP.desugarExpression source line (Text.pack input) of
-    Left err -> liftIO $ do
-      hPutStrLn stderr err
+    Left err -> do
+      liftIO $ hPutStrLn stderr err
+      failIfExprEvalMode
       return Nothing
     Right expression -> runStmt_ (Text.unpack expression) step
 
@@ -1421,15 +1419,13 @@ runAllocs m = do
     _ -> Nothing
 
 toBreakIdAndLocation :: GhciMonad m
-                     => Maybe GHC.BreakInfo -> m (Maybe (Int, BreakLocation))
+                     => Maybe GHC.InternalBreakpointId -> m (Maybe (Int, BreakLocation))
 toBreakIdAndLocation Nothing = return Nothing
 toBreakIdAndLocation (Just inf) = do
-  let md = GHC.breakInfo_module inf
-      nm = GHC.breakInfo_number inf
   st <- getGHCiState
   return $ listToMaybe [ id_loc | id_loc@(_,loc) <- IntMap.assocs (breaks st),
-                                  breakModule loc == md,
-                                  breakTick loc == nm ]
+                                  breakModule loc == ibi_tick_mod inf,
+                                  breakTick loc == ibi_tick_index inf ]
 
 printStoppedAtBreakInfo :: GHC.GhcMonad m => Resume -> [Name] -> m ()
 printStoppedAtBreakInfo res names = do
@@ -1557,15 +1553,11 @@ getCallStackAtCurrentBreakpoint = do
 getCurrentBreakModule :: GHC.GhcMonad m => m (Maybe Module)
 getCurrentBreakModule = do
   resumes <- GHC.getResumeContext
-  case resumes of
-    [] -> return Nothing
-    (r:_) -> do
-        let ix = GHC.resumeHistoryIx r
-        if ix == 0
-           then return (GHC.breakInfo_module `liftM` GHC.resumeBreakInfo r)
-           else do
-                let hist = GHC.resumeHistory r !! (ix-1)
-                return $ Just $ GHC.getHistoryModule  hist
+  return $ case resumes of
+    [] -> Nothing
+    (r:_) -> case GHC.resumeHistoryIx r of
+      0  -> ibi_tick_mod <$> GHC.resumeBreakpointId r
+      ix -> Just $ GHC.getHistoryModule $ GHC.resumeHistory r !! (ix-1)
 
 -----------------------------------------------------------------------------
 --
@@ -2296,7 +2288,7 @@ keepPackageImports = filterM is_pkg_import
      is_pkg_import :: GHC.GhcMonad m => InteractiveImport -> m Bool
      is_pkg_import (IIModule _) = return False
      is_pkg_import (IIDecl d)
-         = do pkgqual <- GHC.renameRawPkgQualM (unLoc $ ideclName d) (ideclPkgQual d)
+         = do pkgqual <- GHC.renameRawPkgQualM mod_name (ideclPkgQual d)
               e <- MC.try $ GHC.findQualifiedModule pkgqual mod_name
               case e :: Either SomeException Module of
                 Left _  -> return False
@@ -2304,7 +2296,30 @@ keepPackageImports = filterM is_pkg_import
         where
           mod_name = unLoc (ideclName d)
 
+{- Note [GHCi and local Preludes]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+GHC's compilation manager has no issues when the package being compiled
+defines its own local Prelude module. It'll just shadow the Prelude from base.
 
+GHCi however must check this condition, when it calls setContext ["Prelude"]
+to prepopulate the interactive session's scope. This is because of two facts.
+
+1. setContext must use previously compiled .hi interfaces only; it cannot
+recurse into compiling .hs modules (even with LinkIntoMemory), simply because
+it's not the right phase to do it. Import resolution happens way before GHC
+properly "loads" modules (GHC.Linker.Loader.loadModule, GHC.load & siblings);
+or in other words, at time of setContext the linker isn't even initialized yet.
+
+2. The local Prelude.hs (or .lhs) may've never been compiled before, so its
+interface file Prelude.hi can be outdated or altogether missing.
+
+Thankfully, there's a simple solution: just let CM load the local Prelude normally
+(either as a :load target, or as a dependency of another target) later. To do that,
+detect if the implicit `import Prelude` resolves to the "home unit" (i.e. not base),
+and if so, omit it from the early setContext call.
+
+If we don't, a HomeModError will be (correctly) thrown. See #10920.
+-}
 
 modulesLoadedMsg :: GHC.GhcMonad m => SuccessFlag -> [GHC.ModSummary] -> LoadType -> m ()
 modulesLoadedMsg ok mods load_type = do
@@ -2864,7 +2879,7 @@ checkAdd ii = do
        m <- GHC.lookupQualifiedModule pkgqual modname
        when safe $ do
            t <- GHC.isModuleTrusted m
-           when (not t) $ throwGhcException $ ProgramError $ ""
+           unless t $ throwGhcException $ ProgramError $ ""
 
 -- -----------------------------------------------------------------------------
 -- Update the GHC API's view of the context
@@ -2918,7 +2933,8 @@ getImplicitPreludeImports iidecls = do
                  , not (any (sameImpModule imp) iidecls) ]
             else []
 
-  return prel_iidecls
+  -- See Note [GHCi and local Preludes]
+  keepPackageImports prel_iidecls
 
 -- -----------------------------------------------------------------------------
 -- Utils on InteractiveImport
@@ -3487,7 +3503,7 @@ pprStopped res =
          <> text (GHC.resumeDecl res))
     <> char ',' <+> ppr (GHC.resumeSpan res)
  where
-  mb_mod_name = moduleName <$> GHC.breakInfo_module <$> GHC.resumeBreakInfo res
+  mb_mod_name = moduleName <$> ibi_tick_mod <$> GHC.resumeBreakpointId res
 
 showUnits :: GHC.GhcMonad m => m ()
 showUnits = do
@@ -4048,8 +4064,11 @@ ignoreCmd argLine = withSandboxOnly ":ignore" $ do
     case result of
       Left sdoc -> printForUser sdoc
       Right (loc, count)   -> do
-        let breakInfo = GHC.BreakInfo (breakModule loc) (breakTick loc)
-        setupBreakpoint breakInfo count
+        let bi = GHC.BreakpointId
+                  { bi_tick_mod   = breakModule loc
+                  , bi_tick_index = breakTick loc
+                  }
+        setupBreakpoint bi count
 
 ignoreSwitch :: GhciMonad m => [String] -> m (Either SDoc (BreakLocation, Int))
 ignoreSwitch [break, count] = do
@@ -4066,7 +4085,7 @@ getIgnoreCount str =
     where
       sdocIgnore = text "Ignore count" <+> quotes (text str)
 
-setupBreakpoint :: GhciMonad m => GHC.BreakInfo -> Int -> m()
+setupBreakpoint :: GhciMonad m => GHC.BreakpointId -> Int -> m()
 setupBreakpoint loc count = do
     hsc_env <- GHC.getSession
     GHC.setupBreakpoint hsc_env loc count
@@ -4555,7 +4574,7 @@ setBreakFlag :: GhciMonad m => Module -> Int -> Bool ->m ()
 setBreakFlag  md ix enaDisa = do
   let enaDisaToCount True = breakOn
       enaDisaToCount False = breakOff
-  setupBreakpoint (GHC.BreakInfo md ix) $ enaDisaToCount enaDisa
+  setupBreakpoint (GHC.BreakpointId md ix) $ enaDisaToCount enaDisa
 
 -- ---------------------------------------------------------------------------
 -- User code exception handling

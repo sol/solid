@@ -22,14 +22,14 @@ import qualified Solid.PP.IO as Prelude
 import           Data.List (intersperse)
 
 import           Data.Text.Internal (text)
-import           Data.Text.Internal.StrictBuilder (StrictBuilder)
+import           Data.Text.Internal.StrictBuilder (StrictTextBuilder)
 import qualified Data.Text.Internal.StrictBuilder as T
 import           Data.ByteString.Short (ShortByteString(..))
 import qualified Data.ByteString.Short as ShortByteString
 
 import           Solid.PP.Lexer (FastString(..))
 
-newtype Builder = Builder { unBuilder :: StrictBuilder }
+newtype Builder = Builder { unBuilder :: StrictTextBuilder }
   deriving newtype (Semigroup, Monoid)
 
 instance IsString Builder where
